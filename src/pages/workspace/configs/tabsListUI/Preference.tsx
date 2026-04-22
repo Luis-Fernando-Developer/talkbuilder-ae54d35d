@@ -1,88 +1,71 @@
-
-import { AlertCircle, Globe, LucideBell, Mail, MessageSquare, } from 'lucide-react'
+import { useState } from 'react'
+import { AlertCircle, Globe, LucideBell, Mail, MessageSquare } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Label } from '../../../../components/ui/label'
+import { Switch } from '../../../../components/ui/switch'
 
-export default function Preference() {      
+type NotificationKey = 'email' | 'push' | 'system' | 'product' | 'marketing'
+
+interface NotificationItem {
+  key: NotificationKey
+  icon: React.ElementType
+  title: string
+  description: string
+}
+
+const items: NotificationItem[] = [
+  { key: 'email', icon: Mail, title: 'Notificações por Email', description: 'Receba notificações no seu email' },
+  { key: 'push', icon: LucideBell, title: 'Notificações Push', description: 'Receba notificações no seu navegador' },
+  { key: 'system', icon: AlertCircle, title: 'Alerta de Sistema', description: 'Erros, limites de usos e alertas criticos' },
+  { key: 'product', icon: MessageSquare, title: 'Atualizações de Produto', description: 'Novos recursos e melhorias' },
+  { key: 'marketing', icon: Globe, title: 'Email Marketing', description: 'Promoções e ofertas especiais' },
+]
+
+export default function Preference() {
+  const [prefs, setPrefs] = useState<Record<NotificationKey, boolean>>({
+    email: true,
+    push: true,
+    system: true,
+    product: false,
+    marketing: false,
+  })
+
+  const toggle = (key: NotificationKey) => {
+    setPrefs((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
   return (
     <div>
-      <Card className='p-4 flex flex-col '>
+      <Card className="p-4 flex flex-col">
         <CardHeader>
-          <CardTitle className='text-2xl'>Preferências de Notificações</CardTitle>
+          <CardTitle className="text-2xl">Preferências de Notificações</CardTitle>
           <CardDescription>Escolha como você quer ser notificado</CardDescription>
         </CardHeader>
-        <CardContent className='flex flex-col gap-4'>
-          <div className='bg-gray-600/20 flex justify-between items-center p-4 rounded-lg'>
-            <div className='flex gap-2 items-center'>
-              <div className='flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center'>
-                <Mail  />
+        <CardContent className="flex flex-col gap-3">
+          {items.map(({ key, icon: Icon, title, description }) => (
+            <div
+              key={key}
+              className="bg-gray-600/20 flex justify-between items-center gap-4 p-4 rounded-lg"
+            >
+              <div className="flex gap-3 items-center min-w-0 flex-1">
+                <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center">
+                  <Icon className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col min-w-0 text-left">
+                  <Label htmlFor={`notif-${key}`} className="cursor-pointer truncate">
+                    {title}
+                  </Label>
+                  <CardDescription className="truncate">{description}</CardDescription>
+                </div>
               </div>
-              <div className='flex flex-col'>
-                <Label className='flex items-center space-x-2 cursor-pointer'>Notificações por Email</Label>
-                <CardDescription>Receba notificações no seu email</CardDescription>
-              </div>
+              <Switch
+                id={`notif-${key}`}
+                checked={prefs[key]}
+                onCheckedChange={() => toggle(key)}
+                className="flex-shrink-0"
+              />
             </div>
-            <div className='flex relative w-10 h-5 rounded-full border bg-green-300 cursor-pointer'>
-              <div className='absolute w-5 h-4 right-0 top-[50%] -translate-y-2/4 rounded-full bg-white transition-all duration-300 ease-in-out' />
-            </div>
-          </div>
-          <div className='bg-gray-600/20 flex justify-between items-center p-4 rounded-lg'>
-            <div className='flex gap-2 items-center'>
-              <div className='flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center'>
-                <LucideBell  />
-              </div>
-              <div className='flex flex-col'>
-                <Label className='flex items-center space-x-2 cursor-pointer'>Notificações Push</Label>
-                <CardDescription>Receba notificações no seu navegador</CardDescription>
-              </div>
-            </div>
-            <div className='flex relative w-10 h-5 rounded-full border bg-green-300 cursor-pointer'>
-              <div className='absolute w-5 h-4 right-0 top-[50%] -translate-y-2/4 rounded-full bg-white transition-all duration-300 ease-in-out' />
-            </div>
-          </div>
-         
-          <div className='bg-gray-600/20 flex justify-between items-center p-4 rounded-lg'>
-            <div className='flex gap-2 items-center'>
-              <div className='flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center'>
-                <AlertCircle   />
-              </div>
-              <div className='flex flex-col'>
-                <Label className='flex items-center space-x-2 cursor-pointer'>Alerta de Sistema</Label>
-                <CardDescription>Erros, limites de usos e alertas criticos</CardDescription>
-              </div>
-            </div>
-            <div className='flex relative w-10 h-5 rounded-full border bg-green-300 cursor-pointer'>
-              <div className='absolute w-5 h-4 right-0 top-[50%] -translate-y-2/4 rounded-full bg-white transition-all duration-300 ease-in-out' />
-            </div>
-          </div>
-          <div className='bg-gray-600/20 flex justify-between items-center p-4 rounded-lg'>
-            <div className='flex gap-2 items-center'>
-              <div className='flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center'>
-                <MessageSquare  />
-              </div>
-              <div className='flex flex-col'>
-                <Label className='flex items-center space-x-2 cursor-pointer'>Atualizações de Produto</Label>
-                <CardDescription>Novos recursos e melhorias</CardDescription>
-              </div>
-            </div>
-            <div className='flex relative w-10 h-5 rounded-full border bg-green-300 cursor-pointer'>
-              <div className='absolute w-5 h-4 right-0 top-[50%] -translate-y-2/4 rounded-full bg-white transition-all duration-300 ease-in-out' />
-            </div>
-          </div>
-          <div className='bg-gray-600/20 flex justify-between items-center p-4 rounded-lg'>
-            <div className='flex gap-2 items-center'>
-              <div className='flex-shrink-0 w-10 h-10 rounded-lg bg-gray-600/60 text-white flex items-center justify-center'>
-                <Globe  />
-              </div>
-              <div className='flex flex-col'>
-                <Label className='flex items-center space-x-2 cursor-pointer'>Email Marketing</Label>
-                <CardDescription>Promoções e ofertas especiais</CardDescription>
-              </div>
-            </div>
-            <div className='flex relative w-10 h-5 rounded-full border bg-green-300 cursor-pointer'>
-              <div className='absolute w-5 h-4 right-0 top-[50%] -translate-y-2/4 rounded-full bg-white transition-all duration-300 ease-in-out' />
-            </div>
-          </div>
+          ))}
         </CardContent>
       </Card>
     </div>
