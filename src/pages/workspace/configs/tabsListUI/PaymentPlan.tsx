@@ -11,6 +11,7 @@ import {
   Zap,
   Calendar,
   AlertCircle,
+  FlaskConical,
 } from 'lucide-react'
 import {
   Card,
@@ -23,6 +24,7 @@ import { Button } from '../../../../components/ui/button'
 import { Badge } from '../../../../components/ui/badge'
 import { Separator } from '../../../../components/ui/separator'
 import { Progress } from '../../../../components/ui/progress'
+import { usePlan, PLAN_LIMITS, type PlanId } from '../../../../context/PlanContext'
 
 type PlanId = 'starter' | 'pro' | 'business'
 
