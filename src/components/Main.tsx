@@ -65,10 +65,10 @@ export default function WorkspaceMain() {
 									emojiIcon={item.emoji}
 									title={item.title}
 									description={item.description}
-									onClick={() => {
-										setCurrentBotId(item.id);
-										window.location.href = `/workspace/bot/${item.id}`;
-									}}
+								onClick={() => {
+									setCurrentBotId(item.id);
+									navigate(`/workspace/bot/${item.id}`);
+								}}
 								/>
 							)}
 							</div>
