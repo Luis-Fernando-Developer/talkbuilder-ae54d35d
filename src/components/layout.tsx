@@ -38,11 +38,13 @@ export default function WorkspaceLayout({
 
 			const isBotEditor = pathname.startsWith("/workspace/bot/");
 
-			const showToolbar =
+			const showBreadcrumb =
 				!isBotEditor &&
 				(pathname === "/" ||
 					pathname === "/workspace" ||
 					pathname.startsWith("/workspace/folder/"));
+
+			const showToolbar = showBreadcrumb;
 		
 			const [openModalADD, setOpenModalADD] = useState(false);
 			const [addOption, setAddOption] = useState<"folder" | "bot">("folder");
