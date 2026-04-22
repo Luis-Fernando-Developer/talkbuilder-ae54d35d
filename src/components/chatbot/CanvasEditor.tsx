@@ -319,9 +319,9 @@ const CanvasContent = ({
   // every parent render (which caused containers to "disappear" right after
   // being added because handlers/refs were churned each render).
   useEffect(() => {
-    setNodes((currentNodes) => {
+    setNodes((currentNodes: FlowNode[]) => {
       const next: FlowNode[] = containers.map((container) => {
-        const existing = currentNodes.find((n) => n.id === container.id);
+        const existing = currentNodes.find((n: FlowNode) => n.id === container.id);
         return {
           id: container.id,
           type: 'container',
