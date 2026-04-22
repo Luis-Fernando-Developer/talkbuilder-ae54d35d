@@ -283,8 +283,13 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
   }, [isOpen, startContainer]);
 
   const processNextNode = async (container: Container, nodeIndex: number, extraVars: Record<string, string> = {}) => {
+    console.log("[TestPanel] processNextNode", { container: container?.id, nodeIndex, len: container?.nodes.length, edges });
     if (!container || nodeIndex >= container.nodes.length) {
-      const nextEdge = edges.find((edge) => edge.source === container.id);
+      // Find the default outgoing edge from the container (no sourceHandle, or the container's bottom handle)
+      const nextEdge = edges.find(
+        (edge) => edge.source === container.id && (!edge.sourceHandle || edge.sourceHandle === null)
+      ) || edges.find((edge) => edge.source === container.id);
+      console.log("[TestPanel] looking for next edge from container", container.id, "found:", nextEdge);
       if (nextEdge) {
         const nextContainer = allContainers.find((c) => c.id === nextEdge.target);
         if (nextContainer) {
@@ -571,6 +576,8 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
       setCurrentInputNode(node);
       setCurrentNodeIndex(nodeIndex);
     } else if (node.type.startsWith("input")) {
+      console.log("[TestPanel] reached input node, waiting for user", { nodeId: node.id, nodeType: node.type, containerId: container.id, nodeIndex });
+      setCurrentContainerId(container.id);
       setCurrentInputNode(node);
       setWaitingForInput(true);
       setCurrentNodeIndex(nodeIndex);
