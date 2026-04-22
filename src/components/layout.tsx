@@ -111,32 +111,34 @@ export default function WorkspaceLayout({
 		
 			return (
 				<div className="flex flex-col h-svh relative overflow-y-hidden">
-					<Header />
-					<Breadcrumb />
+					{!isBotEditor && <Header />}
+					{!isBotEditor && <Breadcrumb />}
 					<div className="flex-1 flex relative overflow-hidden">
-						<div className="flex ">
-							<FoldersSidebarNavigation />
-							{showToolbar && (
-								<div className="px-3 pt-3 ">
-									<AddOptionToolbar
-										onAddFolder={() => {
-											setAddOption("folder");
-											setOpenModalADD(true);
-										}}
-										onAddBot={() => {
-											setAddOption("bot");
-											setOpenModalADD(true);
-										}}
-									/>
-								</div>
-							)}
-						</div>
+						{!isBotEditor && (
+							<div className="flex ">
+								<FoldersSidebarNavigation />
+								{showToolbar && (
+									<div className="px-3 pt-3 ">
+										<AddOptionToolbar
+											onAddFolder={() => {
+												setAddOption("folder");
+												setOpenModalADD(true);
+											}}
+											onAddBot={() => {
+												setAddOption("bot");
+												setOpenModalADD(true);
+											}}
+										/>
+									</div>
+								)}
+							</div>
+						)}
 						<main className="flex flex-1 overflow-hidden">
 							<div className=" w-full px-0 overflow-y-auto">{children}</div>
 							<Toaster />
 						</main>
 					</div>
-		
+
 					<Dialog open={openModalADD} onOpenChange={setOpenModalADD}>
 						<DialogContent>
 							{addOption === "folder" && (
