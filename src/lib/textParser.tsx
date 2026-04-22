@@ -1,80 +1,96 @@
-import React from "react";
+import React from 'react';
 
-interface RenderOptions {
-  variableClassName?: string;
-  linkClassName?: string;
+interface TextSegment {
+  type: 'text' | 'variable' | 'link';
+  content: string;
+  url?: string;
 }
 
-type Segment =
-  | { type: "text"; value: string }
-  | { type: "variable"; name: string }
-  | { type: "link"; text: string; url: string };
-
-/**
- * Tokenize text containing {{variable}} and [text](url) markers
- * into a list of segments for safe rendering.
- */
-function tokenize(input: string): Segment[] {
-  const segments: Segment[] = [];
-  if (!input) return segments;
-
-  // Combined regex: variable or link
-  const regex = /\{\{\s*([\w.-]+)\s*\}\}|\[([^\]]+)\]\(([^)]+)\)/g;
+export const parseTextSegments = (text: string): TextSegment[] => {
+  const segments: TextSegment[] = [];
+  const combinedRegex = /\{\{([^}]+)\}\}|\[([^\]]+)\]\(([^)]+)\)/g;
   let lastIndex = 0;
-  let match: RegExpExecArray | null;
+  let match;
 
-  while ((match = regex.exec(input)) !== null) {
+  while ((match = combinedRegex.exec(text)) !== null) {
     if (match.index > lastIndex) {
-      segments.push({ type: "text", value: input.slice(lastIndex, match.index) });
+      segments.push({
+        type: 'text',
+        content: text.substring(lastIndex, match.index)
+      });
     }
+
     if (match[1]) {
-      segments.push({ type: "variable", name: match[1] });
+      segments.push({
+        type: 'variable',
+        content: match[1].trim()
+      });
     } else if (match[2] && match[3]) {
-      segments.push({ type: "link", text: match[2], url: match[3] });
+      segments.push({
+        type: 'link',
+        content: match[2].trim(),
+        url: match[3].trim()
+      });
     }
-    lastIndex = regex.lastIndex;
+
+    lastIndex = combinedRegex.lastIndex;
   }
 
-  if (lastIndex < input.length) {
-    segments.push({ type: "text", value: input.slice(lastIndex) });
+  if (lastIndex < text.length) {
+    segments.push({
+      type: 'text',
+      content: text.substring(lastIndex)
+    });
   }
 
   return segments;
-}
+};
 
-/**
- * Render a string with {{variable}} and [text](url) markers as React nodes.
- * Used by NodeItem previews and TestPanel chat bubbles.
- */
-export function renderTextSegments(
+export const renderTextSegments = (
   text: string,
-  options: RenderOptions = {},
-): React.ReactNode {
-  const {
-    variableClassName = "bg-primary/10 text-primary px-1 rounded",
-    linkClassName = "text-blue-600 underline",
-  } = options;
+  options?: {
+    variableClassName?: string;
+    linkClassName?: string;
+    onLinkClick?: (url: string) => void;
+  }
+) => {
+  const segments = parseTextSegments(text);
 
-  const segments = tokenize(text ?? "");
-  return segments.map((seg, idx) => {
-    if (seg.type === "text") return <span key={idx}>{seg.value}</span>;
-    if (seg.type === "variable") {
+  return segments.map((segment, index) => {
+    if (segment.type === 'variable') {
       return (
-        <span key={idx} className={variableClassName}>
-          {`{{${seg.name}}}`}
+        <span
+          key={index}
+          className={options?.variableClassName || "bg-orange-400 px-1 py-0.5 text-white rounded mx-0.5"}
+        >
+          {segment.content}
         </span>
       );
+    } else if (segment.type === 'link') {
+      const ensureAbsoluteUrl = (url: string) => {
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+          return `https://${url}`;
+        }
+        return url;
+      };
+
+      return (
+        <a
+          key={index}
+          href={ensureAbsoluteUrl(segment.url || '')}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={(e) => {
+            e.preventDefault();
+            window.open(ensureAbsoluteUrl(segment.url || ''), '_blank');
+          }}
+          className={options?.linkClassName || "text-blue-600 underline hover:text-blue-800"}
+        >
+          {segment.content}
+        </a>
+      );
+    } else {
+      return <span key={index}>{segment.content}</span>;
     }
-    return (
-      <a
-        key={idx}
-        href={seg.url}
-        target="_blank"
-        rel="noopener noreferrer"
-        className={linkClassName}
-      >
-        {seg.text}
-      </a>
-    );
   });
-}
+};

@@ -79,7 +79,7 @@ export const VariableModal = ({ open, onClose, onSelect }: VariableModalProps) =
               </p>
             ) : (
               <div className="max-h-48 overflow-y-auto space-y-1">
-                {filteredVariables.map((varName) => (
+                {filteredVariables.map((varName: string) => (
                   <button
                     key={varName}
                     onClick={() => handleSelect(varName)}

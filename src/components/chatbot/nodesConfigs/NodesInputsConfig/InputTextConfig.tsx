@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { VariableModal } from "@/components/chatbot/VariableModal";
-import { useVariables } from "@/contexts/VariablesContext";
+import { useVariables } from "@/context/VariablesContext";
 
 interface InputTextConfigProps {
   config: NodeConfig;

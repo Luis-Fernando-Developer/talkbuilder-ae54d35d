@@ -23,7 +23,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { useVariables } from "@/contexts/VariablesContext";
+import { useVariables } from "@/context/VariablesContext";
 import { Check, ChevronsUpDown, Plus, Trash2, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 

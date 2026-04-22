@@ -1,0 +1,1 @@
+export { VariablesProvider, useVariables } from "@/context/VariablesContext";

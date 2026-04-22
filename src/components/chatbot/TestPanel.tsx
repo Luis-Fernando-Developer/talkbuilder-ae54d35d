@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, File, Headphones, Play, Pause, Check } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Container, Node, ButtonConfig, Edge } from "@/types/chatbot";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useVariables } from "@/contexts/VariablesContext";
+import { X, Send, Headphones, Play, Pause } from "lucide-react";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { type Container, type Node, type ButtonConfig, type Edge } from "../../types/chatbot";
+import { ScrollArea } from "../../components/ui/scroll-area";
+import { Checkbox } from "../../components/ui/checkbox";
+import { useVariables } from "@/context/VariablesContext";
 import { renderTextSegments } from "@/lib/textParser";
 
 // Replace {{variableName}} with JSON.stringify(value) for safe JS interpolation

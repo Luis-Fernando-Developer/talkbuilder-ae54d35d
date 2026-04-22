@@ -59,7 +59,7 @@ const convertHTMLToText = (html: string): string => {
   return textarea.value;
 };
 
-export const TiptapEditor = ({ value, onChange, placeholder }: TiptapEditorProps) => {
+export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
   const [variableModalOpen, setVariableModalOpen] = useState(false);
   const [linkModalOpen, setLinkModalOpen] = useState(false);
 
