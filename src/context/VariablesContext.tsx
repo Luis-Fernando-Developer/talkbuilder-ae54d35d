@@ -6,7 +6,7 @@ type VariableContextType = {
   getAllVariableNames: () => string[];
   addVariable: (name: string, value?: any) => void;
   setVariable: (name: string, value: any) => void;
-  replaceVariablesInText: (text: string) => string;
+  replaceVariablesInText: (text: string, extraVars?: Record<string, any>) => string;
 };
 
 const VariablesContext = createContext<VariableContextType | null>(null);
