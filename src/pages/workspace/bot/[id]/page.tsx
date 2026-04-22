@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { CanvasEditor } from "@/components/chatbot/CanvasEditor";
 import { NodesSidebar } from "@/components/chatbot/NodesSidebar";
+import { TestPanel } from "@/components/chatbot/TestPanel";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import type { Container, Edge, Node, NodeType } from "@/types/chatbot";
