@@ -109,6 +109,7 @@ export default function WorkspaceLayout({
 		
 			return (
 				<div className="flex flex-col h-svh relative overflow-y-hidden">
+					<Header />
 					<Breadcrumb />
 					<div className="flex-1 flex relative overflow-hidden">
 						<div className="flex ">
