@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-// import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 
 import FolderIcon from "./FolderIcon";
 import BotIcon from "./BotIcon";
@@ -10,7 +10,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { useWorkspace } from "../context/WorkspaceContext";
 
 export default function WorkspaceMain() {
-	// const router = useRouter();
+	const navigate = useNavigate();
 
 	const { items, activeId } = useWorkspace();
 
