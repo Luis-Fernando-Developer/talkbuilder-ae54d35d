@@ -22,7 +22,7 @@ export default function ConfigurationWorkspace() {
 		<div className="relative flex border border-red-600 h-full overflow-hidden">
 			<div className='bg-gray-200/40 px-6 py-4 flex w-full flex-col items-center justify-start gap-4 h-full overflow-auto'>
 				<div className="flex-1 w-full text-left">
-					<h2 className="text-3xl font-bold">Configurações</h2>
+					<h2 className="text-3xl font-bold text-gray-600">Configurações</h2>
 					<span className=" text-sm">
 						Gerencie sua empresa, workspace e preferências
 					</span>
