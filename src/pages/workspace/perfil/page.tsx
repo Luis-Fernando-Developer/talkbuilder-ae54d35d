@@ -39,7 +39,7 @@ export default function UserProfile() {
   
 
   return (
-    <div className='relative pt-16 box-border w-full overflow-hidden flex items-center justify-center '>
+    <div className='relative box-border w-full overflow-hidden flex items-center justify-center '>
       
       <div className=' w-full  flex flex-col items-center justify-start box-border overflow-auto h-full '>
         <div className='relative flex w-full '>
