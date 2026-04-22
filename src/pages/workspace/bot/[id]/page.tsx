@@ -123,6 +123,7 @@ export default function BotPage() {
   };
 
   return (
+    <VariablesProvider>
     <div className="fixed inset-0 flex flex-col bg-gray-950 z-50">
       {/* Header customizado do editor */}
       <header className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-800 text-white">
