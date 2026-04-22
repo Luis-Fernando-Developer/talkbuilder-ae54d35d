@@ -697,7 +697,7 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
       <div className="flex flex-col w-full h-full">
         <div className="h-14 border-b border-border px-3 flex items-center justify-between bg-gradient-to-r from-primary/20 via-card to-card">
           <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "var(--bot-flow)" }} />
             <h2 className="font-semibold text-sm text-foreground">Teste do Fluxo</h2>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
