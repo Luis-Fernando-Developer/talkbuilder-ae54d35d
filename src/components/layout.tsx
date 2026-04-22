@@ -36,6 +36,7 @@ export default function WorkspaceLayout({
 			const { pathname } = useLocation();
 
 			const showToolbar =
+				pathname === "/" ||
 				pathname === "/workspace" ||
 				pathname.startsWith("/workspace/folder/");
 			// const showToolbar = true;
