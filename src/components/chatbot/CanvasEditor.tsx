@@ -299,10 +299,10 @@ const CanvasContent = ({
 
   const onConnect = useCallback(
     (params: Connection | FlowEdge) => {
-      setEdges((eds) => {
+      setEdges((eds: FlowEdge[]) => {
         const newEdges = addEdge(params, eds);
         if (onEdgesChangeProp) {
-          onEdgesChangeProp(newEdges.map(e => ({
+          onEdgesChangeProp(newEdges.map((e: FlowEdge) => ({
             source: e.source,
             target: e.target,
             sourceHandle: e.sourceHandle || undefined
@@ -319,9 +319,9 @@ const CanvasContent = ({
   // every parent render (which caused containers to "disappear" right after
   // being added because handlers/refs were churned each render).
   useEffect(() => {
-    setNodes((currentNodes) => {
+    setNodes((currentNodes: FlowNode[]) => {
       const next: FlowNode[] = containers.map((container) => {
-        const existing = currentNodes.find((n) => n.id === container.id);
+        const existing = currentNodes.find((n: FlowNode) => n.id === container.id);
         return {
           id: container.id,
           type: 'container',
@@ -362,9 +362,9 @@ const CanvasContent = ({
     onEdgesChange(changes);
     // After applying changes, sync with parent state
     setTimeout(() => {
-      setEdges((currentEdges) => {
+      setEdges((currentEdges: FlowEdge[]) => {
         if (onEdgesChangeProp) {
-          onEdgesChangeProp(currentEdges.map(e => ({
+          onEdgesChangeProp(currentEdges.map((e: FlowEdge) => ({
             source: e.source,
             target: e.target,
             sourceHandle: e.sourceHandle || undefined
