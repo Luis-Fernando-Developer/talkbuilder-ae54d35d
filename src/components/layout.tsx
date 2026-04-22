@@ -114,7 +114,7 @@ export default function WorkspaceLayout({
 			return (
 				<div className="flex flex-col h-svh relative overflow-y-hidden">
 					{!isBotEditor && <Header />}
-					{!isBotEditor && <Breadcrumb />}
+					{showBreadcrumb && <Breadcrumb />}
 					<div className="flex-1 flex relative overflow-hidden">
 						{!isBotEditor && (
 							<div className="flex ">
