@@ -16,6 +16,7 @@ import { useLocation } from "react-router-dom";
 import FoldersSidebarNavigation from "./FoldersSidebarNavigation";
 import AddOptionToolbar from "./AddOptionToolbar";
 import Breadcrumb from "./Breadcrumb";
+import Header from "./Header";
 import { Toaster } from "./ui/toaster";
 
 export default function WorkspaceLayout({
