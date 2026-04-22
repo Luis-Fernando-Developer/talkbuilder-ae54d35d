@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, Image as ImageIcon, Video as VideoIcon, FileText, Mic, Camera, Upload, Trash2, StopCircle } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge } from "../../types/chatbot";
@@ -252,6 +252,15 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
   const [isMultipleChoice, setIsMultipleChoice] = useState(false);
   const [selectedButtons, setSelectedButtons] = useState<string[]>([]);
   const [submitLabel, setSubmitLabel] = useState("Enviar");
+  // Media upload state
+  const [mediaPreview, setMediaPreview] = useState<{ url: string; name?: string } | null>(null);
+  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
+  const [recordingTime, setRecordingTime] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const recordedChunksRef = useRef<Blob[]>([]);
+  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
   const pendingVarsRef = useRef<Record<string, string>>({});
 
   useEffect(() => {
@@ -264,6 +273,8 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
       setActiveButtons([]);
       setIsMultipleChoice(false);
       setSelectedButtons([]);
+      setMediaPreview(null);
+      setIsRecordingAudio(false);
       pendingVarsRef.current = {};
       // Reset all variables so a fresh test session doesn't reuse stale values
       setVariables({});
@@ -676,6 +687,121 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
     }
   };
 
+  // Determine which media-input type the current input node expects
+  const mediaInputType: "image" | "video" | "audio" | "document" | null = (() => {
+    if (!currentInputNode) return null;
+    switch (currentInputNode.type) {
+      case "input-image": return "image";
+      case "input-video": return "video";
+      case "input-audio": return "audio";
+      case "input-document": return "document";
+      default: return null;
+    }
+  })();
+
+  const isMediaInput = mediaInputType !== null;
+
+  const acceptByType: Record<string, string> = {
+    image: "image/*",
+    video: "video/*",
+    audio: "audio/*",
+    document: ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+
+  const placeholderByType: Record<string, string> = {
+    image: "Toque para enviar uma imagem",
+    video: "Toque para enviar um vídeo",
+    audio: "Toque para gravar ou enviar áudio",
+    document: "Toque para enviar um documento",
+  };
+
+  const readFileAsDataUrl = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+  const handleFilePick = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      setMediaPreview({ url: dataUrl, name: file.name });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const startAudioRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recordedChunksRef.current = [];
+      const recorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = recorder;
+      recorder.ondataavailable = (ev) => {
+        if (ev.data.size > 0) recordedChunksRef.current.push(ev.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(recordedChunksRef.current, { type: "audio/webm" });
+        const reader = new FileReader();
+        reader.onload = () => {
+          setMediaPreview({ url: reader.result as string, name: "gravacao.webm" });
+        };
+        reader.readAsDataURL(blob);
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      recorder.start();
+      setIsRecordingAudio(true);
+      setRecordingTime(0);
+      recordingTimerRef.current = setInterval(() => {
+        setRecordingTime((t) => t + 1);
+      }, 1000);
+    } catch (err) {
+      console.error("Erro ao acessar microfone:", err);
+      alert("Não foi possível acessar o microfone.");
+    }
+  };
+
+  const stopAudioRecording = () => {
+    mediaRecorderRef.current?.stop();
+    if (recordingTimerRef.current) {
+      clearInterval(recordingTimerRef.current);
+      recordingTimerRef.current = null;
+    }
+    setIsRecordingAudio(false);
+  };
+
+  const handleSendMedia = () => {
+    if (!mediaPreview || !currentInputNode || !mediaInputType) return;
+    const saveVariable = currentInputNode.config.saveVariable;
+    if (saveVariable) {
+      setVariable(saveVariable, mediaPreview.url);
+      pendingVarsRef.current[saveVariable] = mediaPreview.url;
+    }
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: Date.now().toString(),
+        type: "user",
+        content: mediaInputType === "document" ? (mediaPreview.name || "documento") : mediaPreview.url,
+        isImage: mediaInputType === "image",
+        isVideo: mediaInputType === "video",
+        isAudio: mediaInputType === "audio",
+        isFile: mediaInputType === "document",
+        alt: mediaPreview.name,
+      },
+    ]);
+    setMediaPreview(null);
+    setWaitingForInput(false);
+    setCurrentInputNode(null);
+    const currentContainer = allContainers.find((c) => c.id === currentContainerId);
+    if (currentContainer) setTimeout(() => processNextNode(currentContainer, currentNodeIndex + 1, pendingVarsRef.current), 500);
+  };
+
   const handleSendMessage = () => {
     if (!currentInput.trim() || !waitingForInput) return;
     if (currentInputNode?.config.saveVariable) {
@@ -688,6 +814,12 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
     setCurrentInputNode(null);
     const currentContainer = allContainers.find((c) => c.id === currentContainerId);
     if (currentContainer) setTimeout(() => processNextNode(currentContainer, currentNodeIndex + 1, pendingVarsRef.current), 500);
+  };
+
+  const formatRecTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${m}:${sec.toString().padStart(2, "0")}`;
   };
 
   if (!isOpen) return null;
@@ -726,6 +858,11 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
                     <div className="flex items-center gap-2">
                       <Headphones className="h-4 w-4 flex-shrink-0" />
                       <AudioPlayer src={message.content} autoPlay={message.autoplay} />
+                    </div>
+                  ) : message.isFile ? (
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate max-w-[180px]">{message.content}</span>
                     </div>
                   ) : (
                     renderTextSegments(message.content)
@@ -776,18 +913,135 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
           </div>
         )}
         {waitingForInput && !waitingForButton && (
-          <div className="p-3 border-t border-border flex gap-2 bg-card">
-            <Input
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Digite..."
-              className="flex-1 bg-background border-border"
-            />
-            <Button size="icon" onClick={handleSendMessage}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+          isMediaInput ? (
+            <div className="p-3 border-t border-border bg-card space-y-2">
+              {/* Preview da mídia escolhida */}
+              {mediaPreview && (
+                <div className="rounded-lg border border-border bg-muted/40 p-2 space-y-2">
+                  {mediaInputType === "image" && (
+                    <img src={mediaPreview.url} alt="preview" className="max-h-40 mx-auto rounded" />
+                  )}
+                  {mediaInputType === "video" && (
+                    <video src={mediaPreview.url} controls className="max-h-40 w-full rounded" />
+                  )}
+                  {mediaInputType === "audio" && (
+                    <audio src={mediaPreview.url} controls className="w-full" />
+                  )}
+                  {mediaInputType === "document" && (
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span className="truncate">{mediaPreview.name || "documento"}</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={() => setMediaPreview(null)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Remover
+                  </Button>
+                </div>
+              )}
+
+              {/* Gravação de áudio em andamento */}
+              {isRecordingAudio && (
+                <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2">
+                  <div className="flex items-center gap-2 text-destructive text-sm">
+                    <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                    Gravando... {formatRecTime(recordingTime)}
+                  </div>
+                  <Button size="sm" variant="destructive" onClick={stopAudioRecording}>
+                    <StopCircle className="h-4 w-4 mr-1" /> Parar
+                  </Button>
+                </div>
+              )}
+
+              {/* Botões de captura/upload */}
+              {!mediaPreview && !isRecordingAudio && (
+                <div className="space-y-2">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors bg-muted/20"
+                  >
+                    {mediaInputType === "image" && <ImageIcon className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "video" && <VideoIcon className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "audio" && <Headphones className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "document" && <FileText className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    <p className="text-xs text-muted-foreground">{placeholderByType[mediaInputType!]}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-1" /> Enviar arquivo
+                    </Button>
+                    {(mediaInputType === "image" || mediaInputType === "video") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => cameraInputRef.current?.click()}
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        {mediaInputType === "image" ? "Câmera" : "Gravar"}
+                      </Button>
+                    )}
+                    {mediaInputType === "audio" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={startAudioRecording}
+                      >
+                        <Mic className="h-4 w-4 mr-1" /> Gravar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Botão de envio */}
+              {mediaPreview && (
+                <Button className="w-full" onClick={handleSendMedia}>
+                  <Send className="h-4 w-4 mr-1" /> Enviar
+                </Button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={acceptByType[mediaInputType!]}
+                className="hidden"
+                onChange={handleFilePick}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept={mediaInputType === "video" ? "video/*" : "image/*"}
+                capture="environment"
+                className="hidden"
+                onChange={handleFilePick}
+              />
+            </div>
+          ) : (
+            <div className="p-3 border-t border-border flex gap-2 bg-card">
+              <Input
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Digite..."
+                className="flex-1 bg-background border-border"
+              />
+              <Button size="icon" onClick={handleSendMessage}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          )
         )}
       </div>
     </aside>
