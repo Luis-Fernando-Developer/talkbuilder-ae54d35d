@@ -79,6 +79,16 @@ export default function BotPage() {
     saveFlow(botId, { containers, edges });
   }, [botId, containers, edges, hydrated]);
 
+  // Force dark theme variables while inside the bot editor (so Radix portals inherit too)
+  useEffect(() => {
+    const root = document.documentElement;
+    const hadDark = root.classList.contains("dark");
+    root.classList.add("dark");
+    return () => {
+      if (!hadDark) root.classList.remove("dark");
+    };
+  }, []);
+
   const handleAddBlock = () => {
     const position = getCenter
       ? getCenter()
