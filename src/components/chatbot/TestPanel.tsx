@@ -913,18 +913,135 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
           </div>
         )}
         {waitingForInput && !waitingForButton && (
-          <div className="p-3 border-t border-border flex gap-2 bg-card">
-            <Input
-              value={currentInput}
-              onChange={(e) => setCurrentInput(e.target.value)}
-              onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-              placeholder="Digite..."
-              className="flex-1 bg-background border-border"
-            />
-            <Button size="icon" onClick={handleSendMessage}>
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
+          isMediaInput ? (
+            <div className="p-3 border-t border-border bg-card space-y-2">
+              {/* Preview da mídia escolhida */}
+              {mediaPreview && (
+                <div className="rounded-lg border border-border bg-muted/40 p-2 space-y-2">
+                  {mediaInputType === "image" && (
+                    <img src={mediaPreview.url} alt="preview" className="max-h-40 mx-auto rounded" />
+                  )}
+                  {mediaInputType === "video" && (
+                    <video src={mediaPreview.url} controls className="max-h-40 w-full rounded" />
+                  )}
+                  {mediaInputType === "audio" && (
+                    <audio src={mediaPreview.url} controls className="w-full" />
+                  )}
+                  {mediaInputType === "document" && (
+                    <div className="flex items-center gap-2 text-sm text-foreground">
+                      <FileText className="h-4 w-4" />
+                      <span className="truncate">{mediaPreview.name || "documento"}</span>
+                    </div>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="w-full text-destructive hover:text-destructive"
+                    onClick={() => setMediaPreview(null)}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" /> Remover
+                  </Button>
+                </div>
+              )}
+
+              {/* Gravação de áudio em andamento */}
+              {isRecordingAudio && (
+                <div className="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2">
+                  <div className="flex items-center gap-2 text-destructive text-sm">
+                    <span className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
+                    Gravando... {formatRecTime(recordingTime)}
+                  </div>
+                  <Button size="sm" variant="destructive" onClick={stopAudioRecording}>
+                    <StopCircle className="h-4 w-4 mr-1" /> Parar
+                  </Button>
+                </div>
+              )}
+
+              {/* Botões de captura/upload */}
+              {!mediaPreview && !isRecordingAudio && (
+                <div className="space-y-2">
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    className="border-2 border-dashed border-border rounded-lg p-4 text-center cursor-pointer hover:border-primary/50 transition-colors bg-muted/20"
+                  >
+                    {mediaInputType === "image" && <ImageIcon className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "video" && <VideoIcon className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "audio" && <Headphones className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    {mediaInputType === "document" && <FileText className="h-6 w-6 mx-auto mb-1 text-muted-foreground" />}
+                    <p className="text-xs text-muted-foreground">{placeholderByType[mediaInputType!]}</p>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="flex-1"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-4 w-4 mr-1" /> Enviar arquivo
+                    </Button>
+                    {(mediaInputType === "image" || mediaInputType === "video") && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => cameraInputRef.current?.click()}
+                      >
+                        <Camera className="h-4 w-4 mr-1" />
+                        {mediaInputType === "image" ? "Câmera" : "Gravar"}
+                      </Button>
+                    )}
+                    {mediaInputType === "audio" && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="flex-1"
+                        onClick={startAudioRecording}
+                      >
+                        <Mic className="h-4 w-4 mr-1" /> Gravar
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Botão de envio */}
+              {mediaPreview && (
+                <Button className="w-full" onClick={handleSendMedia}>
+                  <Send className="h-4 w-4 mr-1" /> Enviar
+                </Button>
+              )}
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={acceptByType[mediaInputType!]}
+                className="hidden"
+                onChange={handleFilePick}
+              />
+              <input
+                ref={cameraInputRef}
+                type="file"
+                accept={mediaInputType === "video" ? "video/*" : "image/*"}
+                capture="environment"
+                className="hidden"
+                onChange={handleFilePick}
+              />
+            </div>
+          ) : (
+            <div className="p-3 border-t border-border flex gap-2 bg-card">
+              <Input
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Digite..."
+                className="flex-1 bg-background border-border"
+              />
+              <Button size="icon" onClick={handleSendMessage}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+          )
         )}
       </div>
     </aside>
