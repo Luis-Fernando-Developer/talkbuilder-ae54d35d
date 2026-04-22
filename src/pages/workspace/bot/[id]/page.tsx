@@ -207,11 +207,19 @@ export default function BotPage() {
             onContainersChange={setContainers}
             edges={edges}
             onEdgesChange={setEdges}
-            onTest={() => {}}
+            onTest={(container) => setTestContainer(container)}
             onGetCenterPosition={(getter) => setGetCenter(() => getter)}
           />
         </div>
       </div>
+
+      <TestPanel
+        isOpen={testContainer !== null}
+        onClose={() => setTestContainer(null)}
+        startContainer={testContainer}
+        allContainers={containers}
+        edges={edges}
+      />
     </div>
   );
 }
