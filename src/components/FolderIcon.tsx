@@ -9,13 +9,20 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader } from "./ui/card";
 
 
+interface FolderIconProps {
+	id: string;
+	title: string;
+	emojiIcon?: string;
+	description?: string;
+	onCLick?: () => void;
+	setCurrentFolderId?: (id: string) => void;
+}
+
 function FolderIconComponent({
 	id,
 	title,
 	emojiIcon,
-	
-	// setCurrentFolderId,
-}) {
+}: FolderIconProps) {
 	const [optionBot, setOptionBot] = useState<"Excluir" | "Editar">("Editar");
 	
 	const router = useNavigate();

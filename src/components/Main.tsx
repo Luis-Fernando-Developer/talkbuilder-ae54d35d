@@ -59,17 +59,18 @@ export default function WorkspaceMain() {
 										// router={router}
 										setCurrentFolderId={setCurrentFolderId}
 									/>
-								) : (
-									<BotIcon
-										id={item.id}
-										emojiIcon={item.emoji}
-										title={item.title}
-										description={item.description}
-										onClick={() => {
-											setCurrentBotId(item.id);
-										}}
-									/>
-								)}
+							) : (
+								<BotIcon
+									id={item.id}
+									emojiIcon={item.emoji}
+									title={item.title}
+									description={item.description}
+									onClick={() => {
+										setCurrentBotId(item.id);
+										window.location.href = `/workspace/bot/${item.id}`;
+									}}
+								/>
+							)}
 							</div>
 						))}
 					</div>

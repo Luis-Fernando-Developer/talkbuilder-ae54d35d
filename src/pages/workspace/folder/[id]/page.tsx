@@ -43,26 +43,27 @@ export default function FolderPage() {
 						{currentItems.map((item) => (
 							<div key={item.id} className="w-fit">
 								{item.type === "folder" ? (
-									<FolderIcon
-										id={item.id}
-										emojiIcon={item.emoji}
-										title={item.title}
-										description={item.description}
-										onCLick={() => {
-											router(`/workspace/folder/${item.id}`);
-										}}
-									/>
-								) : (
-									<BotIcon
-										id={item.id}
-										onClick={() => {
-											setCurrentBotId(item.id);
-										}}
-										title={item.title}
-										emojiIcon={item.emoji ?? "🤖"}
-										description={item.description}
-									/>
-								)}
+								<FolderIcon
+									id={item.id}
+									emojiIcon={item.emoji}
+									title={item.title}
+									description={item.description}
+									onCLick={() => {
+										router(`/workspace/folder/${item.id}`);
+									}}
+								/>
+							) : (
+								<BotIcon
+									id={item.id}
+									onClick={() => {
+										setCurrentBotId(item.id);
+										router(`/workspace/bot/${item.id}`);
+									}}
+									title={item.title}
+									emojiIcon={item.emoji ?? "🤖"}
+									description={item.description}
+								/>
+							)}
 							</div>
 						))}
 					</div>

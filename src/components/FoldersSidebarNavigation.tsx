@@ -87,6 +87,17 @@ export default function FoldersSidebarNavigation() {
 	);
 }
 
+interface SidebarItemProps {
+	folder: any;
+	level: number;
+	isOpen: boolean;
+	onToggle: () => void;
+	renderTree: (parentId: string | null, level?: number) => React.ReactNode;
+	currentFolderId: string | null;
+	childSelected: boolean;
+	hasChildren: boolean;
+}
+
 function SidebarItem({
 	folder,
 	level,
@@ -96,7 +107,7 @@ function SidebarItem({
 	currentFolderId,
 	childSelected,
 	hasChildren,
-}) {
+}: SidebarItemProps) {
 	const router = useNavigate();
 
 	const {
