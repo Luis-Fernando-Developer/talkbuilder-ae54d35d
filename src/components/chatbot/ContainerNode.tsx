@@ -1,7 +1,7 @@
 import { memo, useEffect, useRef, useState } from "react";
 import { Handle, Position, NodeProps } from 'reactflow';
 import { MoreVertical } from "lucide-react";
-import { Container, Node, ButtonConfig, ConditionGroup } from "@/types/chatbot";
+import { Container, ButtonConfig, ConditionGroup } from "@/types/chatbot";
 import { NodeItem } from "./NodeItem";
 import { ButtonGroupNodeItem } from "./ButtonGroupNodeItem";
 import { ConditionNodeItem } from "./ConditionNodeItem";
