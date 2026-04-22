@@ -14,6 +14,7 @@ import { NodesSidebar } from "@/components/chatbot/NodesSidebar";
 import { TestPanel } from "@/components/chatbot/TestPanel";
 import { Button } from "@/components/ui/button";
 import { useWorkspace } from "@/context/WorkspaceContext";
+import { VariablesProvider } from "@/context/VariablesContext";
 import type { Container, Edge, Node, NodeType } from "@/types/chatbot";
 import { toast } from "sonner";
 
@@ -122,6 +123,7 @@ export default function BotPage() {
   };
 
   return (
+    <VariablesProvider>
     <div className="fixed inset-0 flex flex-col bg-gray-950 z-50">
       {/* Header customizado do editor */}
       <header className="flex items-center gap-2 px-3 py-2 bg-gray-900 border-b border-gray-800 text-white">
@@ -221,5 +223,6 @@ export default function BotPage() {
         edges={edges}
       />
     </div>
+    </VariablesProvider>
   );
 }
