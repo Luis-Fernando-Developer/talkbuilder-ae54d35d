@@ -947,7 +947,13 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
                     <video src={mediaPreview.url} controls className="max-h-40 w-full rounded" />
                   )}
                   {mediaInputType === "audio" && (
-                    <audio src={mediaPreview.url} controls className="w-full" />
+                    <div
+                      className="rounded-xl px-3 py-2 flex items-center gap-2"
+                      style={{ background: "var(--user-msg-bg)", color: "var(--user-msg-fg)" }}
+                    >
+                      <Headphones className="h-4 w-4 flex-shrink-0" />
+                      <AudioPlayer src={mediaPreview.url} />
+                    </div>
                   )}
                   {mediaInputType === "document" && (
                     <div className="flex items-center gap-2 text-sm text-foreground">
