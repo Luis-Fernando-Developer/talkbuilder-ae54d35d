@@ -30,10 +30,13 @@ export function VariablesProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const replaceVariablesInText = useCallback(
-    (text: string) => {
+    (text: string, extraVars?: Record<string, any>) => {
       if (!text) return text;
       return text.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, key) => {
-        const v = variables[key];
+        // Prioritize extraVars (fresh values passed during flow execution)
+        // over the React state `variables` (which can be stale due to closures)
+        const v =
+          extraVars && key in extraVars ? extraVars[key] : variables[key];
         return v == null ? "" : String(v);
       });
     },
