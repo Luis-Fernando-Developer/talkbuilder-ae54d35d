@@ -240,7 +240,7 @@ interface Message {
 }
 
 export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edges = [] }: TestPanelProps) => {
-  const { replaceVariablesInText, setVariable, variables } = useVariables();
+  const { replaceVariablesInText, setVariable, variables, setVariables } = useVariables();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
   const [currentContainerId, setCurrentContainerId] = useState<string | null>(null);
@@ -265,6 +265,8 @@ export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edge
       setIsMultipleChoice(false);
       setSelectedButtons([]);
       pendingVarsRef.current = {};
+      // Reset all variables so a fresh test session doesn't reuse stale values
+      setVariables({});
       processNextNode(startContainer, 0, {});
     }
   }, [isOpen, startContainer]);
