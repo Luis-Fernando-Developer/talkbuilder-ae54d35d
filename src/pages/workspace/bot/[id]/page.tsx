@@ -223,5 +223,6 @@ export default function BotPage() {
         edges={edges}
       />
     </div>
+    </VariablesProvider>
   );
 }
