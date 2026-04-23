@@ -12,7 +12,7 @@ import { useState } from "react";
 import * as DropdownMenu from "@radix-ui/react-dropdown-menu";
 import { useWorkspace, WorkspaceProvider } from "../context/WorkspaceContext";
 import { PlanProvider } from "../context/PlanContext";
-import { EmbedProvider, useEmbed } from "../context/EmbedContext";
+import { useEmbed } from "../context/EmbedContext";
 import DnDProvider from "../context/DnDProvider";
 import { useLocation } from "react-router-dom";
 import FoldersSidebarNavigation from "./FoldersSidebarNavigation";
@@ -27,15 +27,13 @@ export default function WorkspaceLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<EmbedProvider>
-			<WorkspaceProvider>
-				<PlanProvider>
-					<DnDProvider>
-						<WorkspaceLayoutContent>{children}</WorkspaceLayoutContent>
-					</DnDProvider>
-				</PlanProvider>
-			</WorkspaceProvider>
-		</EmbedProvider>
+		<WorkspaceProvider>
+			<PlanProvider>
+				<DnDProvider>
+					<WorkspaceLayoutContent>{children}</WorkspaceLayoutContent>
+				</DnDProvider>
+			</PlanProvider>
+		</WorkspaceProvider>
 	);
 		function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 			const { items, setItems } = useWorkspace();
