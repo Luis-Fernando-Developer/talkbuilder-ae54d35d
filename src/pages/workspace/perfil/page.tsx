@@ -188,7 +188,45 @@ export default function UserProfile() {
 		if (fileInputRef.current) fileInputRef.current.value = "";
 	}
 
+	async function handleAvatarRemove() {
+		if (!user) return;
+		const supabase = getSupabase();
+		if (!supabase) return;
+		setUploading(true);
+
+		// best-effort: remover arquivos antigos da pasta do usuário
+		try {
+			const { data: list } = await supabase.storage
+				.from("avatars")
+				.list(user.id);
+			if (list && list.length > 0) {
+				await supabase.storage
+					.from("avatars")
+					.remove(list.map((f) => `${user.id}/${f.name}`));
+			}
+		} catch (err) {
+			console.warn("falha ao limpar arquivos antigos:", err);
+		}
+
+		const { error: updErr } = await supabase
+			.from("profiles")
+			.update({ avatar_url: null })
+			.eq("id", user.id);
+		setUploading(false);
+
+		if (updErr) {
+			toast({ title: "Erro ao remover foto", description: updErr.message });
+			return;
+		}
+		setData((d) => ({ ...d, avatar_url: null }));
+		setDraft((d) => ({ ...d, avatar_url: null }));
+		await refreshProfile();
+		toast({ title: "Foto removida" });
+	}
+
 	if (!user) return null;
+
+	const initials = getInitials(data.display_name || user.email, "?");
 
 	return (
 		<div className="relative box-border w-full overflow-hidden flex items-center justify-center ">
@@ -204,14 +242,16 @@ export default function UserProfile() {
 										className="w-24 h-24 rounded-full object-cover"
 									/>
 								) : (
-									<User2 className="w-24 h-24 text-xs text-white" />
+									<div className="w-24 h-24 rounded-full bg-[#06B6D4] flex items-center justify-center text-white text-3xl font-semibold select-none">
+										{initials}
+									</div>
 								)}
 								<button
 									type="button"
 									onClick={() => fileInputRef.current?.click()}
 									disabled={uploading}
 									className="absolute -bottom-2.5 -right-2 w-8 h-8 text-white border-2 border-white bg-[#06B6D4] rounded-full p-1.5 cursor-pointer disabled:opacity-60"
-									title="Alterar foto"
+									title={data.avatar_url ? "Trocar foto" : "Adicionar foto"}
 								>
 									{uploading ? (
 										<Loader2 className="w-full h-full animate-spin" />
@@ -219,6 +259,17 @@ export default function UserProfile() {
 										<Camera className="w-full h-full" />
 									)}
 								</button>
+								{data.avatar_url && !uploading && (
+									<button
+										type="button"
+										onClick={handleAvatarRemove}
+										disabled={uploading}
+										className="absolute -bottom-2.5 -left-2 w-8 h-8 text-white border-2 border-white bg-red-500 hover:bg-red-600 rounded-full p-1.5 cursor-pointer disabled:opacity-60"
+										title="Remover foto"
+									>
+										<Trash2 className="w-full h-full" />
+									</button>
+								)}
 								<input
 									ref={fileInputRef}
 									type="file"
