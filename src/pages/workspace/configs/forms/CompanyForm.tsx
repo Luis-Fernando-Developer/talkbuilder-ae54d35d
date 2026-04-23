@@ -41,7 +41,11 @@ const EMPTY: CompanyFormData = {
 	webSite: "",
 };
 
-export function CompanyForm() {
+type CompanyFormProps = {
+	onNameChange?: (name: string) => void;
+};
+
+export function CompanyForm({ onNameChange }: CompanyFormProps = {}) {
 	const { toast } = useToast();
 	const { user } = useAuth();
 	const [loading, setLoading] = useState(true);
