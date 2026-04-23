@@ -218,7 +218,7 @@ export default function SignupPage() {
 											<Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
 										)}
 										{slugStatus === "available" && (
-											<Check className="w-4 h-4 text-green-600" />
+											<Check className="w-4 h-4 text-primary" />
 										)}
 										{(slugStatus === "taken" || slugStatus === "invalid") && (
 											<X className="w-4 h-4 text-destructive" />
