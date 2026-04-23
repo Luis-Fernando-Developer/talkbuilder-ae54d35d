@@ -1,11 +1,60 @@
 import {SiInstagram, SiTelegram, SiWhatsapp} from '@icons-pack/react-simple-icons'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../../../components/ui/card'
 import { Button } from '../../../../components/ui/button'
-import { CalendarCheck2, Ellipsis } from 'lucide-react'
+import { Input } from '../../../../components/ui/input'
+import { Label } from '../../../../components/ui/label'
+import { CalendarCheck2, Database, Ellipsis, CheckCircle2, XCircle } from 'lucide-react'
 import { useEmbed } from '../../../../context/EmbedContext'
+import { useState, useEffect } from 'react'
+import {
+  getSupabaseConfig,
+  saveSupabaseConfig,
+  clearSupabaseConfig,
+} from '../../../../lib/supabaseClient'
+import { useToast } from '../../../../hooks/use-toast'
 
 export default function IntegrationsSettings() {
   const { flags } = useEmbed();
+  const { toast } = useToast();
+  const [url, setUrl] = useState('');
+  const [anonKey, setAnonKey] = useState('');
+  const [connected, setConnected] = useState(false);
+
+  useEffect(() => {
+    const cfg = getSupabaseConfig();
+    if (cfg) {
+      setUrl(cfg.url);
+      setAnonKey(cfg.anonKey);
+      setConnected(true);
+    }
+  }, []);
+
+  function handleSave() {
+    if (!url.trim() || !anonKey.trim()) {
+      toast({ title: 'Preencha URL e Anon Key', variant: 'destructive' });
+      return;
+    }
+    try {
+      // valida URL
+      new URL(url.trim());
+    } catch {
+      toast({ title: 'URL inválida', description: 'Ex.: https://xxxx.supabase.co', variant: 'destructive' });
+      return;
+    }
+    saveSupabaseConfig({ url: url.trim(), anonKey: anonKey.trim() });
+    setConnected(true);
+    toast({ title: 'Supabase conectado!', description: 'Recarregando para aplicar...' });
+    setTimeout(() => window.location.reload(), 800);
+  }
+
+  function handleDisconnect() {
+    clearSupabaseConfig();
+    setUrl('');
+    setAnonKey('');
+    setConnected(false);
+    toast({ title: 'Desconectado', description: 'Recarregando...' });
+    setTimeout(() => window.location.reload(), 800);
+  }
 
   return (
     <Card>
@@ -14,7 +63,66 @@ export default function IntegrationsSettings() {
         <CardDescription>Conecte seu chatbot a diferentes plataformas</CardDescription>
       </CardHeader>
       <CardContent className='flex flex-col gap-2'>
-        
+
+        {/* Supabase connection */}
+        <Card className='p-4 border-2 border-dashed'>
+          <CardHeader className='p-0 pb-3 flex flex-row items-center gap-3 space-y-0'>
+            <div className='p-3 h-fit w-fit rounded-xl bg-emerald-100'>
+              <Database className='w-5 h-5 text-emerald-600'/>
+            </div>
+            <div className='flex-1'>
+              <CardTitle className='flex items-center gap-2'>
+                Supabase (Backend)
+                {connected ? (
+                  <span className='inline-flex items-center gap-1 text-xs text-emerald-600 font-normal'>
+                    <CheckCircle2 className='w-3.5 h-3.5'/> Conectado
+                  </span>
+                ) : (
+                  <span className='inline-flex items-center gap-1 text-xs text-gray-400 font-normal'>
+                    <XCircle className='w-3.5 h-3.5'/> Não conectado
+                  </span>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Cole a URL e a anon key do seu projeto Supabase. Necessário para login, signup e salvar fluxos.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent className='p-0 flex flex-col gap-3'>
+            <div className='flex flex-col gap-1.5'>
+              <Label htmlFor='sb-url'>Project URL</Label>
+              <Input
+                id='sb-url'
+                placeholder='https://xxxxxxxx.supabase.co'
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+              />
+            </div>
+            <div className='flex flex-col gap-1.5'>
+              <Label htmlFor='sb-key'>Anon / Public Key</Label>
+              <Input
+                id='sb-key'
+                type='password'
+                placeholder='eyJhbGciOi...'
+                value={anonKey}
+                onChange={(e) => setAnonKey(e.target.value)}
+              />
+              <span className='text-xs text-gray-500'>
+                Em Supabase → Project Settings → API. Use a chave <strong>anon/public</strong> (nunca a service_role).
+              </span>
+            </div>
+            <div className='flex gap-2'>
+              <Button onClick={handleSave}>{connected ? 'Atualizar conexão' : 'Conectar'}</Button>
+              {connected && (
+                <Button variant='outline' onClick={handleDisconnect}>Desconectar</Button>
+              )}
+            </div>
+            <p className='text-xs text-gray-500'>
+              Depois de conectar, rode o SQL de <code>docs/supabase-setup.sql</code> no SQL Editor do Supabase para criar a tabela <code>profiles</code>.
+            </p>
+          </CardContent>
+        </Card>
+
         <Card className='flex items-center p-4 justify-between relative'>
           <div className='p-3 h-fit w-fit rounded-xl bg-gray-200/90'>
             <SiWhatsapp className='w-5 h-5 text-green-600'/>
