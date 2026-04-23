@@ -9,16 +9,12 @@ export default function ProtectedRoute({
 }: {
 	children: React.ReactNode;
 }) {
-	const { user, loading, isConfigured } = useAuth();
+	const { user, loading } = useAuth();
 	const { mode } = useEmbed();
 	const location = useLocation();
 
 	// No modo embedded, a sessão vem do BookingFy via JWT — auth interna não bloqueia
 	if (mode === "embedded") return <>{children}</>;
-
-	if (!isConfigured) {
-		return <Navigate to="/setup" replace />;
-	}
 
 	if (loading) {
 		return (

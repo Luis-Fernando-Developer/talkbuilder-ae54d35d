@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { z } from "zod";
-import { getSupabase, isSupabaseConfigured } from "../../lib/supabaseClient";
+import { getSupabase } from "../../lib/supabaseClient";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { Label } from "../../components/ui/label";
@@ -15,7 +15,6 @@ const schema = z.object({
 });
 
 export default function LoginPage() {
-	const navigate = useNavigate();
 	const location = useLocation();
 	const { toast } = useToast();
 	const [email, setEmail] = useState("");
@@ -24,23 +23,6 @@ export default function LoginPage() {
 
 	const redirectTo =
 		(location.state as { from?: string } | null)?.from ?? "/";
-
-	if (!isSupabaseConfigured()) {
-		return (
-			<div className="min-h-svh flex items-center justify-center p-6">
-				<Card className="max-w-md w-full">
-					<CardHeader>
-						<CardTitle>Banco não conectado</CardTitle>
-						<CardDescription>
-							As credenciais do Supabase não foram carregadas. Recarregue a
-							página (Ctrl+Shift+R) — se persistir, contate o
-							administrador.
-						</CardDescription>
-					</CardHeader>
-				</Card>
-			</div>
-		);
-	}
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
