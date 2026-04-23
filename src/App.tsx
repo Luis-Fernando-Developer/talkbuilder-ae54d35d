@@ -10,7 +10,6 @@ import PerfilPage from "./pages/workspace/perfil/page";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import LandingPage from "./pages/landing/LandingPage";
-import SetupPage from "./pages/SetupPage";
 
 import Layout from "./components/layout";
 import WorkspaceMain from './components/Main';
@@ -35,7 +34,6 @@ function App() {
     <Routes>
       {/* Rotas públicas (sem layout do workspace) */}
       <Route path="/" element={<HomeRoute />} />
-      <Route path="/setup" element={<SetupPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
 
