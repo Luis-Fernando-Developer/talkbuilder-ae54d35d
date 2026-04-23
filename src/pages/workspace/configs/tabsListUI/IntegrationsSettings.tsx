@@ -72,7 +72,7 @@ export default function IntegrationsSettings() {
             </div>
             <div className='flex-1'>
               <CardTitle className='flex items-center gap-2'>
-                Supabase (Backend)
+                Banco de dados do meu negócio (opcional)
                 {connected ? (
                   <span className='inline-flex items-center gap-1 text-xs text-emerald-600 font-normal'>
                     <CheckCircle2 className='w-3.5 h-3.5'/> Conectado
@@ -84,7 +84,7 @@ export default function IntegrationsSettings() {
                 )}
               </CardTitle>
               <CardDescription>
-                Cole a URL e a anon key do seu projeto Supabase. Necessário para login, signup e salvar fluxos.
+                Avançado — conecte seu próprio Supabase para guardar dados dos seus bots (variáveis, leads, conversas) na sua infraestrutura. Sua conta TalkMap continua funcionando independente disso.
               </CardDescription>
             </div>
           </CardHeader>
@@ -118,7 +118,7 @@ export default function IntegrationsSettings() {
               )}
             </div>
             <p className='text-xs text-gray-500'>
-              Depois de conectar, rode o SQL de <code>docs/supabase-setup.sql</code> no SQL Editor do Supabase para criar a tabela <code>profiles</code>.
+              Sua autenticação no TalkMap não depende disso — esse Supabase é só para você guardar os dados que seus bots coletam.
             </p>
           </CardContent>
         </Card>
