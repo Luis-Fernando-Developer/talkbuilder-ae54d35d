@@ -11,7 +11,6 @@ import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import LandingPage from "./pages/landing/LandingPage";
 import SetupPage from "./pages/SetupPage";
-import SetupDbPage from "./pages/SetupDbPage";
 
 import Layout from "./components/layout";
 import WorkspaceMain from './components/Main';
@@ -37,7 +36,6 @@ function App() {
       {/* Rotas públicas (sem layout do workspace) */}
       <Route path="/" element={<HomeRoute />} />
       <Route path="/setup" element={<SetupPage />} />
-      <Route path="/setup-db" element={<SetupDbPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
 
