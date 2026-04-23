@@ -27,15 +27,13 @@ export default function WorkspaceLayout({
 	children: React.ReactNode;
 }) {
 	return (
-		<EmbedProvider>
-			<WorkspaceProvider>
-				<PlanProvider>
-					<DnDProvider>
-						<WorkspaceLayoutContent>{children}</WorkspaceLayoutContent>
-					</DnDProvider>
-				</PlanProvider>
-			</WorkspaceProvider>
-		</EmbedProvider>
+		<WorkspaceProvider>
+			<PlanProvider>
+				<DnDProvider>
+					<WorkspaceLayoutContent>{children}</WorkspaceLayoutContent>
+				</DnDProvider>
+			</PlanProvider>
+		</WorkspaceProvider>
 	);
 		function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 			const { items, setItems } = useWorkspace();
