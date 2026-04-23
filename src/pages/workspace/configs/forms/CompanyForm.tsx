@@ -3,23 +3,21 @@
 import { z } from "zod";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 
-// import { Label } from "@/components/ui/label";
-
-// import { Button } from "@/components/ui/button";
-// import { useToast } from "@/hooks/use-toast";
-// import {
-// 	Select,
-// 	SelectContent,
-// 	SelectItem,
-// 	SelectTrigger,
-// 	SelectValue,
-// } from "@/components/ui/select";
 import { FormInputField } from "./components/FormInputField";
 import { Label } from "../../../../components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../../../components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../../../../components/ui/select";
 import { Button } from "../../../../components/ui/button";
 import { useToast } from "../../../../hooks/use-toast";
+import { getSupabase } from "../../../../lib/supabaseClient";
+import { useAuth } from "../../../../context/AuthContext";
 
 const companySchema = z.object({
 	name: z.string().min(2, "Nome da empresa é obrigatório"),
@@ -27,39 +25,96 @@ const companySchema = z.object({
 	email: z.string().email("Email inválido"),
 	phone: z.string().min(10, "Telefone inválido"),
 	address: z.string().min(10, "Endereço invalido"),
-	sector: z.string().min(10, "Setor inválido"),
+	sector: z.string().min(2, "Setor inválido"),
 	webSite: z.string().min(5, "Site inválido"),
 });
 
 type CompanyFormData = z.infer<typeof companySchema>;
 
+const EMPTY: CompanyFormData = {
+	name: "",
+	cnpj: "",
+	email: "",
+	phone: "",
+	address: "",
+	sector: "",
+	webSite: "",
+};
+
 export function CompanyForm() {
 	const { toast } = useToast();
+	const { user } = useAuth();
+	const [loading, setLoading] = useState(true);
 
 	const {
 		register,
 		handleSubmit,
 		control,
+		reset,
 		formState: { errors, isSubmitting },
 	} = useForm<CompanyFormData>({
 		resolver: zodResolver(companySchema),
-		defaultValues: {
-			name: "",
-			cnpj: "",
-			email: "",
-			phone: "",
-			address: "",
-			sector: "",
-			webSite: "",
-		},
+		defaultValues: EMPTY,
 	});
 
-	function onSubmit(data: CompanyFormData) {
-		console.log(data);
+	useEffect(() => {
+		const supabase = getSupabase();
+		if (!supabase || !user) {
+			setLoading(false);
+			return;
+		}
+		let cancelled = false;
+		supabase
+			.from("companies")
+			.select("name,cnpj,email,phone,address,sector,website")
+			.eq("user_id", user.id)
+			.maybeSingle()
+			.then(({ data, error }) => {
+				if (cancelled) return;
+				if (error) console.error(error);
+				if (data) {
+					reset({
+						name: data.name ?? "",
+						cnpj: data.cnpj ?? "",
+						email: data.email ?? "",
+						phone: data.phone ?? "",
+						address: data.address ?? "",
+						sector: data.sector ?? "",
+						webSite: data.website ?? "",
+					});
+				}
+				setLoading(false);
+			});
+		return () => {
+			cancelled = true;
+		};
+	}, [user, reset]);
+
+	async function onSubmit(data: CompanyFormData) {
+		const supabase = getSupabase();
+		if (!supabase || !user) return;
+		const { error } = await supabase.from("companies").upsert({
+			user_id: user.id,
+			name: data.name,
+			cnpj: data.cnpj,
+			email: data.email,
+			phone: data.phone,
+			address: data.address,
+			sector: data.sector,
+			website: data.webSite,
+		});
+		if (error) {
+			toast({ title: "Erro ao salvar empresa", description: error.message });
+			return;
+		}
 		toast({
 			title: "Empresa Salva",
-			description: "As Informações da empresa foram atualizadas com sucesso.",
+			description: "As informações da empresa foram atualizadas com sucesso.",
 		});
+	}
+
+	if (loading) {
+		return <div className="text-sm text-gray-500">Carregando...</div>;
 	}
 
 	return (
@@ -116,11 +171,11 @@ export function CompanyForm() {
 					name="sector"
 					control={control}
 					render={({ field }) => (
-						<Select onValueChange={field.onChange} defaultValue={field.value}>
+						<Select onValueChange={field.onChange} value={field.value}>
 							<SelectTrigger>
 								<SelectValue placeholder="Selecione um setor" />
 							</SelectTrigger>
-							<SelectContent defaultValue="tecnologia">
+							<SelectContent>
 								<SelectItem value="tecnologia">Tecnologia</SelectItem>
 								<SelectItem value="varejo">Varejo</SelectItem>
 								<SelectItem value="servicos">Serviços</SelectItem>
