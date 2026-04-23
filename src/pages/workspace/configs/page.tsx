@@ -20,8 +20,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui
 import { useEmbed } from "../../../context/EmbedContext";
 
 export default function ConfigurationWorkspace() {
-	const { flags, mode } = useEmbed();
-	const defaultTab = flags.showCompanyTab ? "workspace" : "workspace";
+	const { flags } = useEmbed();
+	const defaultTab = "workspace";
 	return (
 		<div className="relative flex border border-red-600 h-full overflow-hidden">
 			<div className='bg-gray-200/40 px-6 py-4 flex w-full flex-col items-center justify-start gap-4 h-full overflow-auto'>
