@@ -30,17 +30,13 @@ export default function LoginPage() {
 			<div className="min-h-svh flex items-center justify-center p-6">
 				<Card className="max-w-md w-full">
 					<CardHeader>
-						<CardTitle>Banco do TalkMap não conectado</CardTitle>
+						<CardTitle>Banco não conectado</CardTitle>
 						<CardDescription>
-							As credenciais do sistema (.env.local) não foram carregadas.
-							Verifique o checklist de setup do banco.
+							As credenciais do Supabase não foram carregadas. Recarregue a
+							página (Ctrl+Shift+R) — se persistir, contate o
+							administrador.
 						</CardDescription>
 					</CardHeader>
-					<CardContent>
-						<Button className="w-full" onClick={() => navigate("/setup-db")}>
-							Abrir checklist
-						</Button>
-					</CardContent>
 				</Card>
 			</div>
 		);
