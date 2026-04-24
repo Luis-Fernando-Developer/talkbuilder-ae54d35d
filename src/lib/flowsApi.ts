@@ -1,0 +1,208 @@
+// =============================================================================
+// flowsApi — operações sobre a tabela `chatbot_flows`.
+// O bot do workspace (workspace_items.type='bot') tem (no máximo) um flow
+// associado via workspace_item_id. Aqui ficam todas as queries usadas pelo
+// editor: load, ensure (cria se faltar), salvar rascunho, publicar, etc.
+// =============================================================================
+
+import { getSupabase } from "./supabaseClient";
+import type { Container, Edge } from "@/types/chatbot";
+
+export interface ChatbotFlowRow {
+  id: string;
+  user_id: string;
+  workspace_item_id: string;
+  name: string;
+  description: string | null;
+  settings: Record<string, any>;
+  draft_containers: Container[];
+  draft_edges: Edge[];
+  draft_updated_at: string;
+  published_containers: Container[] | null;
+  published_edges: Edge[] | null;
+  published_at: string | null;
+  public_id: string | null;
+  is_published: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+class NoSupabaseError extends Error {
+  constructor() {
+    super("Supabase não configurado");
+    this.name = "NoSupabaseError";
+  }
+}
+
+function client() {
+  const c = getSupabase();
+  if (!c) throw new NoSupabaseError();
+  return c;
+}
+
+export type FlowStatus = "draft" | "draft_changes" | "published";
+
+export function deriveStatus(row: Pick<ChatbotFlowRow, "is_published" | "draft_updated_at" | "published_at">): FlowStatus {
+  if (!row.is_published) return "draft";
+  if (row.published_at && new Date(row.draft_updated_at) > new Date(row.published_at)) {
+    return "draft_changes"; // publicado, mas com alterações pendentes
+  }
+  return "published";
+}
+
+/**
+ * Garante que existe uma linha em chatbot_flows para o item de workspace.
+ * Se não existir, cria com defaults usando o título/descrição do workspace_item.
+ */
+export async function ensureFlow(workspaceItemId: string, fallbackName: string): Promise<ChatbotFlowRow> {
+  const c = client();
+  const { data: existing, error: selErr } = await c
+    .from("chatbot_flows")
+    .select("*")
+    .eq("workspace_item_id", workspaceItemId)
+    .maybeSingle();
+  if (selErr) throw selErr;
+  if (existing) return existing as ChatbotFlowRow;
+
+  const { data: userRes } = await c.auth.getUser();
+  const userId = userRes.user?.id;
+  if (!userId) throw new Error("Usuário não autenticado");
+
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .insert({
+      user_id: userId,
+      workspace_item_id: workspaceItemId,
+      name: fallbackName,
+    })
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChatbotFlowRow;
+}
+
+export async function getFlowByWorkspaceItem(workspaceItemId: string): Promise<ChatbotFlowRow | null> {
+  const c = client();
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .select("*")
+    .eq("workspace_item_id", workspaceItemId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as ChatbotFlowRow) ?? null;
+}
+
+/** Salva o rascunho (containers + edges). Não muda status de publicação. */
+export async function saveDraft(flowId: string, containers: Container[], edges: Edge[]): Promise<ChatbotFlowRow> {
+  const c = client();
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .update({
+      draft_containers: containers,
+      draft_edges: edges,
+      draft_updated_at: new Date().toISOString(),
+    })
+    .eq("id", flowId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChatbotFlowRow;
+}
+
+export async function updateFlowMeta(
+  flowId: string,
+  patch: Partial<Pick<ChatbotFlowRow, "name" | "description" | "settings">>
+): Promise<ChatbotFlowRow> {
+  const c = client();
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .update(patch)
+    .eq("id", flowId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChatbotFlowRow;
+}
+
+/**
+ * Promove o rascunho atual para versão pública.
+ * publicId obrigatório. Verifica unicidade por usuário antes.
+ */
+export async function publishFlow(
+  flowId: string,
+  publicId: string,
+  containers: Container[],
+  edges: Edge[]
+): Promise<ChatbotFlowRow> {
+  const c = client();
+
+  // Conflito de public_id no mesmo usuário
+  const { data: userRes } = await c.auth.getUser();
+  const userId = userRes.user?.id;
+  if (!userId) throw new Error("Usuário não autenticado");
+
+  const { data: conflict } = await c
+    .from("chatbot_flows")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("public_id", publicId)
+    .neq("id", flowId)
+    .maybeSingle();
+  if (conflict) throw new Error("Este ID público já está em uso por outro bot seu.");
+
+  const now = new Date().toISOString();
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .update({
+      public_id: publicId,
+      is_published: true,
+      is_active: true,
+      published_at: now,
+      published_containers: containers,
+      published_edges: edges,
+      // espelha rascunho — garante que o JSON salvo é o mesmo do canvas
+      draft_containers: containers,
+      draft_edges: edges,
+      draft_updated_at: now,
+    })
+    .eq("id", flowId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChatbotFlowRow;
+}
+
+export async function unpublishFlow(flowId: string): Promise<ChatbotFlowRow> {
+  const c = client();
+  const { data, error } = await c
+    .from("chatbot_flows")
+    .update({ is_published: false, is_active: false })
+    .eq("id", flowId)
+    .select("*")
+    .single();
+  if (error) throw error;
+  return data as ChatbotFlowRow;
+}
+
+export interface PublicFlowResult {
+  id: string;
+  name: string;
+  description: string | null;
+  settings: Record<string, any>;
+  containers: Container[];
+  edges: Edge[];
+  owner_slug: string;
+}
+
+/** Carrega versão publicada via slug do dono + public_id (RPC pública). */
+export async function getPublicFlow(slug: string, publicId: string): Promise<PublicFlowResult | null> {
+  const c = client();
+  const { data, error } = await c.rpc("get_public_flow", {
+    p_slug: slug,
+    p_public_id: publicId,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return (row as PublicFlowResult) ?? null;
+}
