@@ -57,8 +57,20 @@ export default function PreviewPage() {
         return;
       }
       try {
-        const row = bot
-          ? await ensureFlow(botId, bot.title || "Bot")
+        // Buscar metadados do bot direto do banco (esta rota não tem WorkspaceProvider)
+        const { data: itemRow } = await supabase
+          .from("workspace_items")
+          .select("id,title,emoji,type")
+          .eq("id", botId)
+          .maybeSingle();
+        const botMeta: BotMeta | null =
+          itemRow && itemRow.type === "bot"
+            ? { id: itemRow.id, title: itemRow.title, emoji: itemRow.emoji ?? null }
+            : null;
+        if (!cancelled) setBot(botMeta);
+
+        const row = botMeta
+          ? await ensureFlow(botId, botMeta.title || "Bot")
           : await getFlowByWorkspaceItem(botId);
         if (cancelled || !row) {
           setLoading(false);
@@ -77,7 +89,7 @@ export default function PreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [botId, bot]);
+  }, [botId]);
 
   const startContainer = containers[0] ?? null;
   const theme = (flow?.settings as any)?.theme ?? {};
