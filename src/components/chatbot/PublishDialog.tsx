@@ -100,13 +100,13 @@ export function PublishDialog({
       const { data: existingFlow } = await supabaseClient
         .from('chatbot_flows')
         .select('id')
-        .eq('company_id', companyId)
+        .eq('user_id', companyId)
         .eq('public_id', publicId)
         .neq('id', flowId)
         .maybeSingle();
 
       if (existingFlow) {
-        setValidationError('Este ID público já está em uso por outro chatbot da sua empresa');
+        setValidationError('Este ID público já está em uso por outro chatbot seu');
         setIsPublishing(false);
         return;
       }
