@@ -76,6 +76,16 @@ function App() {
           </ProtectedRoute>
         }
       />
+
+      {/* Pré-visualização do rascunho (sem layout, fullscreen) */}
+      <Route
+        path="/preview/:id"
+        element={
+          <ProtectedRoute>
+            <PreviewPage />
+          </ProtectedRoute>
+        }
+      />
     </Routes>
   );
 }
