@@ -200,7 +200,13 @@ export function PublishDialog({
     }
   };
 
+  const slugReady = !!resolvedSlug && resolvedSlug !== 'user';
+
   const copyUrl = () => {
+    if (!slugReady) {
+      toast.error('Defina um slug em Configurações antes de compartilhar.');
+      return;
+    }
     navigator.clipboard.writeText(getPublicUrl());
     setCopied(true);
     toast.success('URL copiada!');
@@ -208,6 +214,10 @@ export function PublishDialog({
   };
 
   const openPreview = () => {
+    if (!slugReady) {
+      toast.error('Defina um slug em Configurações antes de compartilhar.');
+      return;
+    }
     window.open(getPublicUrl(), '_blank');
   };
 
