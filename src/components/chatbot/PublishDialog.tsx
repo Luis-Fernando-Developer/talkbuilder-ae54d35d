@@ -100,26 +100,30 @@ export function PublishDialog({
       const { data: existingFlow } = await supabaseClient
         .from('chatbot_flows')
         .select('id')
-        .eq('company_id', companyId)
+        .eq('user_id', companyId)
         .eq('public_id', publicId)
         .neq('id', flowId)
         .maybeSingle();
 
       if (existingFlow) {
-        setValidationError('Este ID público já está em uso por outro chatbot da sua empresa');
+        setValidationError('Este ID público já está em uso por outro chatbot seu');
         setIsPublishing(false);
         return;
       }
 
-      // Publish the flow - use any to bypass type checking for new columns
-      // Also activate the bot when publishing
+      // Publish: snapshot do rascunho atual
+      const now = new Date().toISOString();
       const updateData: any = {
         public_id: publicId,
         is_published: true,
-        is_active: true, // Automatically activate when publishing
-        published_at: new Date().toISOString(),
+        is_active: true,
+        published_at: now,
         published_containers: containers,
         published_edges: edges,
+        // garante que o rascunho salvo é o mesmo do que foi publicado
+        draft_containers: containers,
+        draft_edges: edges,
+        draft_updated_at: now,
       };
 
       const { error } = await supabaseClient
