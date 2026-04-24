@@ -111,15 +111,19 @@ export function PublishDialog({
         return;
       }
 
-      // Publish the flow - use any to bypass type checking for new columns
-      // Also activate the bot when publishing
+      // Publish: snapshot do rascunho atual
+      const now = new Date().toISOString();
       const updateData: any = {
         public_id: publicId,
         is_published: true,
-        is_active: true, // Automatically activate when publishing
-        published_at: new Date().toISOString(),
+        is_active: true,
+        published_at: now,
         published_containers: containers,
         published_edges: edges,
+        // garante que o rascunho salvo é o mesmo do que foi publicado
+        draft_containers: containers,
+        draft_edges: edges,
+        draft_updated_at: now,
       };
 
       const { error } = await supabaseClient
