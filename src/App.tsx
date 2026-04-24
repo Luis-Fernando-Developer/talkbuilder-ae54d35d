@@ -103,7 +103,7 @@ function App() {
         }
       />
 
-      <Route path="*" element={<UnknownRouteHandler />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   );
 }
