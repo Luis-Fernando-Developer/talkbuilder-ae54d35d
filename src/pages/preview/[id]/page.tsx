@@ -1,13 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { TestPanel } from "@/components/chatbot/TestPanel";
 import { VariablesProvider } from "@/context/VariablesContext";
 import { Button } from "@/components/ui/button";
 import { ensureFlow, getFlowByWorkspaceItem, type ChatbotFlowRow } from "@/lib/flowsApi";
-import { useWorkspace } from "@/context/WorkspaceContext";
 import { getSupabase } from "@/lib/supabaseClient";
 import type { Container, Edge } from "@/types/chatbot";
+
+type BotMeta = { id: string; title: string; emoji: string | null };
 
 const STORAGE_PREFIX = "bot_flow_";
 
@@ -31,8 +32,7 @@ export default function PreviewPage() {
   const params = useParams();
   const navigate = useNavigate();
   const botId = (params.id as string) ?? "";
-  const { items } = useWorkspace();
-  const bot = useMemo(() => items.find((i) => i.id === botId && i.type === "bot"), [items, botId]);
+  const [bot, setBot] = useState<BotMeta | null>(null);
 
   const [flow, setFlow] = useState<ChatbotFlowRow | null>(null);
   const [containers, setContainers] = useState<Container[]>([]);
@@ -57,8 +57,20 @@ export default function PreviewPage() {
         return;
       }
       try {
-        const row = bot
-          ? await ensureFlow(botId, bot.title || "Bot")
+        // Buscar metadados do bot direto do banco (esta rota não tem WorkspaceProvider)
+        const { data: itemRow } = await supabase
+          .from("workspace_items")
+          .select("id,title,emoji,type")
+          .eq("id", botId)
+          .maybeSingle();
+        const botMeta: BotMeta | null =
+          itemRow && itemRow.type === "bot"
+            ? { id: itemRow.id, title: itemRow.title, emoji: itemRow.emoji ?? null }
+            : null;
+        if (!cancelled) setBot(botMeta);
+
+        const row = botMeta
+          ? await ensureFlow(botId, botMeta.title || "Bot")
           : await getFlowByWorkspaceItem(botId);
         if (cancelled || !row) {
           setLoading(false);
@@ -77,7 +89,7 @@ export default function PreviewPage() {
     return () => {
       cancelled = true;
     };
-  }, [botId, bot]);
+  }, [botId]);
 
   const startContainer = containers[0] ?? null;
   const theme = (flow?.settings as any)?.theme ?? {};
