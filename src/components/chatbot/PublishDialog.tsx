@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Globe, Copy, Check, Send, XCircle, ExternalLink, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
@@ -50,6 +51,7 @@ export function PublishDialog({
   edges,
   onPublishSuccess,
 }: PublishDialogProps) {
+  const navigate = useNavigate();
   const [publicId, setPublicId] = useState(currentPublicId || '');
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
@@ -95,6 +97,8 @@ export function PublishDialog({
     const baseUrl = window.location.origin;
     return `${baseUrl}/${resolvedSlug}/flow/${publicId}`;
   };
+
+  const getPublicPath = () => `/${resolvedSlug}/flow/${publicId}`;
 
   const validatePublicId = (value: string) => {
     if (!value) {
@@ -218,7 +222,8 @@ export function PublishDialog({
       toast.error('Defina um slug em Configurações antes de compartilhar.');
       return;
     }
-    window.open(getPublicUrl(), '_blank');
+    onOpenChange(false);
+    navigate(getPublicPath());
   };
 
   return (
