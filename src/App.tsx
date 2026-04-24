@@ -10,6 +10,9 @@ import PerfilPage from "./pages/workspace/perfil/page";
 import LoginPage from "./pages/auth/LoginPage";
 import SignupPage from "./pages/auth/SignupPage";
 import LandingPage from "./pages/landing/LandingPage";
+import PreviewPage from "./pages/preview/[id]/page";
+import PublicFlowPage from "./pages/public/flow/page";
+
 
 import Layout from "./components/layout";
 import WorkspaceMain from './components/Main';
@@ -36,6 +39,9 @@ function App() {
       <Route path="/" element={<HomeRoute />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+
+      {/* Rota pública do bot publicado */}
+      <Route path="/:slug/flow/:publicId" element={<PublicFlowPage />} />
 
       {/* Rotas protegidas (com layout do workspace) */}
       <Route
