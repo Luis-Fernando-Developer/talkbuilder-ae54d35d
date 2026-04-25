@@ -256,7 +256,18 @@ interface Message {
   autoplay?: boolean;
 }
 
-export const TestPanel = ({ isOpen, onClose, startContainer, allContainers, edges = [] }: TestPanelProps) => {
+export const TestPanel = ({
+  isOpen,
+  onClose,
+  startContainer,
+  allContainers,
+  edges = [],
+  headerTitle = "Teste do Fluxo",
+  headerSubtitle,
+  hideClose = false,
+  fullScreen = false,
+  theme,
+}: TestPanelProps) => {
   const { replaceVariablesInText, setVariable, variables, setVariables } = useVariables();
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
