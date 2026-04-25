@@ -63,6 +63,7 @@ export default function BotIcon({
 	const [isPublished, setIsPublished] = useState<boolean>(false);
 	const [toggling, setToggling] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [confirmUnpublish, setConfirmUnpublish] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 	const [editTitle, setEditTitle] = useState(title);
 	const [editEmoji, setEditEmoji] = useState(emojiIcon ?? "🤖");
@@ -129,42 +130,62 @@ export default function BotIcon({
 		setEditOpen(true);
 	}, [title, emojiIcon, description]);
 
+	const doPublish = useCallback(async () => {
+		if (!flow || toggling) return;
+		setToggling(true);
+		try {
+			if (!flow.public_id) {
+				toast.error(
+					"Este bot ainda não tem ID público. Abra o editor e publique a primeira vez.",
+				);
+				return;
+			}
+			const updated = await publishFlow(
+				flow.id,
+				flow.public_id,
+				flow.draft_containers ?? [],
+				flow.draft_edges ?? [],
+			);
+			setFlow(updated);
+			setIsPublished(true);
+			toast.success("Bot publicado");
+		} catch (err: any) {
+			console.error("[BotIcon] publish", err);
+			toast.error(err?.message || "Erro ao publicar");
+		} finally {
+			setToggling(false);
+		}
+	}, [flow, toggling]);
+
+	const doUnpublish = useCallback(async () => {
+		if (!flow || toggling) return;
+		setToggling(true);
+		try {
+			const updated = await unpublishFlow(flow.id);
+			setFlow(updated);
+			setIsPublished(false);
+			toast.success("Bot despublicado");
+		} catch (err: any) {
+			console.error("[BotIcon] unpublish", err);
+			toast.error(err?.message || "Erro ao despublicar");
+		} finally {
+			setToggling(false);
+			setConfirmUnpublish(false);
+		}
+	}, [flow, toggling]);
+
 	const handleTogglePublish = useCallback(
-		async (e: React.MouseEvent | React.PointerEvent) => {
+		(e: React.MouseEvent | React.PointerEvent) => {
 			e.stopPropagation();
+			e.preventDefault();
 			if (!flow || toggling) return;
-			setToggling(true);
-			try {
-				if (isPublished) {
-					const updated = await unpublishFlow(flow.id);
-					setFlow(updated);
-					setIsPublished(false);
-					toast.success("Bot despublicado");
-				} else {
-					if (!flow.public_id) {
-						toast.error(
-							"Este bot ainda não tem ID público. Abra o editor e publique a primeira vez.",
-						);
-						return;
-					}
-					const updated = await publishFlow(
-						flow.id,
-						flow.public_id,
-						flow.draft_containers ?? [],
-						flow.draft_edges ?? [],
-					);
-					setFlow(updated);
-					setIsPublished(true);
-					toast.success("Bot publicado");
-				}
-			} catch (err: any) {
-				console.error("[BotIcon] toggle publish", err);
-				toast.error(err?.message || "Erro ao alterar status");
-			} finally {
-				setToggling(false);
+			if (isPublished) {
+				setConfirmUnpublish(true);
+			} else {
+				void doPublish();
 			}
 		},
-		[flow, isPublished, toggling],
+		[flow, isPublished, toggling, doPublish],
 	);
 
 	const handleExport = useCallback(() => {
@@ -217,17 +238,20 @@ export default function BotIcon({
 					style={style}
 					className={`${isDragging ? "bg-green-400/80 rounded-lg" : ""} ${isOver ? "" : ""}`}
 				>
-					<Card className="group hover:border-green-400 p-2 flex flex-col bg-[rgb(70,1,92)] gap-0 w-28 max-h-32 h-32 rounded-lg border border-white shadow-[3px_3px_5px_rgba(0,0,0,0.5)]">
-						<div
-							{...listeners}
-							{...attributes}
-							className="cursor-grab active:cursor-grabbing w-full h-full flex flex-col justify-between "
-						>
+					<Card
+						className={`group p-2 flex flex-col bg-[rgb(70,1,92)] gap-0 w-28 max-h-32 h-32 rounded-lg border shadow-[3px_3px_5px_rgba(0,0,0,0.5)] transition-colors ${
+							isPublished
+								? "border-white hover:border-green-400"
+								: "border-red-400/80 hover:border-red-300"
+						}`}
+					>
+						<div className="w-full h-full flex flex-col justify-between">
 							<CardHeader className=" p-0 flex flex-row items-center h-fit space-y-0">
 								<button
 									type="button"
 									onClick={handleTogglePublish}
 									onPointerDown={(e) => e.stopPropagation()}
+									onMouseDown={(e) => e.stopPropagation()}
 									disabled={toggling || !flow}
 									title={
 										!flow
@@ -253,6 +277,7 @@ export default function BotIcon({
 										asChild
 										onClick={(e) => e.stopPropagation()}
 										onPointerDown={(e) => e.stopPropagation()}
+										onMouseDown={(e) => e.stopPropagation()}
 										className=" flex items-center justify-center p-0 "
 									>
 										<SquareMenuIcon className="w-5 h-5 hover:cursor-pointer text-white" />
@@ -297,9 +322,16 @@ export default function BotIcon({
 								</DropdownMenu.Root>
 							</CardHeader>
 
-							<CardContent className=" w-full flex-col items-center justify-center p-0 m-0 flex flex-1">
+							<CardContent
+								{...listeners}
+								{...attributes}
+								className="cursor-grab active:cursor-grabbing w-full flex-col items-center justify-center p-0 m-0 flex flex-1"
+								title={!isPublished ? "Bot despublicado — rota pública desativada" : undefined}
+							>
 								<span className="text-2xl ">{emojiIcon || "🤖"}</span>
-								<span className="text-sm text-center text-gray-400">{title}</span>
+								<span className={`text-sm text-center ${isPublished ? "text-gray-400" : "text-red-300"}`}>
+									{title}
+								</span>
 							</CardContent>
 						</div>
 					</Card>
@@ -322,6 +354,33 @@ export default function BotIcon({
 							className="bg-red-600 hover:bg-red-700"
 						>
 							Excluir
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
+
+			{/* Confirm unpublish */}
+			<AlertDialog open={confirmUnpublish} onOpenChange={setConfirmUnpublish}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Despublicar "{title}"?</AlertDialogTitle>
+						<AlertDialogDescription>
+							Ao despublicar, a rota pública do bot deixa de funcionar imediatamente
+							e qualquer link compartilhado retornará erro até que você publique novamente.
+							Você pode publicar de volta a qualquer momento.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel disabled={toggling}>Cancelar</AlertDialogCancel>
+						<AlertDialogAction
+							onClick={(e) => {
+								e.preventDefault();
+								void doUnpublish();
+							}}
+							disabled={toggling}
+							className="bg-red-600 hover:bg-red-700"
+						>
+							{toggling ? "Despublicando..." : "Despublicar"}
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
