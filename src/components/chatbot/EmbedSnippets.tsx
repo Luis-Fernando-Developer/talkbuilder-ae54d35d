@@ -261,7 +261,7 @@ export function EmbedSnippets({ publicUrl, botName = 'Bot' }: EmbedSnippetsProps
         <Input value={publicUrl} readOnly className="text-xs bg-muted" />
       </div>
 
-      <Tabs value={active} onValueChange={(v) => setActive(v as Platform)} className="w-full">
+      <Tabs value={active} onValueChange={(v: string) => setActive(v as Platform)} className="w-full">
         <TabsList className="grid grid-cols-4 sm:grid-cols-7 h-auto gap-1 bg-muted/40 p-1">
           {PLATFORMS.map((p) => {
             const Icon = p.icon;
