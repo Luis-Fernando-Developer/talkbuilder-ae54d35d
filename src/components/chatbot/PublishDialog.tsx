@@ -24,6 +24,7 @@ import { Label } from '@/components/ui/label';
 import { supabaseClient } from '@/lib/supabaseClient';
 import { toast } from 'sonner';
 import { Container, Edge } from '@/types/chatbot';
+import { EmbedSnippets } from './EmbedSnippets';
 
 interface PublishDialogProps {
   open: boolean;
@@ -227,7 +228,7 @@ export function PublishDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Globe className="h-5 w-5" />
@@ -298,6 +299,12 @@ export function PublishDialog({
                 <Check className="h-4 w-4" />
                 Seu chatbot está publicado e acessível
               </p>
+            </div>
+          )}
+
+          {isPublished && slugReady && publicId && !validationError && (
+            <div className="pt-2 border-t border-border">
+              <EmbedSnippets publicUrl={getPublicUrl()} botName={publicId} />
             </div>
           )}
         </div>
