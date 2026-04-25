@@ -63,6 +63,7 @@ export default function BotIcon({
 	const [isPublished, setIsPublished] = useState<boolean>(false);
 	const [toggling, setToggling] = useState(false);
 	const [confirmDelete, setConfirmDelete] = useState(false);
+	const [confirmUnpublish, setConfirmUnpublish] = useState(false);
 	const [editOpen, setEditOpen] = useState(false);
 	const [editTitle, setEditTitle] = useState(title);
 	const [editEmoji, setEditEmoji] = useState(emojiIcon ?? "🤖");
