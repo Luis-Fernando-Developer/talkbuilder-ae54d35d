@@ -210,7 +210,7 @@ export default function BotIcon({
 			<div ref={setDragRef}>
 				<div
 					ref={setDropRef}
-					onClick={(e) => {
+					onClick={() => {
 						if (isDragging) return;
 						onClick?.();
 					}}
