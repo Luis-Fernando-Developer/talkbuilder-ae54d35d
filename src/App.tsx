@@ -95,7 +95,9 @@ function NotFoundPage() {
 
 function App() {
   return (
-    <Routes>
+    <>
+      <EmbedErrorScreen />
+      <Routes>
       {/* Landing pública */}
       <Route path="/" element={<HomeRoute />} />
 
@@ -181,6 +183,7 @@ function App() {
 
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </>
   );
 }
 
