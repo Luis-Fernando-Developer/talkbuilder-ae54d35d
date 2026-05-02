@@ -154,4 +154,8 @@ if (!result.ok) throw new Error(result.error);
 - A function roda com **service role key** — RLS é ignorada. Mantenha o
   endpoint protegido pela validação de JWT acima.
 - CORS: por padrão libera `https://flow-appoint.lovable.app` e qualquer
+<<<<<<< HEAD
   `*.lovable.app`. Edite `ALLOWED_ORIGINS` em `index.ts` pra produção.
+=======
+  `*.lovable.app`. Edite `ALLOWED_ORIGINS` em `index.ts` pra produção.
+>>>>>>> 687d12830932b73c50e159c01ff06b78eba727fd
