@@ -25,7 +25,7 @@ export default function KeysApi() {
       <CardHeader>
         <div className='flex w-full justify-between items-center'>
           <div>
-            <CardTitle>Chave de API</CardTitle>
+            <CardTitle className='text-left'>Chave de API</CardTitle>
             <CardDescription>Gerencie suas chaves de acesso à API</CardDescription>
           </div>
           <Button variant="outline"><Plus/> nova chave</Button>
@@ -39,18 +39,18 @@ export default function KeysApi() {
                 <KeyIcon className='w-5 h-5'/>
               </div>
               <CardHeader className='flex flex-col w-full'>
-                <CardTitle>{keysApis['production'].name}</CardTitle>
+                <CardTitle className='text-left'>{keysApis['production'].name}</CardTitle>
                 <div className='flex items-center w-full justify-between gap-2'>
-                  <div className='flex items-center gap-1'>
+                  <div className='flex items-center gap-1  flex-1 justify-between rounded-md bg-gray-200/40'>
                     <CardDescription className='bg-gray-200/40 p-1 rounded-md'>sk_live_{keysApis['production'].id}</CardDescription>
-                    <Eye className='w-5 h-5 text-gray-400 cursor-pointer' />
                   </div>
                   <div className='flex items-center gap-3'>
+                    <Eye className='w-5 h-5 text-gray-400 cursor-pointer' />
                     <RefreshCcw className='w-5 h-5 text-gray-400 cursor-pointer' />
                     <Trash2 className='w-5 h-5 text-gray-400 cursor-pointer' />
                   </div>
                 </div>
-                <CardDescription>Criada em {keysApis['production'].createdAt} - Último Uso:{keysApis['production'].lastUsed} </CardDescription>
+                <CardDescription className='text-left'>Criada em {keysApis['production'].createdAt} - Último Uso:{keysApis['production'].lastUsed} </CardDescription>
               </CardHeader>
             </div>
 
@@ -62,18 +62,18 @@ export default function KeysApi() {
                 <KeyIcon className='w-5 h-5'/>
               </div>
               <CardHeader className='flex flex-col w-full'>
-                <CardTitle>{keysApis['development'].name}</CardTitle>
+                <CardTitle className='text-left'>{keysApis['development'].name}</CardTitle>
                 <div className='flex items-center w-full justify-between gap-2'>
-                  <div className='flex items-center gap-1'>
+                  <div className='flex items-center gap-1  flex-1 justify-between rounded-md bg-gray-200/40'>
                     <CardDescription className='bg-gray-200/40 p-1 rounded-md'>sk_live_{keysApis['development'].id}</CardDescription>
-                    <Eye className='w-5 h-5 text-gray-400 cursor-pointer' />
                   </div>
                   <div className='flex items-center gap-3'>
+                    <Eye className='w-5 h-5 text-gray-400 cursor-pointer' />
                     <RefreshCcw className='w-5 h-5 text-gray-400 cursor-pointer' />
                     <Trash2 className='w-5 h-5 text-gray-400 cursor-pointer' />
                   </div>
                 </div>
-                <CardDescription>Criada em {keysApis['development'].createdAt} - Último Uso:{keysApis['development'].lastUsed} </CardDescription>
+                <CardDescription className='text-left'>Criada em {keysApis['development'].createdAt} - Último Uso:{keysApis['development'].lastUsed} </CardDescription>
               </CardHeader>
             </div>
 

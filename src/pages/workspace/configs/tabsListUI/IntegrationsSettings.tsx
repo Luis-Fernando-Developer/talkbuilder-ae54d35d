@@ -181,12 +181,16 @@ export default function IntegrationsSettings() {
             </div>
             <CardHeader className='flex flex-col text-left items-start w-full'>
               <CardTitle>BookingFy</CardTitle>
-              <CardDescription>
+              <CardDescription className='border w- max-w-md'>
                 Conecte ao seu sistema de agendamento para que o chatbot leia e escreva dados de clientes, serviços e horários.
               </CardDescription>
             </CardHeader>
-            <CardContent className='flex absolute right-2 top-1/2 -translate-y-1/2 h-full items-center'>
-              <Button variant='outline' size='sm'>Conectar</Button>
+            <CardContent className='flex absolute right-0 h-full'>
+              <div className='pt-2 flex flex-col justify-between'>
+                <div className='flex items-end justify-end '>
+                  <Button variant='outline' size='sm'>Conectar</Button>
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}

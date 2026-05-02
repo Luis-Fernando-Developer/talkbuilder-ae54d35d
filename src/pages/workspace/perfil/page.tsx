@@ -52,7 +52,7 @@ export default function UserProfile() {
 	const { toast } = useToast();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
-	const [loading, setLoading] = useState(true);
+	const [loading, setLoading] = useState(false);
 	const [saving, setSaving] = useState(false);
 	const [uploading, setUploading] = useState(false);
 	const [editing, setEditing] = useState(false);
@@ -75,12 +75,11 @@ export default function UserProfile() {
 	const userIdShort = useMemo(() => {
 		if (!user?.id) return "";
 		return `usr_${user.id.replace(/-/g, "").slice(0, 18)}`;
-	}, [user?.id]);
+	}, [user]);
 
 	useEffect(() => {
 		const supabase = getSupabase();
 		if (!supabase || !user) {
-			setLoading(false);
 			return;
 		}
 		let cancelled = false;
@@ -233,16 +232,16 @@ export default function UserProfile() {
 			<div className=" w-full  flex flex-col items-center justify-start box-border overflow-auto h-full ">
 				<div className="relative flex w-full ">
 					<div className="relative flex w-full h-32 flex-col items-center bg-gradient-to-b from-[#1f2937] to-[#06B6D4] p-4 shadow-lg">
-						<div className="absolute -bottom-11 border-4 border-white bg-[#06B6D4] rounded-full p-2 shadow-md">
+						<div className="absolute -bottom-11 border-4 border-white bg-[#06B6D4] rounded-full p-0 shadow-md">
 							<div className="relative">
 								{data.avatar_url ? (
 									<img
 										src={data.avatar_url}
 										alt="Avatar"
-										className="w-24 h-24 rounded-full object-cover"
+										className="w-28 h-28 rounded-full object-cover"
 									/>
 								) : (
-									<div className="w-24 h-24 rounded-full bg-[#06B6D4] flex items-center justify-center text-white text-3xl font-semibold select-none">
+									<div className="w-28 h-28 rounded-full bg-[#06B6D4] flex items-center justify-center text-white text-3xl font-semibold select-none">
 										{initials}
 									</div>
 								)}
@@ -250,7 +249,7 @@ export default function UserProfile() {
 									type="button"
 									onClick={() => fileInputRef.current?.click()}
 									disabled={uploading}
-									className="absolute -bottom-2.5 -right-2 w-8 h-8 text-white border-2 border-white bg-[#06B6D4] rounded-full p-1.5 cursor-pointer disabled:opacity-60"
+									className="absolute -bottom-1 -right-1 w-8 h-8 text-white border-2 border-white bg-[#06B6D4] rounded-full p-1.5 cursor-pointer disabled:opacity-60"
 									title={data.avatar_url ? "Trocar foto" : "Adicionar foto"}
 								>
 									{uploading ? (
@@ -264,7 +263,7 @@ export default function UserProfile() {
 										type="button"
 										onClick={handleAvatarRemove}
 										disabled={uploading}
-										className="absolute -bottom-2.5 -left-2 w-8 h-8 text-white border-2 border-white bg-red-500 hover:bg-red-600 rounded-full p-1.5 cursor-pointer disabled:opacity-60"
+										className="absolute -bottom-1 -left-1 w-8 h-8 text-white border-2 border-white bg-red-500 hover:bg-red-600 rounded-full p-1.5 cursor-pointer disabled:opacity-60"
 										title="Remover foto"
 									>
 										<Trash2 className="w-full h-full" />
@@ -321,22 +320,22 @@ export default function UserProfile() {
 							</div>
 							<div className="mt-4 py-2 w-[90%] border-t border-gray-300"></div>
 							<div className="w-[90%] flex flex-col gap-3 items-start justify-start">
-								<div className="flex items-center gap-2 w-full">
+								<div className="flex items-center justify-center gap-2 w-full">
 									<div className="flex items-center p-2 rounded-md bg-gray-200/40">
 										<Mail className="inline-block w-[24px] h-[24px] text-gray-500" />
 									</div>
-									<div className="flex flex-col -space-y-1 flex-1">
+									<div className="flex flex-col -space-y-1 flex-1 w-full items-center ">
 										<span className="text-gray-800">Email</span>
 										<span className="text-gray-500 text-sm underline underline-offset-4">
 											{user.email}
 										</span>
 									</div>
 								</div>
-								<div className="flex items-center gap-2 w-full">
+								<div className="flex items-center justify-center gap-2 w-full">
 									<div className="flex items-center p-2 rounded-md bg-gray-200/40">
 										<Phone className="inline-block w-[24px] h-[24px] text-gray-500" />
 									</div>
-									<div className="flex flex-col -space-y-1 flex-1">
+									<div className="flex flex-col -space-y-1 flex-1 w-full items-center">
 										<span className="text-gray-800">Telefone</span>
 										{editing ? (
 											<input
@@ -355,11 +354,11 @@ export default function UserProfile() {
 									</div>
 								</div>
 
-								<div className="flex items-center gap-2 w-full">
+								<div className="flex items-center justify-center gap-2 w-full">
 									<div className="flex items-center p-2 rounded-md bg-gray-200/40">
 										<MapPin className="inline-block w-[24px] h-[24px] text-gray-500" />
 									</div>
-									<div className="flex flex-col -space-y-1 flex-1">
+									<div className="flex flex-col -space-y-1 flex-1 w-full items-center">
 										<span className="text-gray-800">Localização</span>
 										{editing ? (
 											<input
@@ -377,11 +376,11 @@ export default function UserProfile() {
 										)}
 									</div>
 								</div>
-								<div className="flex items-center gap-2 w-full">
+								<div className="flex items-center justify-center gap-2 w-full">
 									<div className="flex items-center p-2 rounded-md bg-gray-200/40">
 										<Calendar className="inline-block w-[24px] h-[24px] text-gray-500" />
 									</div>
-									<div className="flex flex-col -space-y-1">
+									<div className="flex flex-col -space-y-1 flex-1 w-full items-center">
 										<span className="text-gray-800">Membro desde</span>
 										<span className="text-gray-500 text-sm">{memberSince}</span>
 									</div>
