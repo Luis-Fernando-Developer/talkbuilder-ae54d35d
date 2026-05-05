@@ -1,38 +1,41 @@
-## Objetivo
+# Deploy da `provision-account` no builder-flow-api
 
-Reativar temporariamente o `HashRouter` para que os links públicos dos bots voltem a funcionar imediatamente (`/#/slug/flow/publicId`), sem depender do SPA fallback do hosting que está quebrado para o projeto `talkbuilder.lovable.app`.
+## Contexto
+A function existe em `supabase/functions/provision-account/index.ts` mas o Flow-Appoint recebe **404** porque ela ainda não foi deployada no Supabase externo (`fwoescubnnagdvwasbjl`). Além disso, ao revisar o arquivo encontrei dois problemas que impedem o deploy:
 
-A intenção é deixar o código pronto para voltar a `BrowserRouter` (URLs limpas) com uma única troca de uma linha, assim que o suporte da Lovable corrigir o fallback.
+1. **Arquivo duplicado** — o conteúdo inteiro (`Deno.serve`, helpers, imports) está repetido a partir da linha 375. Isso causa erro de redeclaração no Deno (`Identifier 'createClient' has already been declared`).
+2. **Conflito de merge não resolvido** no `README.md` (`<<<<<<< HEAD ... >>>>>>>`) — não bloqueia deploy, mas está sujo.
 
-## Mudanças
+## Plano
 
-### 1. `src/main.tsx` — trocar router
-- Substituir `BrowserRouter` por `HashRouter` (de `react-router-dom`).
-- Adicionar um comentário acima da importação explicando que é temporário enquanto o SPA fallback do hosting não é restaurado, e como reverter.
+### 1. Limpar `supabase/functions/provision-account/index.ts`
+Remover a segunda metade duplicada (linhas 375-746), deixando só uma definição do handler (linhas 1-373).
 
-### 2. `src/components/chatbot/PublishDialog.tsx` — gerar URL com `#`
-- Ajustar `getPublicUrl()` para retornar `${baseUrl}/#/${slug}/flow/${publicId}` em vez de `${baseUrl}/${slug}/flow/${publicId}`.
-- Manter o `encodeURIComponent` em slug e publicId.
-- Comentário curto indicando que o `#` é temporário.
+### 2. Limpar `supabase/functions/provision-account/README.md`
+Remover os marcadores de conflito de merge do final do arquivo.
 
-### 3. `src/pages/public/flow/page.tsx` — sem mudanças
-- O componente continua funcionando igual: `useParams()` lê `slug` e `publicId` normalmente porque o `HashRouter` reconhece a mesma definição de rota `/:slug/flow/:publicId` no `App.tsx`.
+### 3. Garantir secret `EMBED_SHARED_SECRET` no Supabase externo
+Listar os secrets atuais via `secrets--fetch_secrets` (essa tool acessa o Supabase do projeto). Se faltar `EMBED_SHARED_SECRET`, te peço pra adicionar via `add_secret` com **o mesmo valor** já cadastrado no Flow-Appoint.
 
-### 4. `src/App.tsx` — sem mudanças
-- A definição `<Route path="/:slug/flow/:publicId" />` segue idêntica.
+> `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são auto-injetados pelo Supabase em edge functions — não precisa configurar.
 
-## Como reverter (quando o suporte arrumar)
+### 4. Deploy via Supabase CLI
+Rodar no sandbox:
+```bash
+supabase functions deploy provision-account \
+  --project-ref fwoescubnnagdvwasbjl \
+  --no-verify-jwt
+```
+- `--no-verify-jwt` porque a function valida o **nosso** JWT HS256 com `EMBED_SHARED_SECRET`, não o JWT do Supabase Auth.
+- Vou precisar de um **Supabase access token** (`SUPABASE_ACCESS_TOKEN`) pra CLI autenticar não-interativa. Te peço via `add_secret` se não estiver disponível. Você gera em https://supabase.com/dashboard/account/tokens.
 
-Apenas duas linhas:
-1. Em `src/main.tsx`: trocar `HashRouter` de volta por `BrowserRouter`.
-2. Em `PublishDialog.tsx`: remover o `/#` da função `getPublicUrl()`.
+### 5. Smoke test
+Depois do deploy, gero um JWT HS256 curtinho local com o mesmo secret e faço um `POST` de teste pra:
+```
+https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/provision-account
+```
+com um email de teste, conferindo que a resposta é `200 { ok: true, created: true|false, user_id }`. Confirmo que a 404 sumiu e te aviso.
 
-Vou deixar comentários `// TEMP: hash router` em ambos os pontos para facilitar localizar.
-
-## Resultado esperado
-
-- Links publicados ficam no formato:
-  `https://talkbuilder.lovable.app/#/teste02/flow/atendimento-personalizado`
-- Funcionam imediatamente em qualquer hosting (incluindo o atual com fallback quebrado), porque o servidor só recebe `/` e o React assume o resto.
-- Botões "copiar URL" e "abrir preview" no `PublishDialog` passam a copiar/abrir já no formato com `#`.
-- Links antigos sem `#` que o usuário tenha compartilhado continuarão dando 404 enquanto o fallback não for arrumado — não há como contornar isso do lado do app.
+## O que preciso de você
+- Confirmar que posso usar o **mesmo `EMBED_SHARED_SECRET`** já em produção (sem rotacionar agora).
+- Um **Supabase access token** com permissão no projeto `fwoescubnnagdvwasbjl`, se eu não achar nos secrets.
