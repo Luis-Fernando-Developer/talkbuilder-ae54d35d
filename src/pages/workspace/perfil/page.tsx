@@ -51,6 +51,13 @@ function formatMemberSince(iso: string | undefined) {
 export default function UserProfile() {
 	const { user, refreshProfile } = useAuth();
 	const { mode, host, session } = useEmbed();
+	const userMeta = (user?.user_metadata ?? {}) as Record<string, any>;
+	const isFlowAppointManaged =
+		mode === "embedded"
+			? host === "flow-appoint"
+			: userMeta.source === "flow-appoint";
+	const externalPlan: string | undefined =
+		mode === "embedded" ? session?.plan : userMeta.plan;
 	const { toast } = useToast();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -314,16 +321,21 @@ export default function UserProfile() {
 										{data.job_title || "—"}
 									</span>
 								)}
-								<div className="flex rounded-full h-6 bg-[#cdffd2] px-6 py-2 items-center justify-center">
-									<span className="text-gray-700">
-										{mode === "embedded"
-											? session?.plan
-												? PLAN_LABEL[session.plan] ?? `Plano ${session.plan}`
-												: host === "flow-appoint"
-													? "Plano gerenciado pelo Flow-Appoint"
-													: "Plano gerenciado pelo host"
-											: PLAN_LABEL[data.plan ?? "starter"] ?? "Plano Starter"}
-									</span>
+								<div className="flex flex-col items-center gap-1">
+									<div className="flex rounded-full h-6 bg-[#cdffd2] px-6 py-2 items-center justify-center">
+										<span className="text-gray-700">
+											{isFlowAppointManaged
+												? externalPlan
+													? PLAN_LABEL[externalPlan] ?? `Plano ${externalPlan}`
+													: "Plano gerenciado pelo Flow-Appoint"
+												: PLAN_LABEL[data.plan ?? "starter"] ?? "Plano Starter"}
+										</span>
+									</div>
+									{isFlowAppointManaged && (
+										<span className="text-[11px] text-gray-500">
+											Gerenciado pelo Flow-Appoint
+										</span>
+									)}
 								</div>
 							</div>
 							<div className="mt-4 py-2 w-[90%] border-t border-gray-300"></div>
