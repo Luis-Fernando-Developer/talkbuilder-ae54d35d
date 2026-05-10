@@ -17,6 +17,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getSupabase } from "../../../lib/supabaseClient";
 import { useAuth } from "../../../context/AuthContext";
+import { useEmbed } from "../../../context/EmbedContext";
 import { useToast } from "../../../hooks/use-toast";
 import { getInitials } from "../../../lib/initials";
 
@@ -49,6 +50,7 @@ function formatMemberSince(iso: string | undefined) {
 
 export default function UserProfile() {
 	const { user, refreshProfile } = useAuth();
+	const { mode, host, session } = useEmbed();
 	const { toast } = useToast();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -314,7 +316,13 @@ export default function UserProfile() {
 								)}
 								<div className="flex rounded-full h-6 bg-[#cdffd2] px-6 py-2 items-center justify-center">
 									<span className="text-gray-700">
-										{PLAN_LABEL[data.plan ?? "starter"] ?? "Plano Starter"}
+										{mode === "embedded"
+											? session?.plan
+												? PLAN_LABEL[session.plan] ?? `Plano ${session.plan}`
+												: host === "flow-appoint"
+													? "Plano gerenciado pelo Flow-Appoint"
+													: "Plano gerenciado pelo host"
+											: PLAN_LABEL[data.plan ?? "starter"] ?? "Plano Starter"}
 									</span>
 								</div>
 							</div>
