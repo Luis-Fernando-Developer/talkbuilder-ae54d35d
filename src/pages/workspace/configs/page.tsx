@@ -18,9 +18,17 @@ import IntegrationsSettings from "./tabsListUI/IntegrationsSettings";
 import PaymentPlan from "./tabsListUI/PaymentPlan";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { useEmbed } from "../../../context/EmbedContext";
+import { useAuth } from "../../../context/AuthContext";
 
 export default function ConfigurationWorkspace() {
-	const { flags } = useEmbed();
+	const { flags, mode, host } = useEmbed();
+	const { user } = useAuth();
+	const userMeta = (user?.user_metadata ?? {}) as Record<string, any>;
+	const isFlowAppointManaged =
+		mode === "embedded"
+			? host === "flow-appoint"
+			: userMeta.source === "flow-appoint";
+	const showBilling = flags.showBilling && !isFlowAppointManaged;
 	const defaultTab = "workspace";
 	return (
 		<div className="relative flex border border-red-600 h-full overflow-hidden">
@@ -54,7 +62,7 @@ export default function ConfigurationWorkspace() {
 							<TabsTrigger value="integration" className="capitalize bg-gray-300">
 								<Plug />
 							</TabsTrigger>
-							{flags.showBilling && (
+							{showBilling && (
 								<TabsTrigger value="paymentPlan" className="capitalize bg-gray-300">
 									<CreditCard />
 								</TabsTrigger>
@@ -92,7 +100,7 @@ export default function ConfigurationWorkspace() {
 								<IntegrationsSettings />
 							</div>
 						</TabsContent>
-						{flags.showBilling && (
+						{showBilling && (
 							<TabsContent value="paymentPlan">
 								<div>
 									<PaymentPlan />
