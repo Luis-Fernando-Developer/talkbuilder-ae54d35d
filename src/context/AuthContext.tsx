@@ -18,6 +18,10 @@ export type Profile = {
 	display_name: string | null;
 	avatar_url: string | null;
 	plan: PlanId;
+	embed_source: string | null;
+	embed_company_id: string | null;
+	embed_plan_tier: string | null;
+	embed_plan_synced_at: string | null;
 };
 
 type AuthContextType = {
