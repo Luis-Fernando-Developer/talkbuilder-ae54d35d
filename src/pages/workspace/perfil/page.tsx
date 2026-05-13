@@ -20,6 +20,7 @@ import { useAuth } from "../../../context/AuthContext";
 import { useEmbed } from "../../../context/EmbedContext";
 import { useToast } from "../../../hooks/use-toast";
 import { getInitials } from "../../../lib/initials";
+import { resolveEffectivePlan, PLAN_LABELS as RESOLVER_LABELS } from "../../../lib/planResolver";
 
 type ProfileExtra = {
 	display_name: string | null;
