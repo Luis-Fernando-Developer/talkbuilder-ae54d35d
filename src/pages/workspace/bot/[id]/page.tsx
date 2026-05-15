@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Settings,
@@ -68,6 +68,7 @@ function statusLabel(status: FlowStatus): { text: string; className: string } {
 export default function BotPage() {
   const params = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const botId = (params.id as string) ?? "default";
   const { items, setItems } = useWorkspace();
   const { profile } = useAuth();
@@ -292,6 +293,12 @@ export default function BotPage() {
       navigate(target);
     }
   };
+
+  // Defesa extra: se a URL já saiu da rota do bot, o editor não pode continuar
+  // montado na tela, mesmo se algum render atrasado reaproveitar este componente.
+  if (!/\/workspace\/bot\/[^/]+\/?$/.test(location.pathname)) {
+    return null;
+  }
 
   return (
     <VariablesProvider>
