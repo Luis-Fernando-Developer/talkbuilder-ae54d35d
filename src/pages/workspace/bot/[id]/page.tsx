@@ -408,4 +408,6 @@ export default function BotPage() {
       </div>
     </VariablesProvider>
   );
+}
+
 export default BotPage;
