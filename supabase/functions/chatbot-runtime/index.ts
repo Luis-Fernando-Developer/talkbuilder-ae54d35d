@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
       current_node_id: result.next_node_id,
       variables: result.variables,
       waiting_for_input: !!result.waiting_for,
-      is_waiting_time: result.wait_ms > 0, // NEW FLAG to track active wait timer
+      is_waiting_time: result.wait_ms > 0,
     };
     writeMemoryState(memoryKey, runtimeState);
 
@@ -310,10 +310,12 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       const value = input.message ?? input.button_id;
       if (varName && value !== undefined) variables[varName] = value;
       
-      // ONLY advance if we were waiting for user input (text/buttons)
-      // AND NOT if we were in a timer (is_waiting_time).
-      if (execution.waiting_for_input && !execution.is_waiting_time) {
-        currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+      // If we are currently in a wait period, don't advance.
+      if (!execution.is_waiting_time) {
+        // If we were explicitly waiting for input, then we can advance.
+        if (execution.waiting_for_input) {
+          currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+        }
       }
     }
   }
@@ -353,10 +355,8 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       // If we JUST started this node (not continuing from timer)
       if (!execution.is_waiting_time) {
         wait_ms = parseWaitMs(cfg);
-        // Save the current node as the one to "return to" or just advanced?
-        // Actually, we advance the pointer to the NEXT node so when timer ends, 
-        // continueRuntime starts from the correct place.
-        currentNodeId = nextFromNode(node.id, container);
+        // Do NOT advance currentNodeId yet. Keep it on the wait node.
+        // When the timer finishes, the client calls back and we'll see is_waiting_time=true.
         break; // STOP loop immediately
       } else {
         // We are CONTINUING after a timer. Reset flag and move to next node.
