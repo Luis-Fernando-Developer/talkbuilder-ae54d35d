@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import { useAuth } from "@/context/AuthContext";
 import { VariablesProvider } from "@/context/VariablesContext";
-import { folderRoute, workspaceRoot } from "@/lib/workspaceRoutes";
+import { browserHrefForRoute, folderRoute, rememberedBotBackRoute, workspaceRoot } from "@/lib/workspaceRoutes";
 import {
   ensureFlow,
   saveDraft,
@@ -270,12 +270,12 @@ export default function BotPage() {
 
     // 2) Determina o destino (pasta pai ou workspace main).
     const parentId = bot?.parentId;
-    const target = parentId ? folderRoute(slug, parentId) : workspaceRoot(slug);
+    const target = rememberedBotBackRoute(botId) ?? (parentId ? folderRoute(slug, parentId) : workspaceRoot(slug));
 
     // 3) Navega usando window.location.href para garantir a desmontagem completa
     // de todo o componente e seus overlays fixos, forçando o recarregamento da SPA.
     if (typeof window !== "undefined") {
-      window.location.href = target;
+      window.location.href = browserHrefForRoute(target);
     } else {
       navigate(target);
     }
