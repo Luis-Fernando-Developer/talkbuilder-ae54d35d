@@ -148,6 +148,7 @@ export const TestPanel = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
+  const startedFlowRef = useRef<string | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -156,17 +157,20 @@ export const TestPanel = ({
   };
 
   useEffect(() => {
-    if (isOpen && flowId) {
-      if (!hasStartedRef.current) {
-        contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        runtimeStateRef.current = null;
-        hasStartedRef.current = true;
-      }
-      startRuntimeSession();
-    } else if (!isOpen) {
+    if (!isOpen || !flowId) {
       hasStartedRef.current = false;
       runtimeStateRef.current = null;
+      startedFlowRef.current = null;
+      return;
     }
+
+    if (hasStartedRef.current && startedFlowRef.current === flowId) return;
+
+    contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    runtimeStateRef.current = null;
+    hasStartedRef.current = true;
+    startedFlowRef.current = flowId;
+    startRuntimeSession();
   }, [isOpen, flowId]);
 
   useEffect(() => {
