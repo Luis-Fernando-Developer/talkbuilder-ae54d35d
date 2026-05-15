@@ -414,8 +414,8 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         break;
       case "wait":
       case "await":
-        wait_ms = parseWaitMs(cfg);
         currentNodeId = nextFromNode(node.id, container);
+        wait_ms = currentNodeId ? parseWaitMs(cfg) : 0;
         break;
       case "set-variable":
         if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
