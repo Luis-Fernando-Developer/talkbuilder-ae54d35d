@@ -63,17 +63,11 @@ const ComparisonItem = ({
   onUpdate,
   onDelete,
   availableVariables,
-  showLogicalOperator,
-  logicalOperator,
-  onLogicalOperatorChange,
 }: {
   comparison: ConditionComparison;
   onUpdate: (updates: Partial<ConditionComparison>) => void;
   onDelete: () => void;
   availableVariables: string[];
-  showLogicalOperator: boolean;
-  logicalOperator?: "AND" | "OR";
-  onLogicalOperatorChange?: (op: "AND" | "OR") => void;
 }) => {
   const { addVariable } = useVariables();
   const [searchValue, setSearchValue] = useState("");
@@ -226,11 +220,6 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
     setConfig({ ...config, conditions: [...conditions, newCondition] });
   };
 
-  const deleteCondition = (conditionId: string) => {
-    if (conditions.length <= 1) return;
-    setConfig({ ...config, conditions: conditions.filter(c => c.id !== conditionId) });
-  };
-
   const addComparison = (conditionId: string) => {
     const condition = conditions.find(c => c.id === conditionId);
     if (!condition) return;
@@ -304,7 +293,6 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
                   availableVariables={availableVariables}
                   onUpdate={(updates) => updateComparison(condition.id, comparison.id, updates)}
                   onDelete={() => deleteComparison(condition.id, comparison.id)}
-                  showLogicalOperator={false}
                 />
               </div>
             ))}
