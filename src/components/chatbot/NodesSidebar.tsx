@@ -92,7 +92,7 @@ export const NodesSidebar = ({ onAddNode }: NodesSidebarProps) => {
       <div className="flex overflow-hidden h-full">
         <div className={`${!collapsed ? "flex flex-col gap-3" : "flex flex-col gap-0"} gap-3 w-full h-full overflow-y-auto`}>
           {categories.map((category) => (
-            <div key={category} className="flex flex-col gap-2 py-3 px-1 w-full justify-start">
+            <div key={category} className="flex flex-col gap-2 py-3 px-1 w-full justify-start border-b border-border/50 last:border-0">
               <h4
                 className={`${!collapsed ? "hidden" : "flex flex-col"} text-left text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1`}
               >
