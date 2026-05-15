@@ -20,6 +20,7 @@ import {
   Webhook,
   Send,
   MoveIcon,
+  Hourglass,
 } from "lucide-react";
 import { Node, NodeType } from "@/types/chatbot";
 import { renderTextSegments } from "@/lib/textParser";
@@ -57,6 +58,7 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   "set-variable": <Variable className="h-4 w-4" />,
   "script": <Code className="h-4 w-4" />,
   "condition": <Filter className="h-4 w-4" />,
+  "wait": <Hourglass className="h-4 w-4" />,
 };
 
 const nodeColors: Record<NodeType, string> = {
@@ -86,6 +88,7 @@ const nodeColors: Record<NodeType, string> = {
   "set-variable": "bg-purple-100 border-purple-300 text-purple-700",
   "script": "bg-purple-100 border-purple-300 text-purple-700",
   "condition": "bg-purple-100 border-purple-300 text-purple-700",
+  "wait": "bg-purple-100 border-purple-300 text-purple-700",
 };
 
 const nodeLabels: Record<NodeType, string> = {
@@ -115,6 +118,7 @@ const nodeLabels: Record<NodeType, string> = {
   "set-variable": "Definir Variável",
   "script": "Executar Script",
   "condition": "Condição",
+  "wait": "Aguardar",
 };
 
 export const NodeItem = ({ node, onClick }: NodeItemProps) => {
@@ -146,6 +150,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
   const hasButtonsPreview = false; // Handled by ButtonGroupNodeItem now
   const hasSetVariablePreview = node.type === "set-variable" && node.config.variableName;
   const hasScriptPreview = node.type === "script" && node.config.code;
+  const hasWaitPreview = node.type === "wait" && node.config.waitTime;
 
   return (
     <div
@@ -237,6 +242,12 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
                 {node.config.code?.substring(0, 50) || "// código vazio"}
                 {node.config.code?.length > 50 ? '...' : ''}
               </pre>
+            </div>
+          ) : hasWaitPreview ? (
+            <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+              <p className="text-xs font-semibold text-purple-700">
+                Aguardar {node.config.waitTime} {node.config.timeUnit === 'seconds' ? 'segundo(s)' : node.config.timeUnit === 'minutes' ? 'minuto(s)' : 'hora(s)'}
+              </p>
             </div>
           ) : (
             messageValue && (
