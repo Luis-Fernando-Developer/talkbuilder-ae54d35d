@@ -33,17 +33,19 @@ vi.mock("react-router-dom", async () => {
 });
 
 // Mock do Supabase
-vi.mock("../lib/supabaseClient", () => ({
-  getSupabase: () => ({
-    from: () => ({
-      select: () => ({
-        eq: () => ({
-          single: () => Promise.resolve({ data: { id: "test-bot", name: "Test Bot" }, error: null }),
-        }),
-      }),
+vi.mock("../lib/supabaseClient", () => {
+  const mockFrom = {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data: { id: "test-bot", name: "Test Bot" }, error: null }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: { id: "test-bot", name: "Test Bot" }, error: null }),
+  };
+  return {
+    getSupabase: () => ({
+      from: () => mockFrom,
     }),
-  }),
-}));
+  };
+});
 
 describe("BotPage Navigation", () => {
   beforeEach(() => {
