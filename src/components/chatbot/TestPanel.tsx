@@ -258,8 +258,11 @@ export const TestPanel = ({
       }
 
       if (nodeType === "bubble-text" || nodeType === "bubble-number") {
-        const content = replaceVars(firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value));
-        if (content) nextMessages.push({ id: crypto.randomUUID(), type: "bot", content });
+        const rawValue = firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value);
+        if (rawValue) {
+          const html = richHtmlFor(rawValue, { variables });
+          nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: html, isHtml: true });
+        }
       } else if (nodeType === "bubble-image") {
         nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src), isImage: true, alt: firstText(cfg.ImageAlt, cfg.alt) });
       } else if (nodeType === "bubble-video") {
