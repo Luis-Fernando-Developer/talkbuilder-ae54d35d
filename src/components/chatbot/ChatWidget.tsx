@@ -24,6 +24,7 @@ interface RuntimeState {
   current_node_id: string | null;
   variables: Record<string, any>;
   waiting_for_input: boolean;
+  is_waiting_time: boolean;
 }
 
 interface ChatWidgetProps {
@@ -104,10 +105,19 @@ export const ChatWidget = ({
 
   const applyRuntimeData = (data: any, replaceMessages = false) => {
     runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
-    if (replaceMessages) setMessages(data.messages || []);
-    else setMessages(prev => [...prev, ...(data.messages || [])]);
+    
+    // Check if we are in a waiting period
+    const isWaiting = data.wait_ms > 0 || (data.runtime_state?.is_waiting_time);
+    
+    if (replaceMessages) {
+      setMessages(data.messages || []);
+    } else {
+      setMessages(prev => [...prev, ...(data.messages || [])]);
+    }
+    
     setWaitingFor(data.waiting_for);
     setButtons(data.buttons || []);
+    
     return scheduleRuntimeContinue(data.wait_ms);
   };
 

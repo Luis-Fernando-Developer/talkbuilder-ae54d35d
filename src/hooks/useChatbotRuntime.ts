@@ -16,6 +16,7 @@ interface RuntimeState {
   current_node_id: string | null;
   variables: Record<string, any>;
   waiting_for_input: boolean;
+  is_waiting_time: boolean;
 }
 
 const RUNTIME_URL = "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
@@ -66,10 +67,21 @@ export function useChatbotRuntime(flowId?: string) {
 
   const applyRuntimeData = (data: any, replaceMessages = false) => {
     runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
-    if (replaceMessages) setMessages(data.messages || []);
-    else setMessages(prev => [...prev, ...(data.messages || [])]);
+    
+    // Check if we are in a waiting period
+    const isWaiting = data.wait_ms > 0 || (data.runtime_state?.is_waiting_time);
+    
+    if (replaceMessages) {
+      setMessages(data.messages || []);
+    } else {
+      // If we received messages but also a wait instruction, 
+      // the messages should be shown, but the state must block further auto-execution
+      setMessages(prev => [...prev, ...(data.messages || [])]);
+    }
+    
     setWaitingFor(data.waiting_for);
     setButtons(data.buttons || []);
+    
     return scheduleRuntimeContinue(data.wait_ms);
   };
 
