@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Node, NodeType } from "@/types/chatbot";
 import { renderTextSegments } from "@/lib/textParser";
+import { RichText } from "@/lib/richText";
 import { cn } from "@/lib/utils";
 
 interface NodeItemProps {
