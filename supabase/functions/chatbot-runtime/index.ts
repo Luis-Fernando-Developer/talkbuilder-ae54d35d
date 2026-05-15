@@ -156,7 +156,8 @@ Deno.serve(async (req: Request) => {
     const runtimeState = {
       current_node_id: result.next_node_id,
       variables: result.variables,
-      waiting_for_input: !!result.waiting_for || result.wait_ms > 0,
+      waiting_for_input: !!result.waiting_for,
+      is_waiting_time: result.wait_ms > 0, // NEW FLAG to track active wait timer
     };
     writeMemoryState(memoryKey, runtimeState);
 
@@ -188,6 +189,7 @@ function normalizeClientState(state: any) {
     current_node_id: typeof state?.current_node_id === "string" ? state.current_node_id : null,
     variables: state?.variables && typeof state.variables === "object" ? state.variables : {},
     waiting_for_input: !!state?.waiting_for_input,
+    is_waiting_time: !!state?.is_waiting_time, // Restore the wait timer flag
   };
 }
 
@@ -299,7 +301,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     return Math.round(safeTime * multiplier);
   };
 
-  // If we were waiting and got input -> capture and advance
+  // Handle input and advance
   if (input && (input.message !== undefined || input.button_id !== undefined) && currentNodeId) {
     const info = findNode(currentNodeId);
     if (info) {
@@ -308,12 +310,9 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       const value = input.message ?? input.button_id;
       if (varName && value !== undefined) variables[varName] = value;
       
-      // CRITICAL: Advance ONLY if we were waiting for user input (text/buttons)
-      // AND NOT if we were in a "wait" node (timer).
-      const nodeType = (info.node.type || "").toLowerCase();
-      const isInputNode = nodeType.startsWith("input-");
-      
-      if (execution.waiting_for_input && isInputNode) {
+      // ONLY advance if we were waiting for user input (text/buttons)
+      // AND NOT if we were in a timer (is_waiting_time).
+      if (execution.waiting_for_input && !execution.is_waiting_time) {
         currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
       }
     }
@@ -348,13 +347,23 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     const { node, container } = info;
     const cfg = node.config || {};
     const nodeType = (node.type || "").toLowerCase();
-    const isWaitNode = nodeType === "wait" || nodeType === "await";
 
-    if (isWaitNode) {
-      wait_ms = parseWaitMs(cfg);
-      currentNodeId = nextFromNode(node.id, container);
-      // STOP IMMEDIATELY when a wait node is found
-      break;
+    // Check if node is a wait node (Aguardar)
+    if (nodeType === "wait" || nodeType === "await") {
+      // If we JUST started this node (not continuing from timer)
+      if (!execution.is_waiting_time) {
+        wait_ms = parseWaitMs(cfg);
+        // Save the current node as the one to "return to" or just advanced?
+        // Actually, we advance the pointer to the NEXT node so when timer ends, 
+        // continueRuntime starts from the correct place.
+        currentNodeId = nextFromNode(node.id, container);
+        break; // STOP loop immediately
+      } else {
+        // We are CONTINUING after a timer. Reset flag and move to next node.
+        execution.is_waiting_time = false;
+        currentNodeId = nextFromNode(node.id, container);
+        continue;
+      }
     }
 
     switch (nodeType) {
