@@ -149,6 +149,7 @@ export const TestPanel = ({
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
   const startedFlowRef = useRef<string | null>(null);
+  const waitTimerRef = useRef<number | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -158,6 +159,7 @@ export const TestPanel = ({
 
   useEffect(() => {
     if (!isOpen || !flowId) {
+      clearWaitTimer();
       hasStartedRef.current = false;
       runtimeStateRef.current = null;
       startedFlowRef.current = null;
@@ -174,10 +176,42 @@ export const TestPanel = ({
   }, [isOpen, flowId]);
 
   useEffect(() => {
+    return () => clearWaitTimer();
+  }, []);
+
+  useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const clearWaitTimer = () => {
+    if (waitTimerRef.current !== null) {
+      window.clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  };
+
+  const scheduleRuntimeContinue = (waitMs: unknown) => {
+    const delay = Number(waitMs);
+    if (!Number.isFinite(delay) || delay <= 0) return false;
+    clearWaitTimer();
+    waitTimerRef.current = window.setTimeout(() => {
+      waitTimerRef.current = null;
+      continueRuntime();
+    }, delay);
+    return true;
+  };
+
+  const applyRuntimeData = (data: any, replaceMessages = false) => {
+    runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
+    if (replaceMessages) setMessages(data.messages || []);
+    else setMessages(prev => [...prev, ...(data.messages || [])]);
+    setWaitingForInput(data.waiting_for === "text");
+    setWaitingForButton(data.waiting_for === "buttons");
+    setActiveButtons(data.buttons || []);
+    return scheduleRuntimeContinue(data.wait_ms);
+  };
 
   const startRuntimeSession = async () => {
     setIsLoading(true);
@@ -194,15 +228,36 @@ export const TestPanel = ({
         }),
       });
       const data = await response.json();
-      runtimeStateRef.current = data.runtime_state || null;
-      setMessages(data.messages || []);
-      setWaitingForInput(data.waiting_for === "text");
-      setWaitingForButton(data.waiting_for === "buttons");
-      setActiveButtons(data.buttons || []);
+      applyRuntimeData(data, true);
     } catch (err) {
       console.error("Test Runtime error:", err);
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
+    }
+  };
+
+  const continueRuntime = async () => {
+    if (!flowId) return;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(getRuntimeUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "message",
+          flow_id: flowId,
+          contact_id: contactIdRef.current,
+          channel: "webchat",
+          payload: { runtime_state: runtimeStateRef.current },
+        }),
+      });
+      const data = await response.json();
+      applyRuntimeData(data);
+    } catch (err) {
+      console.error("Test Runtime continue error:", err);
+    } finally {
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   };
 
@@ -230,15 +285,11 @@ export const TestPanel = ({
         }),
       });
       const data = await response.json();
-      runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
-      setMessages(prev => [...prev, ...(data.messages || [])]);
-      setWaitingForInput(data.waiting_for === "text");
-      setWaitingForButton(data.waiting_for === "buttons");
-      setActiveButtons(data.buttons || []);
+      applyRuntimeData(data);
     } catch (err) {
       console.error("Test Runtime message error:", err);
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   };
 

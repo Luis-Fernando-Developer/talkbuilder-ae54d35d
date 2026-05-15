@@ -165,6 +165,7 @@ Deno.serve(async (req: Request) => {
     return json({
       messages: result.messages,
       waiting_for: result.waiting_for,
+      wait_ms: result.wait_ms,
       buttons: result.buttons,
       session_id: session?.id ?? null,
       runtime_state: runtimeState,
@@ -218,6 +219,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   const messages: any[] = [];
   let waiting_for: string | null = null;
   let buttons: any[] = [];
+  let wait_ms = 0;
   let steps = 0;
 
   const findNode = (id: string | null) => {
@@ -287,8 +289,20 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   const replaceVars = (text: string) =>
     !text ? text : decodeText(text).replace(/{{(.*?)}}/g, (_, k) => variables[k.trim()] ?? `{{${k}}}`);
 
+  const parseWaitMs = (cfg: any) => {
+    const rawTime = Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5);
+    const safeTime = Number.isFinite(rawTime) && rawTime > 0 ? Math.min(rawTime, 24 * 60 * 60) : 5;
+    const unit = String(cfg.timeUnit ?? cfg.unit ?? "seconds").toLowerCase();
+    const multiplier = unit.startsWith("hour") || unit.startsWith("hora")
+      ? 60 * 60 * 1000
+      : unit.startsWith("minute") || unit.startsWith("minuto")
+        ? 60 * 1000
+        : 1000;
+    return Math.round(safeTime * multiplier);
+  };
+
   // If we were waiting and got input -> capture and advance
-  if (execution.waiting_for_input && input && currentNodeId) {
+  if (execution.waiting_for_input && input && (input.message !== undefined || input.button_id !== undefined) && currentNodeId) {
     const info = findNode(currentNodeId);
     if (info) {
       const cfg = info.node.config || {};
@@ -328,8 +342,11 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     }
     const { node, container } = info;
     const cfg = node.config || {};
+    const nodeType = String(node.type || "").toLowerCase() === "await"
+      ? "wait"
+      : String(node.type || "").toLowerCase();
 
-    switch (node.type) {
+    switch (nodeType) {
       case "start":
         break;
       case "bubble-text":
@@ -395,6 +412,11 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
           value: b.value,
         }));
         break;
+      case "wait":
+      case "await":
+        currentNodeId = nextFromNode(node.id, container);
+        wait_ms = currentNodeId ? parseWaitMs(cfg) : 0;
+        break;
       case "set-variable":
         if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
         break;
@@ -404,6 +426,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     }
 
     if (waiting_for) break;
+    if (wait_ms > 0) break;
 
     currentNodeId = nextFromNode(node.id, container);
   }
@@ -411,6 +434,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   return {
     messages,
     waiting_for,
+    wait_ms,
     buttons,
     variables,
     next_node_id: currentNodeId,

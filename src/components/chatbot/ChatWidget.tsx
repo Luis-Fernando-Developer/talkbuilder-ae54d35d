@@ -49,6 +49,7 @@ export const ChatWidget = ({
   const [error, setError] = useState<string | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
+  const waitTimerRef = useRef<number | null>(null);
 
   const getRuntimeUrl = () => {
     return "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
@@ -68,6 +69,43 @@ export const ChatWidget = ({
     }
   }, [isOpen, flowId]);
 
+  useEffect(() => {
+    return () => clearWaitTimer();
+  }, []);
+
+  const clearWaitTimer = () => {
+    if (waitTimerRef.current !== null) {
+      window.clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  };
+
+  const getContactId = () => localStorage.getItem("chat_contact_id") || (() => {
+    const id = `web-${Math.random().toString(36).slice(2, 11)}`;
+    localStorage.setItem("chat_contact_id", id);
+    return id;
+  })();
+
+  const scheduleRuntimeContinue = (waitMs: unknown) => {
+    const delay = Number(waitMs);
+    if (!Number.isFinite(delay) || delay <= 0) return false;
+    clearWaitTimer();
+    waitTimerRef.current = window.setTimeout(() => {
+      waitTimerRef.current = null;
+      continueRuntime();
+    }, delay);
+    return true;
+  };
+
+  const applyRuntimeData = (data: any, replaceMessages = false) => {
+    runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
+    if (replaceMessages) setMessages(data.messages || []);
+    else setMessages(prev => [...prev, ...(data.messages || [])]);
+    setWaitingFor(data.waiting_for);
+    setButtons(data.buttons || []);
+    return scheduleRuntimeContinue(data.wait_ms);
+  };
+
   const startSession = async () => {
     if (!flowId) {
       setError("Nenhum fluxo de chatbot configurado");
@@ -84,11 +122,7 @@ export const ChatWidget = ({
         body: JSON.stringify({
           action: "start",
           flow_id: flowId,
-          contact_id: localStorage.getItem("chat_contact_id") || (() => {
-            const id = `web-${Math.random().toString(36).slice(2, 11)}`;
-            localStorage.setItem("chat_contact_id", id);
-            return id;
-          })(),
+          contact_id: getContactId(),
           channel: "webchat",
         }),
       });
@@ -97,14 +131,39 @@ export const ChatWidget = ({
 
       const data = await response.json();
       setSessionId(data.session_id);
-      runtimeStateRef.current = data.runtime_state || null;
-      setMessages(data.messages || []);
-      setWaitingFor(data.waiting_for);
-      setButtons(data.buttons || []);
+      applyRuntimeData(data, true);
     } catch (err: any) {
       setError(err.message || "Erro ao conectar com o chatbot");
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
+    }
+  };
+
+  const continueRuntime = async () => {
+    if (!flowId) return;
+    setIsLoading(true);
+
+    try {
+      const response = await fetch(getRuntimeUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "message",
+          flow_id: flowId,
+          contact_id: getContactId(),
+          channel: "webchat",
+          payload: { runtime_state: runtimeStateRef.current },
+        }),
+      });
+
+      if (!response.ok) throw new Error("Falha ao continuar conversa");
+
+      const data = await response.json();
+      applyRuntimeData(data);
+    } catch (err: any) {
+      setError(err.message || "Erro ao continuar conversa");
+    } finally {
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   };
 
@@ -126,7 +185,7 @@ export const ChatWidget = ({
         body: JSON.stringify({
           action: "message",
           flow_id: flowId,
-          contact_id: localStorage.getItem("chat_contact_id"),
+          contact_id: getContactId(),
           channel: "webchat",
           payload: { message: msgToSend, button_id: buttonId, runtime_state: runtimeStateRef.current },
         }),
@@ -135,14 +194,11 @@ export const ChatWidget = ({
       if (!response.ok) throw new Error("Falha ao enviar mensagem");
 
       const data = await response.json();
-      runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
-      setMessages(prev => [...prev, ...(data.messages || [])]);
-      setWaitingFor(data.waiting_for);
-      setButtons(data.buttons || []);
+      applyRuntimeData(data);
     } catch (err: any) {
       setError(err.message || "Erro ao enviar mensagem");
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   };
 
@@ -162,6 +218,7 @@ export const ChatWidget = ({
     setWaitingFor(null);
     setButtons([]);
     runtimeStateRef.current = null;
+    clearWaitTimer();
     setError(null);
   };
 
