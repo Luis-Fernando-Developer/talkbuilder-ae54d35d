@@ -161,6 +161,40 @@ export const TestPanel = ({
     return "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
   };
 
+  const firstNodeOfContainer = (containerId: string) => {
+    const container = allContainers.find((c) => c.id === containerId);
+    return container?.nodes?.[0]?.id ?? null;
+  };
+
+  const findNode = (nodeId: string | null) => {
+    if (!nodeId) return null;
+    for (const container of allContainers) {
+      const node = container.nodes.find((n) => n.id === nodeId);
+      if (node) return { node, container };
+    }
+    return null;
+  };
+
+  const nextFromNode = (nodeId: string, containerId: string, handle?: string | null) => {
+    const normalizeHandle = (value?: string | null) => {
+      if (!value) return "";
+      const raw = String(value);
+      const buttonMatch = raw.match(/-btn-(.+)$/);
+      if (buttonMatch?.[1]) return buttonMatch[1];
+      if (raw.endsWith("-default")) return "default";
+      return raw;
+    };
+    const wantedHandle = normalizeHandle(handle);
+    let edge = edges.find((e) => e.source === nodeId && wantedHandle && normalizeHandle(e.sourceHandle) === wantedHandle);
+    if (!edge && wantedHandle) edge = edges.find((e) => e.source === nodeId && normalizeHandle(e.sourceHandle) === "default");
+    if (!edge) edge = edges.find((e) => e.source === nodeId && !e.sourceHandle);
+    if (!edge) edge = edges.find((e) => e.source === nodeId);
+    if (edge) return findNode(edge.target) ? edge.target : (firstNodeOfContainer(edge.target) || edge.target);
+    const containerEdge = edges.find((e) => e.source === containerId);
+    if (containerEdge) return findNode(containerEdge.target) ? containerEdge.target : firstNodeOfContainer(containerEdge.target);
+    return null;
+  };
+
   useEffect(() => {
     if (!isOpen || !flowId) {
       clearWaitTimer();
