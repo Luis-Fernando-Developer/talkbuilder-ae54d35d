@@ -230,7 +230,7 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
   useEffect(() => {
     const existingVariables = getAllVariableNames();
     containers.forEach(container => {
-      container.nodes.forEach(node => {
+      container.nodes.forEach((node: Node) => {
         const varName = node.config?.saveVariable || node.config?.variableName;
         if (varName && typeof varName === 'string' && varName.trim() && !existingVariables.includes(varName.trim())) {
           addVariable(varName.trim(), "");
