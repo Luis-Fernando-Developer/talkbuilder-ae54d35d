@@ -199,20 +199,11 @@ const ComparisonItem = ({
 };
 
 export const ConditionConfig = ({ config, setConfig, containers = [] }: ConditionConfigProps & { containers?: Container[] }) => {
-  const { addVariable, getAllVariableNames } = useVariables();
-
-  // Extract variables from other nodes in the same flow
-  useEffect(() => {
-    const existingVariables = getAllVariableNames();
-    containers.forEach(container => {
-      container.nodes.forEach((node: Node) => {
-        const varName = node.config?.saveVariable || node.config?.variableName;
-        if (varName && typeof varName === 'string' && varName.trim() && !existingVariables.includes(varName.trim())) {
-          addVariable(varName.trim(), "");
-        }
-      });
-    });
-  }, [containers, addVariable, getAllVariableNames]);
+  const { getAllVariableNames } = useVariables();
+  const availableVariables = useMemo(
+    () => Array.from(new Set([...getAllVariableNames(), ...getNodeVariableNames(containers)])),
+    [containers, getAllVariableNames]
+  );
 
   const [defaultConditionId] = useState(createConditionId);
   const conditions: ConditionGroup[] = config.conditions?.length
@@ -310,6 +301,7 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
                 )}
                 <ComparisonItem
                   comparison={comparison}
+                  availableVariables={availableVariables}
                   onUpdate={(updates) => updateComparison(condition.id, comparison.id, updates)}
                   onDelete={() => deleteComparison(condition.id, comparison.id)}
                   showLogicalOperator={false}
