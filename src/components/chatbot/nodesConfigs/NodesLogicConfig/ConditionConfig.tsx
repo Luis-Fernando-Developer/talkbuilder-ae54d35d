@@ -104,21 +104,6 @@ const ComparisonItem = ({
 
   return (
     <div className="space-y-3 p-3 bg-card border rounded-lg">
-      {showLogicalOperator && logicalOperator && onLogicalOperatorChange && (
-        <div className="flex justify-center -mt-6 mb-2">
-          <Select value={logicalOperator} onValueChange={(v) => onLogicalOperatorChange(v as "AND" | "OR")}>
-            <SelectTrigger className="w-20 h-7 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {logicalOperators.map(op => (
-                <SelectItem key={op.value} value={op.value}>{op.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      )}
-      
       <div className="flex items-start gap-2">
         <div className="flex-1 space-y-3">
           {/* Variable selector */}
