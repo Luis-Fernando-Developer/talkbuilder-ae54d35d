@@ -28,7 +28,7 @@ export function useChatbotRuntime(flowId?: string) {
   const [buttons, setButtons] = useState<ChatButton[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
-  const waitTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const waitTimerRef = useRef<number | null>(null);
   
   const contactId = useRef<string>(localStorage.getItem("chat_contact_id") || (() => {
     const id = `web-${Math.random().toString(36).slice(2, 11)}`;
@@ -50,11 +50,17 @@ export function useChatbotRuntime(flowId?: string) {
   const scheduleRuntimeContinue = (waitMs: unknown) => {
     const delay = Number(waitMs);
     if (!Number.isFinite(delay) || delay <= 0) return false;
+    
+    console.log(`[Runtime] Scheduling wait for ${delay}ms`);
     clearWaitTimer();
-    waitTimerRef.current = setTimeout(() => {
+    
+    // Use window.setTimeout for better browser reliability
+    waitTimerRef.current = window.setTimeout(() => {
+      console.log("[Runtime] Wait finished, continuing...");
       waitTimerRef.current = null;
       continueRuntime();
     }, delay);
+    
     return true;
   };
 
