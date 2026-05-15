@@ -156,7 +156,8 @@ Deno.serve(async (req: Request) => {
     const runtimeState = {
       current_node_id: result.next_node_id,
       variables: result.variables,
-      waiting_for_input: !!result.waiting_for || result.wait_ms > 0,
+      waiting_for_input: !!result.waiting_for,
+      is_waiting_time: result.wait_ms > 0, // NEW FLAG to track active wait timer
     };
     writeMemoryState(memoryKey, runtimeState);
 
