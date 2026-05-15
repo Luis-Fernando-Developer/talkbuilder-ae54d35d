@@ -28,12 +28,44 @@ export function useChatbotRuntime(flowId?: string) {
   const [buttons, setButtons] = useState<ChatButton[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
+  const waitTimerRef = useRef<number | null>(null);
   
   const contactId = useRef<string>(localStorage.getItem("chat_contact_id") || (() => {
     const id = `web-${Math.random().toString(36).slice(2, 11)}`;
     localStorage.setItem("chat_contact_id", id);
     return id;
   })());
+
+  useEffect(() => {
+    return () => clearWaitTimer();
+  }, []);
+
+  const clearWaitTimer = () => {
+    if (waitTimerRef.current !== null) {
+      window.clearTimeout(waitTimerRef.current);
+      waitTimerRef.current = null;
+    }
+  };
+
+  const scheduleRuntimeContinue = (waitMs: unknown) => {
+    const delay = Number(waitMs);
+    if (!Number.isFinite(delay) || delay <= 0) return false;
+    clearWaitTimer();
+    waitTimerRef.current = window.setTimeout(() => {
+      waitTimerRef.current = null;
+      continueRuntime();
+    }, delay);
+    return true;
+  };
+
+  const applyRuntimeData = (data: any, replaceMessages = false) => {
+    runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
+    if (replaceMessages) setMessages(data.messages || []);
+    else setMessages(prev => [...prev, ...(data.messages || [])]);
+    setWaitingFor(data.waiting_for);
+    setButtons(data.buttons || []);
+    return scheduleRuntimeContinue(data.wait_ms);
+  };
 
   const startSession = useCallback(async () => {
     if (!flowId) return;
@@ -54,16 +86,38 @@ export function useChatbotRuntime(flowId?: string) {
       if (data.error) throw new Error(data.error);
       
       setSessionId(data.session_id);
-      runtimeStateRef.current = data.runtime_state || null;
-      setMessages(data.messages || []);
-      setWaitingFor(data.waiting_for);
-      setButtons(data.buttons || []);
+      applyRuntimeData(data, true);
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   }, [flowId]);
+
+  async function continueRuntime() {
+    if (!flowId) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch(RUNTIME_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "message",
+          flow_id: flowId,
+          contact_id: contactId.current,
+          channel: "webchat",
+          payload: { runtime_state: runtimeStateRef.current },
+        }),
+      });
+      const data = await response.json();
+      if (data.error) throw new Error(data.error);
+      applyRuntimeData(data);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      if (!waitTimerRef.current) setIsLoading(false);
+    }
+  }
 
   const sendMessage = useCallback(async (message?: string, buttonId?: string) => {
     if (!flowId || (!message && !buttonId)) return;
@@ -88,14 +142,11 @@ export function useChatbotRuntime(flowId?: string) {
       const data = await response.json();
       if (data.error) throw new Error(data.error);
 
-      runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
-      setMessages(prev => [...prev, ...(data.messages || [])]);
-      setWaitingFor(data.waiting_for);
-      setButtons(data.buttons || []);
+      applyRuntimeData(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
-      setIsLoading(false);
+      if (!waitTimerRef.current) setIsLoading(false);
     }
   }, [flowId]);
 
