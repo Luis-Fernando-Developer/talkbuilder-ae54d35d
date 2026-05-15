@@ -116,6 +116,8 @@ export default function DnDProvider({
 					overItem.id,
 				);
 			}
+
+			return prev;
 		});
 	}
 
