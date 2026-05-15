@@ -310,10 +310,12 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       const value = input.message ?? input.button_id;
       if (varName && value !== undefined) variables[varName] = value;
       
-      // ONLY advance if we were waiting for user input (text/buttons)
-      // AND NOT if we were in a timer (is_waiting_time).
-      if (execution.waiting_for_input && !execution.is_waiting_time) {
-        currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+      // If we are currently in a wait period, don't advance.
+      if (!execution.is_waiting_time) {
+        // If we were explicitly waiting for input, then we can advance.
+        if (execution.waiting_for_input) {
+          currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+        }
       }
     }
   }
