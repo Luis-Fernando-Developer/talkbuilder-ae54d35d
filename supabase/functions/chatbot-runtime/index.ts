@@ -156,7 +156,7 @@ Deno.serve(async (req: Request) => {
     const runtimeState = {
       current_node_id: result.next_node_id,
       variables: result.variables,
-      waiting_for_input: !!result.waiting_for,
+      waiting_for_input: !!result.waiting_for || result.wait_ms > 0,
     };
     writeMemoryState(memoryKey, runtimeState);
 
@@ -300,14 +300,18 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   };
 
   // If we were waiting and got input -> capture and advance
-  if (execution.waiting_for_input && input && (input.message !== undefined || input.button_id !== undefined) && currentNodeId) {
+  if (input && (input.message !== undefined || input.button_id !== undefined) && currentNodeId) {
     const info = findNode(currentNodeId);
     if (info) {
       const cfg = info.node.config || {};
       const varName = cfg.variableName || cfg.saveVariable;
       const value = input.message ?? input.button_id;
       if (varName && value !== undefined) variables[varName] = value;
-      currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+      
+      // Only advance if we were actually waiting for input at this node
+      if (execution.waiting_for_input && !execution.is_waiting_time) {
+        currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+      }
     }
   }
 
@@ -413,7 +417,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         break;
       case "wait": {
         wait_ms = parseWaitMs(cfg);
-        // Important: Stop execution HERE and advance current_node_id to the next one
+        // Advance the ID for the NEXT execution
         currentNodeId = nextFromNode(node.id, container);
         break;
       }
