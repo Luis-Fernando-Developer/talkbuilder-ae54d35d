@@ -17,6 +17,7 @@ interface Message {
   isImage?: boolean;
   isFile?: boolean;
   isAudio?: boolean;
+  isHtml?: boolean;
   alt?: string;
   autoplay?: boolean;
 }
