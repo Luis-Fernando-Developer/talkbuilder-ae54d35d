@@ -52,6 +52,12 @@ const logicalOperators = [
   { value: "OR", label: "OU" },
 ];
 
+const createConditionId = () =>
+  `condition-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createComparisonId = () =>
+  `comparison-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
 const ComparisonItem = ({
   comparison,
   onUpdate,
@@ -232,9 +238,10 @@ const ComparisonItem = ({
 };
 
 export const ConditionConfig = ({ config, setConfig }: ConditionConfigProps) => {
-  const conditions: ConditionGroup[] = config.conditions || [
-    { id: crypto.randomUUID(), comparisons: [], logicalOperator: "AND" }
-  ];
+  const [defaultConditionId] = useState(createConditionId);
+  const conditions: ConditionGroup[] = config.conditions?.length
+    ? config.conditions
+    : [{ id: defaultConditionId, comparisons: [], logicalOperator: "AND" }];
 
   const updateCondition = (conditionId: string, updates: Partial<ConditionGroup>) => {
     const newConditions = conditions.map(c => 
@@ -245,7 +252,7 @@ export const ConditionConfig = ({ config, setConfig }: ConditionConfigProps) => 
 
   const addCondition = () => {
     const newCondition: ConditionGroup = {
-      id: crypto.randomUUID(),
+      id: createConditionId(),
       comparisons: [],
       logicalOperator: "AND",
     };
@@ -262,7 +269,7 @@ export const ConditionConfig = ({ config, setConfig }: ConditionConfigProps) => 
     if (!condition) return;
     
     const newComparison: ConditionComparison = {
-      id: crypto.randomUUID(),
+      id: createComparisonId(),
       variableName: "",
       operator: "equals",
       value: "",
