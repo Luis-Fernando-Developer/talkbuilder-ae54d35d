@@ -70,13 +70,13 @@ export const TiptapEditor = ({ value, onChange }: TiptapEditorProps) => {
     },
     onUpdate: ({ editor }) => {
       const html = editor.getHTML();
-      const text = convertHTMLToText(html);
-      onChange(text);
+      // Treat empty Tiptap document as empty string
+      onChange(html === '<p></p>' ? '' : html);
     },
   });
 
   useEffect(() => {
-    if (editor && value !== convertHTMLToText(editor.getHTML())) {
+    if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(parseValueToHTML(value));
     }
   }, [value, editor]);
