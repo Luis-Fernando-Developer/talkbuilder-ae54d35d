@@ -416,6 +416,7 @@ export const TestPanel = ({
                    : message.isVideo ? <video src={message.content} controls className="max-w-full rounded" />
                    : message.isAudio ? <div className="flex items-center gap-2"><Headphones className="h-4 w-4 shrink-0" /><AudioPlayer src={message.content} autoPlay={message.autoplay} /></div>
                    : message.isFile ? <div className="flex items-center gap-2"><FileText className="h-4 w-4 shrink-0" /><span className="truncate max-w-[180px]">{message.content}</span></div>
+                   : message.isHtml ? <div className="rich-bubble whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: message.content }} />
                    : renderTextSegments(message.content)}
                 </div>
               </div>
