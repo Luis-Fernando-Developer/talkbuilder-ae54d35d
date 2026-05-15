@@ -20,6 +20,12 @@ interface Message {
   autoplay?: boolean;
 }
 
+interface RuntimeState {
+  current_node_id: string | null;
+  variables: Record<string, any>;
+  waiting_for_input: boolean;
+}
+
 interface AudioPlayerProps {
   src: string;
   autoPlay?: boolean;
@@ -140,6 +146,9 @@ export const TestPanel = ({
   const [selectedButtons, setSelectedButtons] = useState<string[]>([]);
   const [submitLabel, setSubmitLabel] = useState("Enviar");
   const scrollRef = useRef<HTMLDivElement>(null);
+  const runtimeStateRef = useRef<RuntimeState | null>(null);
+  const hasStartedRef = useRef(false);
+  const startedFlowRef = useRef<string | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -148,10 +157,20 @@ export const TestPanel = ({
   };
 
   useEffect(() => {
-    if (isOpen && flowId) {
-      contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      startRuntimeSession();
+    if (!isOpen || !flowId) {
+      hasStartedRef.current = false;
+      runtimeStateRef.current = null;
+      startedFlowRef.current = null;
+      return;
     }
+
+    if (hasStartedRef.current && startedFlowRef.current === flowId) return;
+
+    contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    runtimeStateRef.current = null;
+    hasStartedRef.current = true;
+    startedFlowRef.current = flowId;
+    startRuntimeSession();
   }, [isOpen, flowId]);
 
   useEffect(() => {
@@ -175,6 +194,7 @@ export const TestPanel = ({
         }),
       });
       const data = await response.json();
+      runtimeStateRef.current = data.runtime_state || null;
       setMessages(data.messages || []);
       setWaitingForInput(data.waiting_for === "text");
       setWaitingForButton(data.waiting_for === "buttons");
@@ -206,10 +226,11 @@ export const TestPanel = ({
           flow_id: flowId,
           contact_id: contactIdRef.current,
           channel: "webchat",
-          payload: { message: msgToSend, button_id: buttonId },
+          payload: { message: msgToSend, button_id: buttonId, runtime_state: runtimeStateRef.current },
         }),
       });
       const data = await response.json();
+      runtimeStateRef.current = data.runtime_state || runtimeStateRef.current;
       setMessages(prev => [...prev, ...(data.messages || [])]);
       setWaitingForInput(data.waiting_for === "text");
       setWaitingForButton(data.waiting_for === "buttons");
