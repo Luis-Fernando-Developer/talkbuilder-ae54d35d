@@ -211,6 +211,7 @@ const ComparisonItem = ({
                 className="h-9 text-sm pr-10"
               />
               <Button
+                type="button"
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
