@@ -35,6 +35,7 @@ export function rememberedBotBackRoute(botId: string) {
 
 export function browserHrefForRoute(route: string) {
 	if (typeof window === "undefined") return `#${route}`;
+	// Para HashRouter, o fragmento da rota deve vir depois do '#'
 	return `${window.location.origin}${window.location.pathname}${window.location.search}#${route}`;
 }
 

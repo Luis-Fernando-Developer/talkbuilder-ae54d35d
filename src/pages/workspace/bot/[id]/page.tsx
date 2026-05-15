@@ -270,12 +270,26 @@ export default function BotPage() {
 
     // 2) Determina o destino (pasta pai ou workspace main).
     const parentId = bot?.parentId;
-    const target = rememberedBotBackRoute(botId) ?? (parentId ? folderRoute(slug, parentId) : workspaceRoot(slug));
+    const remembered = rememberedBotBackRoute(botId);
+    
+    // Prioridade: Rota lembrada > Pasta Pai > Workspace Root
+    let target = remembered;
+    if (!target) {
+      if (parentId) {
+        target = folderRoute(slug, parentId);
+      } else {
+        target = workspaceRoot(slug);
+      }
+    }
+
+    console.log("[BotPage] Back clicked. Target:", target, "Remembered:", remembered, "ParentId:", parentId);
 
     // 3) Navega usando window.location.href para garantir a desmontagem completa
     // de todo o componente e seus overlays fixos, forçando o recarregamento da SPA.
     if (typeof window !== "undefined") {
-      window.location.href = browserHrefForRoute(target);
+      const fullUrl = browserHrefForRoute(target);
+      console.log("[BotPage] Redirecting to:", fullUrl);
+      window.location.href = fullUrl;
     } else {
       navigate(target);
     }
