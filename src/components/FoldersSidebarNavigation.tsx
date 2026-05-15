@@ -6,7 +6,7 @@ import { ChevronDown, ChevronRight } from "lucide-react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { folderRoute, botRoute, folderIdFromPath } from "../lib/workspaceRoutes";
+import { folderRoute, botRoute, folderIdFromPath, rememberBotBackRoute, workspaceRoot } from "../lib/workspaceRoutes";
 import { sortByIndex } from "../lib/workspaceOrder";
 
 export default function FoldersSidebarNavigation() {
@@ -180,6 +180,7 @@ function SidebarItem({
 				onClick={() => {
 					if (isDragging) return;
 					if (folder.type === "bot") {
+						rememberBotBackRoute(folder.id, folder.parentId ? folderRoute(slug, folder.parentId) : workspaceRoot(slug));
 						router(botRoute(slug, folder.id));
 					} else {
 						router(folderRoute(slug, folder.id));
