@@ -170,7 +170,7 @@ export const TestPanel = ({
         body: JSON.stringify({
           action: "start",
           flow_id: flowId,
-          contact_id: `test-${Date.now()}`,
+          contact_id: contactIdRef.current,
           channel: "webchat",
         }),
       });
@@ -204,7 +204,7 @@ export const TestPanel = ({
         body: JSON.stringify({
           action: "message",
           flow_id: flowId,
-          contact_id: `test-${Date.now()}`,
+          contact_id: contactIdRef.current,
           channel: "webchat",
           payload: { message: msgToSend, button_id: buttonId },
         }),
