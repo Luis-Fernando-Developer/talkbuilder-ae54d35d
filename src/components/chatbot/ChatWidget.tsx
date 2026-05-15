@@ -90,7 +90,7 @@ export const ChatWidget = ({
     const delay = Number(waitMs);
     if (!Number.isFinite(delay) || delay <= 0) return false;
     clearWaitTimer();
-    waitTimerRef.current = window.setTimeout(() => {
+    waitTimerRef.current = setTimeout(() => {
       waitTimerRef.current = null;
       continueRuntime();
     }, delay);
