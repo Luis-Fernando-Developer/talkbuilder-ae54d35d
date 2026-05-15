@@ -341,49 +341,14 @@ export const TestPanel = ({
   const startRuntimeSession = async () => {
     setIsLoading(true);
     setMessages([]);
-    try {
-      const response = await fetch(getRuntimeUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "start",
-          flow_id: flowId,
-          contact_id: contactIdRef.current,
-          channel: "webchat",
-        }),
-      });
-      const data = await response.json();
-      applyRuntimeData(data, true);
-    } catch (err) {
-      console.error("Test Runtime error:", err);
-    } finally {
-      if (!waitTimerRef.current) setIsLoading(false);
-    }
+    applyRuntimeData(runLocalFlow(null), true);
+    if (!waitTimerRef.current) setIsLoading(false);
   };
 
   const continueRuntime = async () => {
-    if (!flowId) return;
     setIsLoading(true);
-
-    try {
-      const response = await fetch(getRuntimeUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "message",
-          flow_id: flowId,
-          contact_id: contactIdRef.current,
-          channel: "webchat",
-          payload: { runtime_state: runtimeStateRef.current },
-        }),
-      });
-      const data = await response.json();
-      applyRuntimeData(data);
-    } catch (err) {
-      console.error("Test Runtime continue error:", err);
-    } finally {
-      if (!waitTimerRef.current) setIsLoading(false);
-    }
+    applyRuntimeData(runLocalFlow(runtimeStateRef.current));
+    if (!waitTimerRef.current) setIsLoading(false);
   };
 
   const sendMessage = async (message?: string, buttonId?: string) => {
@@ -397,25 +362,8 @@ export const TestPanel = ({
     setIsLoading(true);
     setCurrentInput("");
 
-    try {
-      const response = await fetch(getRuntimeUrl(), {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "message",
-          flow_id: flowId,
-          contact_id: contactIdRef.current,
-          channel: "webchat",
-          payload: { message: msgToSend, button_id: buttonId, runtime_state: runtimeStateRef.current },
-        }),
-      });
-      const data = await response.json();
-      applyRuntimeData(data);
-    } catch (err) {
-      console.error("Test Runtime message error:", err);
-    } finally {
-      if (!waitTimerRef.current) setIsLoading(false);
-    }
+    applyRuntimeData(runLocalFlow(runtimeStateRef.current, { message: msgToSend, button_id: buttonId }));
+    if (!waitTimerRef.current) setIsLoading(false);
   };
 
   const handleButtonClick = (button: ButtonConfig) => sendMessage(undefined, button.id);
