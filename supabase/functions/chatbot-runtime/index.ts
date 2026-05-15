@@ -286,26 +286,31 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       case "start":
         break;
       case "bubble-text":
-        messages.push({
-          id: crypto.randomUUID(),
-          type: "bot",
-          content: replaceVars(cfg.content || cfg.text || ""),
-        });
+      case "bubble-number": {
+        const content = replaceVars(firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value));
+        if (content) {
+          messages.push({
+            id: crypto.randomUUID(),
+            type: "bot",
+            content,
+          });
+        }
         break;
+      }
       case "bubble-image":
         messages.push({
           id: crypto.randomUUID(),
           type: "bot",
-          content: cfg.url || cfg.src || "",
+          content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src),
           isImage: true,
-          alt: cfg.alt,
+          alt: firstText(cfg.ImageAlt, cfg.alt),
         });
         break;
       case "bubble-video":
         messages.push({
           id: crypto.randomUUID(),
           type: "bot",
-          content: cfg.url || "",
+          content: firstText(cfg.VideoURL, cfg.videoUrl, cfg.url, cfg.src),
           isVideo: true,
         });
         break;
@@ -313,16 +318,17 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         messages.push({
           id: crypto.randomUUID(),
           type: "bot",
-          content: cfg.url || "",
+          content: firstText(cfg.AudioURL, cfg.audioUrl, cfg.url, cfg.src),
           isAudio: true,
-          autoplay: cfg.autoplay,
+          autoplay: cfg.AudioAutoplay ?? cfg.autoplay,
         });
         break;
       case "bubble-file":
+      case "bubble-document":
         messages.push({
           id: crypto.randomUUID(),
           type: "bot",
-          content: cfg.url || cfg.name || "",
+          content: firstText(cfg.FileURL, cfg.fileUrl, cfg.url, cfg.FileName, cfg.name),
           isFile: true,
         });
         break;
@@ -331,6 +337,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       case "input-number":
       case "input-phone":
       case "input-website":
+      case "input-webSite":
         waiting_for = "text";
         break;
       case "input-buttons":
