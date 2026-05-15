@@ -110,17 +110,31 @@ export default function BotIcon({
 		setConfirmDelete(false);
 	}, [id, setItems]);
 
-	const handleSaveEdit = useCallback(() => {
+	const handleSaveEdit = useCallback(async () => {
 		if (!id) return;
 		const newTitle = editTitle.trim() || "Sem título";
 		const newEmoji = editEmoji.trim() || "🤖";
+		const newDescription = editDescription ?? "";
+		// Optimistic local update
 		setItems((prev) =>
 			prev.map((i) =>
 				i.id === id
-					? { ...i, title: newTitle, emoji: newEmoji, description: editDescription }
+					? { ...i, title: newTitle, emoji: newEmoji, description: newDescription }
 					: i,
 			),
 		);
+		// Garantir persistência no banco (evita race do diff no contexto)
+		const supabase = getSupabase();
+		if (supabase) {
+			const { error } = await supabase
+				.from("workspace_items")
+				.update({ title: newTitle, emoji: newEmoji, description: newDescription })
+				.eq("id", id);
+			if (error) {
+				console.error("[BotIcon] update error", error);
+				toast.error("Erro ao salvar alterações");
+			}
+		}
 		setEditOpen(false);
 	}, [editTitle, editEmoji, editDescription, id, setItems]);
 
