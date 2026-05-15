@@ -9,7 +9,7 @@ import { useDroppable } from "@dnd-kit/core";
 
 import { useWorkspace } from "../context/WorkspaceContext";
 import { useAuth } from "../context/AuthContext";
-import { botRoute } from "../lib/workspaceRoutes";
+import { botRoute, rememberBotBackRoute, workspaceRoot } from "../lib/workspaceRoutes";
 import { sortByIndex } from "../lib/workspaceOrder";
 
 export default function WorkspaceMain() {
@@ -74,6 +74,7 @@ export default function WorkspaceMain() {
 									description={item.description}
 								onClick={() => {
 									setCurrentBotId(item.id);
+									rememberBotBackRoute(item.id, workspaceRoot(slug));
 									navigate(botRoute(slug, item.id));
 								}}
 								/>
