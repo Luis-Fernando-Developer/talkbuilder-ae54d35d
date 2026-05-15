@@ -253,7 +253,7 @@ export default function BotPage() {
 
   const lbl = statusLabel(status);
   const displayName = flow?.name ?? bot?.title ?? `Bot: ${botId}`;
-  const slug = profile?.slug;
+  const slug = (params.slug as string | undefined) ?? profile?.slug;
 
   const handleBack = async () => {
     // 1) Persiste rascunho pendente antes de sair (best-effort, sem travar UX).
