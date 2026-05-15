@@ -340,9 +340,7 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     }
     const { node, container } = info;
     const cfg = node.config || {};
-    const nodeType = String(node.type || "").toLowerCase() === "await"
-      ? "wait"
-      : String(node.type || "").toLowerCase();
+    const nodeType = (node.type || "").toLowerCase();
 
     switch (nodeType) {
       case "start":
@@ -411,10 +409,11 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         }));
         break;
       case "wait":
-      case "await":
+      case "await": {
         currentNodeId = nextFromNode(node.id, container);
         wait_ms = currentNodeId ? parseWaitMs(cfg) : 0;
         break;
+      }
       case "set-variable":
         if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
         break;
