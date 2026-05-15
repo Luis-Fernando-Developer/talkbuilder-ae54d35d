@@ -342,8 +342,11 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     }
     const { node, container } = info;
     const cfg = node.config || {};
+    const nodeType = String(node.type || "").toLowerCase() === "await"
+      ? "wait"
+      : String(node.type || "").toLowerCase();
 
-    switch (node.type) {
+    switch (nodeType) {
       case "start":
         break;
       case "bubble-text":
