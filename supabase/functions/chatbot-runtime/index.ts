@@ -5,6 +5,8 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ... keep existing code
+
 interface RuntimeRequest {
   action: "start" | "message";
   flow_id: string; // public_id or UUID
