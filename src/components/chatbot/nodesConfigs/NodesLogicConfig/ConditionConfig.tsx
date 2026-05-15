@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { NodeConfig, ConditionComparison, ConditionGroup, Container, Node } from "@/types/chatbot";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,22 +10,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { useVariables } from "@/context/VariablesContext";
-import { Check, ChevronsUpDown, Plus, Trash2, User } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Plus, Search, Trash2, User } from "lucide-react";
 
 interface ConditionConfigProps {
   config: NodeConfig;
@@ -58,47 +44,54 @@ const createConditionId = () =>
 const createComparisonId = () =>
   `comparison-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
+const getNodeVariableNames = (containers: Container[]) => {
+  const names = new Set<string>();
+  containers.forEach((container) => {
+    container.nodes.forEach((node: Node) => {
+      [node.config?.saveVariable, node.config?.variableName, node.config?.responseVariable]
+        .filter((value): value is string => typeof value === "string")
+        .map((value) => value.trim())
+        .filter(Boolean)
+        .forEach((value) => names.add(value));
+    });
+  });
+  return Array.from(names);
+};
+
 const ComparisonItem = ({
   comparison,
   onUpdate,
   onDelete,
-  showLogicalOperator,
-  logicalOperator,
-  onLogicalOperatorChange,
+  availableVariables,
 }: {
   comparison: ConditionComparison;
   onUpdate: (updates: Partial<ConditionComparison>) => void;
   onDelete: () => void;
-  showLogicalOperator: boolean;
-  logicalOperator?: "AND" | "OR";
-  onLogicalOperatorChange?: (op: "AND" | "OR") => void;
+  availableVariables: string[];
 }) => {
-  const { getAllVariableNames, addVariable } = useVariables();
-  const [varOpen, setVarOpen] = useState(false);
+  const { addVariable } = useVariables();
   const [searchValue, setSearchValue] = useState("");
   
-  const variableNames = getAllVariableNames();
-  
   const filteredVariables = useMemo(() => {
-    if (!searchValue) return variableNames;
-    return variableNames.filter(name => 
+    if (!searchValue) return availableVariables;
+    return availableVariables.filter(name => 
       name.toLowerCase().includes(searchValue.toLowerCase())
     );
-  }, [variableNames, searchValue]);
+  }, [availableVariables, searchValue]);
 
-  const canCreateNew = searchValue && !variableNames.includes(searchValue);
+  const trimmedSearch = searchValue.trim();
+  const canCreateNew = trimmedSearch && !availableVariables.includes(trimmedSearch);
   const needsValue = !["is_set", "is_empty"].includes(comparison.operator);
 
   const handleSelectVariable = (varName: string) => {
     onUpdate({ variableName: varName });
-    setVarOpen(false);
     setSearchValue("");
   };
 
   const handleCreateVariable = () => {
-    if (searchValue) {
-      addVariable(searchValue, "");
-      handleSelectVariable(searchValue);
+    if (trimmedSearch) {
+      addVariable(trimmedSearch, "");
+      handleSelectVariable(trimmedSearch);
     }
   };
 
@@ -107,69 +100,45 @@ const ComparisonItem = ({
       <div className="flex items-start gap-2">
         <div className="flex-1 space-y-3">
           {/* Variable selector */}
-          <Popover open={varOpen} onOpenChange={setVarOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                role="combobox"
-                aria-expanded={varOpen}
-                className="w-full justify-between h-9 text-sm"
-              >
-                {comparison.variableName || "Pesquise uma variável"}
-                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-full p-0" align="start">
-              <Command>
-                <CommandInput 
-                  placeholder="Pesquisar variável..." 
-                  value={searchValue}
-                  onValueChange={setSearchValue}
-                />
-                <CommandList>
-                  <CommandEmpty>
-                    {canCreateNew ? (
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start gap-2 text-sm"
-                        onClick={handleCreateVariable}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Criar "{searchValue}"
-                      </Button>
-                    ) : (
-                      "Nenhuma variável encontrada."
-                    )}
-                  </CommandEmpty>
-                  <CommandGroup>
-                    {filteredVariables.map((varName) => (
-                      <CommandItem
-                        key={varName}
-                        value={varName}
-                        onSelect={() => handleSelectVariable(varName)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            comparison.variableName === varName ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {varName}
-                      </CommandItem>
-                    ))}
-                  </CommandGroup>
-                  {canCreateNew && filteredVariables.length > 0 && (
-                    <CommandGroup>
-                      <CommandItem onSelect={handleCreateVariable}>
-                        <Plus className="mr-2 h-4 w-4" />
-                        Criar "{searchValue}"
-                      </CommandItem>
-                    </CommandGroup>
-                  )}
-                </CommandList>
-              </Command>
-            </PopoverContent>
-          </Popover>
+          <div className="space-y-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={searchValue || comparison.variableName || ""}
+                onChange={(e) => {
+                  setSearchValue(e.target.value);
+                  onUpdate({ variableName: e.target.value });
+                }}
+                placeholder="Pesquise uma variável"
+                className="h-9 pl-9 text-sm"
+              />
+            </div>
+
+            {(filteredVariables.length > 0 || canCreateNew) && (
+              <div className="max-h-36 overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground">
+                {filteredVariables.map((varName) => (
+                  <button
+                    key={varName}
+                    type="button"
+                    className="w-full rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                    onClick={() => handleSelectVariable(varName)}
+                  >
+                    {varName}
+                  </button>
+                ))}
+                {canCreateNew && (
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-sm hover:bg-accent hover:text-accent-foreground"
+                    onClick={handleCreateVariable}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Criar "{trimmedSearch}"
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {/* Operator selector */}
           <Select 
@@ -224,20 +193,11 @@ const ComparisonItem = ({
 };
 
 export const ConditionConfig = ({ config, setConfig, containers = [] }: ConditionConfigProps & { containers?: Container[] }) => {
-  const { addVariable, getAllVariableNames } = useVariables();
-
-  // Extract variables from other nodes in the same flow
-  useEffect(() => {
-    const existingVariables = getAllVariableNames();
-    containers.forEach(container => {
-      container.nodes.forEach((node: Node) => {
-        const varName = node.config?.saveVariable || node.config?.variableName;
-        if (varName && typeof varName === 'string' && varName.trim() && !existingVariables.includes(varName.trim())) {
-          addVariable(varName.trim(), "");
-        }
-      });
-    });
-  }, [containers, addVariable, getAllVariableNames]);
+  const { getAllVariableNames } = useVariables();
+  const availableVariables = useMemo(
+    () => Array.from(new Set([...getAllVariableNames(), ...getNodeVariableNames(containers)])),
+    [containers, getAllVariableNames]
+  );
 
   const [defaultConditionId] = useState(createConditionId);
   const conditions: ConditionGroup[] = config.conditions?.length
@@ -258,11 +218,6 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
       logicalOperator: "AND",
     };
     setConfig({ ...config, conditions: [...conditions, newCondition] });
-  };
-
-  const deleteCondition = (conditionId: string) => {
-    if (conditions.length <= 1) return;
-    setConfig({ ...config, conditions: conditions.filter(c => c.id !== conditionId) });
   };
 
   const addComparison = (conditionId: string) => {
@@ -335,9 +290,9 @@ export const ConditionConfig = ({ config, setConfig, containers = [] }: Conditio
                 )}
                 <ComparisonItem
                   comparison={comparison}
+                  availableVariables={availableVariables}
                   onUpdate={(updates) => updateComparison(condition.id, comparison.id, updates)}
                   onDelete={() => deleteComparison(condition.id, comparison.id)}
-                  showLogicalOperator={false}
                 />
               </div>
             ))}
