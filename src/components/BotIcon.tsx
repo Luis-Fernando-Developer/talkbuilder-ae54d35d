@@ -12,6 +12,7 @@ import {
 import React, { useCallback, useEffect, useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { useWorkspace } from "../context/WorkspaceContext";
+import { getSupabase } from "../lib/supabaseClient";
 import {
 	getFlowByWorkspaceItem,
 	publishFlow,
