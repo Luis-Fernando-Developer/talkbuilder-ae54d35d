@@ -134,6 +134,7 @@ export default function PreviewPage() {
               startContainer={startContainer}
               allContainers={containers}
               edges={edges}
+              flowId={flow?.id}
             />
           )}
         </div>
