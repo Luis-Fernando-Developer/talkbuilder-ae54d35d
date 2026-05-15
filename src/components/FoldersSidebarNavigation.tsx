@@ -197,7 +197,7 @@ function SidebarItem({
 				<span>{folder.emoji || ""}</span>
 
 				<span
-					className={`flex-1 text-sm overflow-hidden text-ellipsis whitespace-nowrap ${titleColor}`}
+					className={`flex-1 text-left text-sm overflow-hidden text-ellipsis whitespace-nowrap ${titleColor}`}
 				>
 					{folder.title}
 				</span>
