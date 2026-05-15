@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { NodeConfig, ConditionComparison, ConditionGroup } from "@/types/chatbot";
+import { useState, useMemo, useEffect } from "react";
+import { NodeConfig, ConditionComparison, ConditionGroup, Container, Node } from "@/types/chatbot";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -223,7 +223,22 @@ const ComparisonItem = ({
   );
 };
 
-export const ConditionConfig = ({ config, setConfig }: ConditionConfigProps) => {
+export const ConditionConfig = ({ config, setConfig, containers = [] }: ConditionConfigProps & { containers?: Container[] }) => {
+  const { addVariable, getAllVariableNames } = useVariables();
+
+  // Extract variables from other nodes in the same flow
+  useEffect(() => {
+    const existingVariables = getAllVariableNames();
+    containers.forEach(container => {
+      container.nodes.forEach((node: Node) => {
+        const varName = node.config?.saveVariable || node.config?.variableName;
+        if (varName && typeof varName === 'string' && varName.trim() && !existingVariables.includes(varName.trim())) {
+          addVariable(varName.trim(), "");
+        }
+      });
+    });
+  }, [containers, addVariable, getAllVariableNames]);
+
   const [defaultConditionId] = useState(createConditionId);
   const conditions: ConditionGroup[] = config.conditions?.length
     ? config.conditions
