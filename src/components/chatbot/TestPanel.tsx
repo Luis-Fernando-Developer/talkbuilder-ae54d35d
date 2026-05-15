@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause, Image as ImageIcon, Video as VideoIcon, FileText, Mic, Camera, Upload, Trash2, StopCircle } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, Image as ImageIcon, Video as VideoIcon, FileText, Mic, Camera, Upload, Trash2, StopCircle, Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge } from "../../types/chatbot";
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { Checkbox } from "../../components/ui/checkbox";
-import { useVariables } from "@/context/VariablesContext";
+import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { renderTextSegments } from "@/lib/textParser";
 
 // Replace {{variableName}} with JSON.stringify(value) for safe JS interpolation
@@ -267,48 +267,58 @@ export const TestPanel = ({
   hideClose = false,
   fullScreen = false,
   theme,
-}: TestPanelProps) => {
-  const { replaceVariablesInText, setVariable, variables, setVariables } = useVariables();
+  flowId, // We'll need flowId passed to TestPanel
+}: TestPanelProps & { flowId?: string }) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
-  const [currentContainerId, setCurrentContainerId] = useState<string | null>(null);
-  const [currentNodeIndex, setCurrentNodeIndex] = useState(0);
   const [waitingForInput, setWaitingForInput] = useState(false);
-  const [currentInputNode, setCurrentInputNode] = useState<Node | null>(null);
-  const [activeButtons, setActiveButtons] = useState<ButtonConfig[]>([]);
   const [waitingForButton, setWaitingForButton] = useState(false);
+  const [activeButtons, setActiveButtons] = useState<ButtonConfig[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const [isMultipleChoice, setIsMultipleChoice] = useState(false);
   const [selectedButtons, setSelectedButtons] = useState<string[]>([]);
   const [submitLabel, setSubmitLabel] = useState("Enviar");
-  // Media upload state
-  const [mediaPreview, setMediaPreview] = useState<{ url: string; name?: string } | null>(null);
-  const [isRecordingAudio, setIsRecordingAudio] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = useRef<Blob[]>([]);
-  const recordingTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
-  const pendingVarsRef = useRef<Record<string, string>>({});
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const getRuntimeUrl = () => {
+    try {
+      return getEdgeFunctionUrl('chatbot-runtime');
+    } catch {
+      return `${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/chatbot-runtime`;
+    }
+  };
 
   useEffect(() => {
-    if (isOpen && startContainer) {
-      setMessages([]);
-      setCurrentContainerId(startContainer.id);
-      setCurrentNodeIndex(0);
-      setWaitingForInput(false);
-      setWaitingForButton(false);
-      setActiveButtons([]);
-      setIsMultipleChoice(false);
-      setSelectedButtons([]);
-      setMediaPreview(null);
-      setIsRecordingAudio(false);
-      pendingVarsRef.current = {};
-      // Reset all variables so a fresh test session doesn't reuse stale values
-      setVariables({});
-      processNextNode(startContainer, 0, {});
+    if (isOpen && flowId) {
+      startRuntimeSession();
     }
-  }, [isOpen, startContainer]);
+  }, [isOpen, flowId]);
+
+  const startRuntimeSession = async () => {
+    setIsLoading(true);
+    setMessages([]);
+    try {
+      const response = await fetch(getRuntimeUrl(), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "start",
+          flow_id: flowId,
+          contact_id: `test-${Date.now()}`,
+          channel: "webchat",
+        }),
+      });
+      const data = await response.json();
+      setMessages(data.messages || []);
+      setWaitingForInput(data.waiting_for === "text");
+      setWaitingForButton(data.waiting_for === "buttons");
+      setActiveButtons(data.buttons || []);
+    } catch (err) {
+      console.error("Test Runtime error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const processNextNode = async (container: Container, nodeIndex: number, extraVars: Record<string, string> = {}) => {
     console.log("[TestPanel] processNextNode", { container: container?.id, nodeIndex, len: container?.nodes.length, edges });
