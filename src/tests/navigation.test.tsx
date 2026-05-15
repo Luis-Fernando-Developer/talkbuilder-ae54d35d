@@ -15,9 +15,10 @@ vi.mock("../context/AuthContext", () => ({
 vi.mock("../context/WorkspaceContext", () => ({
   WorkspaceProvider: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   useWorkspace: () => ({ 
-    bots: [{ id: "test-bot", title: "Test Bot", parentId: "folder-123" }],
+    items: [{ id: "test-bot", title: "Test Bot", parentId: "folder-123", type: "bot" }],
     folders: [],
-    loading: false 
+    loading: false,
+    setItems: vi.fn(),
   }),
 }));
 
