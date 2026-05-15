@@ -7,6 +7,7 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import { Checkbox } from "../../components/ui/checkbox";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { renderTextSegments } from "@/lib/textParser";
+import { richHtmlFor, richToPlainText } from "@/lib/richText";
 
 interface Message {
   id: string;
