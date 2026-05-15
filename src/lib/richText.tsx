@@ -94,7 +94,7 @@ export const RichText: React.FC<RichTextProps> = ({
   ...opts
 }) => {
   const html = richHtmlFor(value, opts);
-  const Tag = as as keyof JSX.IntrinsicElements;
+  const Tag: any = as;
   return (
     <Tag
       className={className}
