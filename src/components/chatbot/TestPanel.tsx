@@ -141,12 +141,15 @@ export const TestPanel = ({
   const [submitLabel, setSubmitLabel] = useState("Enviar");
   const scrollRef = useRef<HTMLDivElement>(null);
 
+  const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+
   const getRuntimeUrl = () => {
     return "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
   };
 
   useEffect(() => {
     if (isOpen && flowId) {
+      contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       startRuntimeSession();
     }
   }, [isOpen, flowId]);
@@ -167,7 +170,7 @@ export const TestPanel = ({
         body: JSON.stringify({
           action: "start",
           flow_id: flowId,
-          contact_id: `test-${Date.now()}`,
+          contact_id: contactIdRef.current,
           channel: "webchat",
         }),
       });
@@ -201,7 +204,7 @@ export const TestPanel = ({
         body: JSON.stringify({
           action: "message",
           flow_id: flowId,
-          contact_id: `test-${Date.now()}`,
+          contact_id: contactIdRef.current,
           channel: "webchat",
           payload: { message: msgToSend, button_id: buttonId },
         }),

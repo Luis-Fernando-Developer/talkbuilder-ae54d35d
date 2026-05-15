@@ -116,6 +116,7 @@ export default function PublicFlowPage() {
             hideClose
             fullScreen
             theme={theme}
+            flowId={data?.id}
           />
         )}
       </div>
