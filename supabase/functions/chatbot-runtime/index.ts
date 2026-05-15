@@ -192,6 +192,26 @@ function normalizeClientState(state: any) {
   };
 }
 
+function readMemoryState(key: string) {
+  const entry = runtimeMemory.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt < Date.now()) {
+    runtimeMemory.delete(key);
+    return null;
+  }
+  return entry.state;
+}
+
+function writeMemoryState(key: string, state: any) {
+  const now = Date.now();
+  if (runtimeMemory.size > 1000) {
+    for (const [k, entry] of runtimeMemory.entries()) {
+      if (entry.expiresAt < now) runtimeMemory.delete(k);
+    }
+  }
+  runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
+}
+
 function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   let currentNodeId: string | null = execution.current_node_id;
   const variables: Record<string, any> = { ...(execution.variables || {}) };
