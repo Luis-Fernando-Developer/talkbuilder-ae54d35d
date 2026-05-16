@@ -5,7 +5,6 @@ import {
   Settings,
   Plus,
   Play,
-  Eye,
   Save,
   Send,
   Check,
@@ -316,9 +315,6 @@ export default function BotPage() {
     setTestContainer(first);
   };
 
-  const handlePreview = () => {
-    navigate(`/preview/${botId}`);
-  };
 
   const startNameEdit = () => {
     setNameDraft(flow?.name ?? bot?.title ?? "");
@@ -479,14 +475,8 @@ export default function BotPage() {
           <Button variant="ghost" size="sm" className="gap-1" onClick={() => setShowSettings(true)}>
             <Settings className="w-4 h-4" /> <span className="hidden sm:inline">Configurações</span>
           </Button>
-          <Button variant="ghost" size="sm" className="gap-1" onClick={handleAddBlock}>
-            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Bloco</span>
-          </Button>
           <Button variant="ghost" size="sm" className="gap-1" onClick={handleTest}>
             <Play className="w-4 h-4" /> <span className="hidden sm:inline">Testar</span>
-          </Button>
-          <Button variant="ghost" size="sm" className="gap-1" onClick={handlePreview}>
-            <Eye className="w-4 h-4" /> <span className="hidden sm:inline">Visualizar</span>
           </Button>
           <Button variant="ghost" size="sm" className="gap-1" onClick={handleSave} disabled={isSaving}>
             {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
