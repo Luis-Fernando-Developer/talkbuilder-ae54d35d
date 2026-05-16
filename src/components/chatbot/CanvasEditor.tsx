@@ -581,15 +581,7 @@ const CanvasContent = ({
           <Panel position="top-right" className="m-4">
             <div 
               className="flex items-center gap-1 p-1.5 bg-card border border-border rounded-lg shadow-2xl animate-in fade-in zoom-in duration-200"
-              onMouseDown={(e) => {
-                e.stopPropagation();
-              }}
-              onPointerDown={(e) => {
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
+              onMouseDown={(e) => e.stopPropagation()}
             >
               <Popover>
                 <PopoverTrigger asChild>
@@ -600,12 +592,19 @@ const CanvasContent = ({
                     <ChevronDown className="w-3 h-3 opacity-50" />
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-64 p-0" align="start">
+                <PopoverContent 
+                  className="w-64 p-0" 
+                  align="start" 
+                  side="bottom"
+                  sideOffset={8}
+                  onOpenAutoFocus={(e) => e.preventDefault()}
+                  onCloseAutoFocus={(e) => e.preventDefault()}
+                >
                   <div className="p-2 border-b bg-muted/30">
                     <h4 className="text-xs font-semibold">Blocos Selecionados</h4>
                   </div>
                   <ScrollArea className="h-64">
-                    <div className="p-1">
+                    <div className="p-1" onMouseDown={(e) => e.stopPropagation()}>
                       {selectedContainerIds.map((id) => {
                         const container = containers.find(c => c.id === id);
                         return (
