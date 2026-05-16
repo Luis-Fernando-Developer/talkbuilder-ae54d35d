@@ -474,6 +474,13 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       case "set-variable":
         if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
         break;
+      case "condition": {
+        const conditions = cfg.conditions || [];
+        const matchedCondition = conditions.find(evaluateCondition);
+        const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
+        currentNodeId = nextFromNode(node.id, container, conditionHandle, true);
+        continue;
+      }
     }
 
     if (waiting_for) break;
