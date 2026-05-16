@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
@@ -10,6 +10,8 @@ import {
   Send,
   Check,
   Loader2,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 import { CanvasEditor } from "@/components/chatbot/CanvasEditor";
 import { NodesSidebar } from "@/components/chatbot/NodesSidebar";
@@ -86,6 +88,12 @@ export default function BotPage() {
   const [showPublish, setShowPublish] = useState(false);
   const [getCenter, setGetCenter] = useState<(() => { x: number; y: number }) | null>(null);
   const [testContainer, setTestContainer] = useState<Container | null>(null);
+  
+  // Undo/Redo history
+  const [history, setHistory] = useState<{ containers: Container[]; edges: Edge[] }[]>([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+  const isInternalChangeRef = useRef(false);
+
   const lastSavedAtRef = useRef<number>(0);
 
   // Dark theme global enquanto edita
@@ -133,11 +141,62 @@ export default function BotPage() {
     };
   }, [botId, bot]);
 
-  // Persiste cache local em toda alteração
+  // Persiste cache local em toda alteração e gerencia histórico
   useEffect(() => {
     if (!hydrated) return;
     saveLocal(botId, { containers, edges });
-  }, [botId, containers, edges, hydrated]);
+
+    if (isInternalChangeRef.current) {
+      isInternalChangeRef.current = false;
+      return;
+    }
+
+    // Adiciona ao histórico apenas se for diferente do estado atual no histórico
+    setHistory(prev => {
+      const currentState = { containers, edges };
+      const lastState = prev[historyIndex];
+      
+      if (lastState && JSON.stringify(lastState) === JSON.stringify(currentState)) {
+        return prev;
+      }
+
+      const newHistory = prev.slice(0, historyIndex + 1);
+      newHistory.push(JSON.parse(JSON.stringify(currentState)));
+      
+      // Limita o histórico (opcional, mas bom pra performance)
+      if (newHistory.length > 50) {
+        newHistory.shift();
+      } else {
+        setHistoryIndex(newHistory.length - 1);
+      }
+      
+      return newHistory;
+    });
+  }, [botId, containers, edges, hydrated, historyIndex]);
+
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      const prevState = history[prevIndex];
+      isInternalChangeRef.current = true;
+      setContainers(prevState.containers);
+      setEdges(prevState.edges);
+      setHistoryIndex(prevIndex);
+      toast.info("Desfeito");
+    }
+  }, [history, historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const nextIndex = historyIndex + 1;
+      const nextState = history[nextIndex];
+      isInternalChangeRef.current = true;
+      setContainers(nextState.containers);
+      setEdges(nextState.edges);
+      setHistoryIndex(nextIndex);
+      toast.info("Refeito");
+    }
+  }, [history, historyIndex]);
 
   const status: FlowStatus = useMemo(() => {
     if (!flow) return "draft";
@@ -356,7 +415,28 @@ export default function BotPage() {
             </span>
           </div>
 
-          <div className="flex-1" />
+          <div className="flex-1 flex items-center justify-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={handleUndo} 
+              disabled={historyIndex <= 0}
+              title="Desfazer (Ctrl+Z)"
+            >
+              <Undo2 className="w-4 h-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8" 
+              onClick={handleRedo} 
+              disabled={historyIndex >= history.length - 1}
+              title="Refazer (Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-4 h-4" />
+            </Button>
+          </div>
 
           <Button variant="ghost" size="sm" className="gap-1" onClick={() => setShowSettings(true)}>
             <Settings className="w-4 h-4" /> <span className="hidden sm:inline">Configurações</span>
