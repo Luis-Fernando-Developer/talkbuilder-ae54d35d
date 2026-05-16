@@ -117,7 +117,7 @@ export const ButtonGroupNodeItem = ({
       </div>
 
       {/* Buttons list */}
-      <div className="p-2 space-y-1.5 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="pl-2 pr-8 py-2 space-y-1.5 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
         {buttons.map((button) => (
           <div
             key={button.id}
@@ -169,7 +169,7 @@ export const ButtonGroupNodeItem = ({
               id={`${node.id}-btn-${button.id}`}
               style={{ 
                 position: 'absolute',
-                right: -24,
+                right: -8,
                 top: '50%',
                 transform: 'translate(50%, -50%)',
               }}
@@ -189,7 +189,7 @@ export const ButtonGroupNodeItem = ({
             id={`${node.id}-default`}
             style={{ 
               position: 'absolute',
-              right: -24,
+              right: -8,
               top: '50%',
               transform: 'translate(50%, -50%)',
             }}
