@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause, Image as ImageIcon, Video as VideoIcon, FileText, Mic, Camera, Upload, Trash2, StopCircle, Loader2 } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, FileText, Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
-import { type Container, type Node, type ButtonConfig, type Edge } from "../../types/chatbot";
+import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
 import { ScrollArea } from "../../components/ui/scroll-area";
-import { Checkbox } from "../../components/ui/checkbox";
-import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { renderTextSegments } from "@/lib/textParser";
 import { richHtmlFor, richToPlainText } from "@/lib/richText";
 
@@ -148,9 +146,6 @@ export const TestPanel = ({
   const [waitingForButton, setWaitingForButton] = useState(false);
   const [activeButtons, setActiveButtons] = useState<ButtonConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMultipleChoice, setIsMultipleChoice] = useState(false);
-  const [selectedButtons, setSelectedButtons] = useState<string[]>([]);
-  const [submitLabel, setSubmitLabel] = useState("Enviar");
   const scrollRef = useRef<HTMLDivElement>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
@@ -158,10 +153,6 @@ export const TestPanel = ({
   const waitTimerRef = useRef<number | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-
-  const getRuntimeUrl = () => {
-    return "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
-  };
 
   const firstNodeOfContainer = (containerId: string) => {
     const container = allContainers.find((c) => c.id === containerId);
@@ -185,7 +176,7 @@ export const TestPanel = ({
     return null;
   };
 
-  const nextFromNode = (nodeId: string, containerId: string, handle?: string | null): string | null => {
+  const nextFromNode = (nodeId: string, containerId: string, handle?: string | null, strictHandle = false): string | null => {
     const normalizeHandle = (value?: string | null) => {
       if (!value) return "";
       const raw = String(value);
@@ -202,6 +193,7 @@ export const TestPanel = ({
     let edge = wantedHandle
       ? fromNode.find((e) => normalizeHandle(e.sourceHandle) === wantedHandle)
       : undefined;
+    if (!edge && strictHandle) return null;
     if (!edge && wantedHandle) edge = fromNode.find((e) => normalizeHandle(e.sourceHandle) === "default");
     if (!edge) edge = fromNode.find((e) => !e.sourceHandle);
     if (!edge) edge = fromNode[0];
@@ -210,6 +202,44 @@ export const TestPanel = ({
     const containerEdge = validEdges.find((e) => e.source === containerId);
     if (containerEdge) return resolveTarget(containerEdge.target);
     return null;
+  };
+
+  const getVariableValue = (variables: Record<string, any>, variableName: string) => {
+    const key = String(variableName || "").trim().replace(/^{{\s*/, "").replace(/\s*}}$/, "");
+    return key ? variables[key] : undefined;
+  };
+
+  const evaluateComparison = (comparison: ConditionComparison, variables: Record<string, any>, replaceVars: (text: string) => string) => {
+    const rawValue = getVariableValue(variables, comparison.variableName);
+    const actual = rawValue == null ? "" : String(rawValue).trim();
+    const expected = replaceVars(String(comparison.value ?? "")).trim();
+
+    switch (comparison.operator) {
+      case "equals": return actual === expected;
+      case "not_equals": return actual !== expected;
+      case "contains": return actual.includes(expected);
+      case "not_contains": return !actual.includes(expected);
+      case "greater_than": return Number(actual) > Number(expected);
+      case "less_than": return Number(actual) < Number(expected);
+      case "is_set": return rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== "";
+      case "is_empty": return rawValue === undefined || rawValue === null || String(rawValue).trim() === "";
+      case "starts_with": return actual.startsWith(expected);
+      case "ends_with": return actual.endsWith(expected);
+      case "matches_regex": {
+        try { return new RegExp(expected).test(actual); } catch { return false; }
+      }
+      case "not_matches_regex": {
+        try { return !new RegExp(expected).test(actual); } catch { return true; }
+      }
+      default: return false;
+    }
+  };
+
+  const evaluateCondition = (condition: ConditionGroup, variables: Record<string, any>, replaceVars: (text: string) => string) => {
+    const comparisons = condition.comparisons || [];
+    if (!comparisons.length) return false;
+    const results = comparisons.map((comparison) => evaluateComparison(comparison, variables, replaceVars));
+    return condition.logicalOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
   };
 
   const runLocalFlow = (state: RuntimeState | null, input?: { message?: string; button_id?: string }) => {
@@ -278,6 +308,12 @@ export const TestPanel = ({
         nextButtons = cfg.buttons || [];
       } else if (nodeType === "set-variable" && cfg.variableName) {
         variables[cfg.variableName] = replaceVars(cfg.value || "");
+      } else if (nodeType === "condition") {
+        const conditions: ConditionGroup[] = cfg.conditions || [];
+        const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
+        const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
+        currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
+        continue;
       }
 
       if (waitingFor) break;

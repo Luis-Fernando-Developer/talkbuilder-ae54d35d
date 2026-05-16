@@ -246,9 +246,10 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     return raw;
   };
 
-  const nextFromNode = (nodeId: string, container: any, handle?: string): string | null => {
+  const nextFromNode = (nodeId: string, container: any, handle?: string, strictHandle = false): string | null => {
     const wantedHandle = normalizeHandle(handle);
     let edge = edges.find((e: any) => e.source === nodeId && wantedHandle && normalizeHandle(e.sourceHandle) === wantedHandle);
+    if (!edge && strictHandle) return null;
     if (!edge && wantedHandle) edge = edges.find((e: any) => e.source === nodeId && normalizeHandle(e.sourceHandle) === "default");
     if (!edge) edge = edges.find((e: any) => e.source === nodeId && !e.sourceHandle);
     if (!edge) edge = edges.find((e: any) => e.source === nodeId);
@@ -288,6 +289,44 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
 
   const replaceVars = (text: string) =>
     !text ? text : decodeText(text).replace(/{{(.*?)}}/g, (_, k) => variables[k.trim()] ?? `{{${k}}}`);
+
+  const getVariableValue = (variableName: string) => {
+    const key = String(variableName || "").trim().replace(/^{{\s*/, "").replace(/\s*}}$/, "");
+    return key ? variables[key] : undefined;
+  };
+
+  const evaluateComparison = (comparison: any) => {
+    const rawValue = getVariableValue(comparison?.variableName);
+    const actual = rawValue == null ? "" : String(rawValue).trim();
+    const expected = replaceVars(String(comparison?.value ?? "")).trim();
+
+    switch (comparison?.operator) {
+      case "equals": return actual === expected;
+      case "not_equals": return actual !== expected;
+      case "contains": return actual.includes(expected);
+      case "not_contains": return !actual.includes(expected);
+      case "greater_than": return Number(actual) > Number(expected);
+      case "less_than": return Number(actual) < Number(expected);
+      case "is_set": return rawValue !== undefined && rawValue !== null && String(rawValue).trim() !== "";
+      case "is_empty": return rawValue === undefined || rawValue === null || String(rawValue).trim() === "";
+      case "starts_with": return actual.startsWith(expected);
+      case "ends_with": return actual.endsWith(expected);
+      case "matches_regex": {
+        try { return new RegExp(expected).test(actual); } catch { return false; }
+      }
+      case "not_matches_regex": {
+        try { return !new RegExp(expected).test(actual); } catch { return true; }
+      }
+      default: return false;
+    }
+  };
+
+  const evaluateCondition = (condition: any) => {
+    const comparisons = condition?.comparisons || [];
+    if (!comparisons.length) return false;
+    const results = comparisons.map(evaluateComparison);
+    return condition?.logicalOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
+  };
 
   const parseWaitMs = (cfg: any) => {
     const rawTime = Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5);
@@ -435,6 +474,13 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       case "set-variable":
         if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
         break;
+      case "condition": {
+        const conditions = cfg.conditions || [];
+        const matchedCondition = conditions.find(evaluateCondition);
+        const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
+        currentNodeId = nextFromNode(node.id, container, conditionHandle, true);
+        continue;
+      }
     }
 
     if (waiting_for) break;
