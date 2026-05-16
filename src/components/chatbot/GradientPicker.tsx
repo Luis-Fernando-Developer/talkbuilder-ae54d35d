@@ -166,10 +166,9 @@ const ColorPanel = ({ color, opacity, onChange }: ColorPanelProps) => {
             value={color.toUpperCase()}
             onChange={(e) => {
               const val = e.target.value;
-              if (/^#?[0-9a-fA-F]{6}$/.test(val)) {
-                onChange(val.startsWith("#") ? val : `#${val}`, opacity);
-              } else {
-                onChange(val.startsWith("#") ? val : `#${val}`, opacity);
+              if (/^#?[0-9a-fA-F]{0,6}$/.test(val)) {
+                const hex = val.startsWith("#") ? val : `#${val}`;
+                onChange(hex, opacity);
               }
             }}
             className="h-8 text-xs font-mono"
