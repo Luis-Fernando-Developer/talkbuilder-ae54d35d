@@ -311,7 +311,7 @@ export const TestPanel = ({
         waitingFor = "buttons";
         nextButtons = cfg.buttons || [];
       } else if (nodeType === "set-variable" && cfg.variableName) {
-        variables[cfg.variableName] = replaceVars(cfg.value || "");
+        variables[cfg.variableName] = evaluateSetVariableValue(cfg, variables);
       } else if (nodeType === "condition") {
         const conditions: ConditionGroup[] = cfg.conditions || [];
         const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
