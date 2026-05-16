@@ -163,7 +163,7 @@ export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIn
             style={{
               position: "absolute",
               right: "-6.5%",
-              top: "50%",
+              top: "51%",
               transform: "translate(50%, -50%)",
             }}
             className="!bg-gray-400 !w-3 !h-3"
