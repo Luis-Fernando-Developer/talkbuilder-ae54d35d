@@ -542,8 +542,6 @@ const CanvasContent = ({
               top: Math.min(selectionBox.start.y, selectionBox.end.y),
               width: Math.abs(selectionBox.start.x - selectionBox.end.x),
               height: Math.abs(selectionBox.start.y - selectionBox.end.y),
-              transform: `translate(${reactFlowInstance.getViewport().x}px, ${reactFlowInstance.getViewport().y}px) scale(${reactFlowInstance.getViewport().zoom})`,
-              transformOrigin: '0 0'
             }}
           />
         )}
