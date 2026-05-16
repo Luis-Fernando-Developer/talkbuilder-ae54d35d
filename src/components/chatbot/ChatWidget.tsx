@@ -256,8 +256,8 @@ export const ChatWidget = ({
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 z-50"
-        style={{ backgroundColor: primaryColor }}
+        className="fixed bottom-6 right-6 w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-110 z-50 overflow-hidden"
+        style={{ background: primaryColor }}
       >
         <MessageCircle className="w-6 h-6 text-white" />
       </button>
@@ -401,10 +401,10 @@ export const ChatWidget = ({
               size="icon"
               onClick={() => sendMessage()}
               disabled={isLoading || !input.trim()}
-              className="rounded-full"
-              style={{ backgroundColor: primaryColor }}
+              className="rounded-full overflow-hidden"
+              style={{ background: primaryColor }}
             >
-              <Send className="w-4 h-4" />
+              <Send className="w-4 h-4 text-white" />
             </Button>
           </div>
         </div>

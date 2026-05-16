@@ -280,22 +280,11 @@ export function BotSettingsDialog({
                 </h4>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="primaryColor">Cor Primária (Botão/Ícone)</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      id="primaryColor"
-                      value={theme.primaryColor}
-                      onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })}
-                      className="w-10 h-10 rounded cursor-pointer border-none"
-                    />
-                    <Input
-                      value={theme.primaryColor}
-                      onChange={(e) => setTheme({ ...theme, primaryColor: e.target.value })}
-                      placeholder="#3b82f6"
-                      className="flex-1"
-                    />
-                  </div>
+                  <GradientPicker 
+                    label="Cor Primária (Botão/Ícone)"
+                    value={theme.primaryColor}
+                    onChange={(val) => setTheme({ ...theme, primaryColor: val })}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -338,22 +327,11 @@ export function BotSettingsDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Cabeçalho (Texto)</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.headerTextColor}
-                        onChange={(e) => setTheme({ ...theme, headerTextColor: e.target.value })}
-                        placeholder="#ffffff"
-                        className="h-8 text-[10px]"
-                      />
-                      <input
-                        type="color"
-                        value={theme.headerTextColor?.startsWith('#') ? theme.headerTextColor : '#ffffff'}
-                        onChange={(e) => setTheme({ ...theme, headerTextColor: e.target.value })}
-                        className="w-full h-6 rounded cursor-pointer border-none"
-                      />
-                    </div>
+                    <GradientPicker 
+                      label="Cabeçalho (Texto)"
+                      value={theme.headerTextColor}
+                      onChange={(val) => setTheme({ ...theme, headerTextColor: val })}
+                    />
                   </div>
                 </div>
 
@@ -366,22 +344,11 @@ export function BotSettingsDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Campo Input (Texto)</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.inputTextColor}
-                        onChange={(e) => setTheme({ ...theme, inputTextColor: e.target.value })}
-                        placeholder="#111b21"
-                        className="h-8 text-[10px]"
-                      />
-                      <input
-                        type="color"
-                        value={theme.inputTextColor?.startsWith('#') ? theme.inputTextColor : '#111b21'}
-                        onChange={(e) => setTheme({ ...theme, inputTextColor: e.target.value })}
-                        className="w-full h-6 rounded cursor-pointer border-none"
-                      />
-                    </div>
+                    <GradientPicker 
+                      label="Campo Input (Texto)"
+                      value={theme.inputTextColor}
+                      onChange={(val) => setTheme({ ...theme, inputTextColor: val })}
+                    />
                   </div>
                 </div>
               </div>
@@ -400,22 +367,11 @@ export function BotSettingsDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto Bot</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.botTextColor}
-                        onChange={(e) => setTheme({ ...theme, botTextColor: e.target.value })}
-                        placeholder="#1f2937"
-                        className="h-8 text-[10px]"
-                      />
-                      <input
-                        type="color"
-                        value={theme.botTextColor?.startsWith('#') ? theme.botTextColor : '#1f2937'}
-                        onChange={(e) => setTheme({ ...theme, botTextColor: e.target.value })}
-                        className="w-full h-6 rounded cursor-pointer border-none"
-                      />
-                    </div>
+                    <GradientPicker 
+                      label="Texto Bot"
+                      value={theme.botTextColor}
+                      onChange={(val) => setTheme({ ...theme, botTextColor: val })}
+                    />
                   </div>
                 </div>
 
@@ -428,22 +384,11 @@ export function BotSettingsDialog({
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto Usuário</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.userTextColor}
-                        onChange={(e) => setTheme({ ...theme, userTextColor: e.target.value })}
-                        placeholder="#ffffff"
-                        className="h-8 text-[10px]"
-                      />
-                      <input
-                        type="color"
-                        value={theme.userTextColor?.startsWith('#') ? theme.userTextColor : '#ffffff'}
-                        onChange={(e) => setTheme({ ...theme, userTextColor: e.target.value })}
-                        className="w-full h-6 rounded cursor-pointer border-none"
-                      />
-                    </div>
+                    <GradientPicker 
+                      label="Texto Usuário"
+                      value={theme.userTextColor}
+                      onChange={(val) => setTheme({ ...theme, userTextColor: val })}
+                    />
                   </div>
                 </div>
 
