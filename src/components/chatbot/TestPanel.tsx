@@ -185,10 +185,14 @@ export const TestPanel = ({
       if (raw.endsWith("-default")) return "default";
       return raw;
     };
+    const isInnerNodeHandle = (value?: string | null) =>
+      !!value && String(value).startsWith(`${nodeId}-`);
     const wantedHandle = normalizeHandle(handle);
     // Only consider edges whose target still exists in the current graph.
     const validEdges = edges.filter((e) => resolveTarget(e.target) !== null);
-    const fromNode = validEdges.filter((e) => e.source === nodeId);
+    const fromNode = validEdges.filter(
+      (e) => e.source === nodeId || (e.source === containerId && isInnerNodeHandle(e.sourceHandle))
+    );
 
     let edge = wantedHandle
       ? fromNode.find((e) => normalizeHandle(e.sourceHandle) === wantedHandle)
@@ -199,7 +203,7 @@ export const TestPanel = ({
     if (!edge) edge = fromNode[0];
     if (edge) return resolveTarget(edge.target);
 
-    const containerEdge = validEdges.find((e) => e.source === containerId);
+    const containerEdge = validEdges.find((e) => e.source === containerId && !e.sourceHandle);
     if (containerEdge) return resolveTarget(containerEdge.target);
     return null;
   };
