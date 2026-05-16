@@ -34,12 +34,17 @@ export function ButtonEdge({
   const onEdgeClick = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    console.log('Edge clicked for deletion:', id);
-    setEdges((eds) => {
-      const filtered = eds.filter((edge) => edge.id !== id);
-      console.log('New edges list after manual filter:', filtered);
-      return filtered;
-    });
+    // Apenas seleciona a edge ao clicar
+    setEdges((eds) => eds.map(edge => ({
+      ...edge,
+      selected: edge.id === id
+    })));
+  };
+
+  const onDelete = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setEdges((eds) => eds.filter((edge) => edge.id !== id));
   };
 
   return (
@@ -62,6 +67,28 @@ export function ButtonEdge({
           stroke: selected ? '#ef4444' : '#94a3b8',
         }}
       />
+      {selected && (
+        <EdgeLabelRenderer>
+          <div
+            style={{
+              position: 'absolute',
+              transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
+              pointerEvents: 'all',
+              zIndex: 1000,
+            }}
+            className="nodrag nopan"
+          >
+            <button
+              className="w-7 h-7 bg-red-500 hover:bg-red-600 rounded-full flex items-center justify-center text-white shadow-xl transition-all hover:scale-110 active:scale-90 border-2 border-white"
+              onClick={onDelete}
+              onPointerDown={(e) => e.stopPropagation()}
+              title="Excluir conexão"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        </EdgeLabelRenderer>
+      )}
     </>
   );
 }
