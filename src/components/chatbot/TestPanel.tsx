@@ -257,6 +257,28 @@ export const TestPanel = ({
     const firstText = (...values: any[]) => String(values.find((v) => typeof v === "string" && v.trim()) || "");
     const cleanText = (text: string) => richToPlainText(text);
     const replaceVars = (text: string) => cleanText(text).replace(/{{(.*?)}}/g, (_, key) => variables[key.trim()] ?? `{{${key}}}`);
+    const evaluateSetVariableValue = (cfg: any, vars: Record<string, any>): any => {
+      const valueType = String(cfg.valueType || "custom").toLowerCase();
+      const raw = cfg.value ?? "";
+      if (valueType === "empty") return "";
+      const code = String(raw);
+      // Substitute {{var}} -> JSON literal so the JS code can use them
+      const interpolated = code.replace(/{{\s*(.*?)\s*}}/g, (_, key) => {
+        const v = vars[String(key).trim()];
+        return JSON.stringify(v == null ? "" : v);
+      });
+      try {
+        const hasReturn = /\breturn\b/.test(interpolated);
+        const body = hasReturn ? interpolated : `return (${interpolated});`;
+        const fn = new Function(`"use strict"; ${body}`);
+        const result = fn();
+        return result;
+      } catch (err) {
+        console.warn("[set-variable] eval failed, using raw value:", err);
+        if (valueType === "custom") return replaceVars(code);
+        return code;
+      }
+    };
     const parseWaitMs = (cfg: any) => {
       const amount = Math.max(1, Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5) || 5);
       const unit = String(cfg.timeUnit ?? cfg.unit ?? "seconds").toLowerCase();
