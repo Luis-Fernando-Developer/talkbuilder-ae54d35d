@@ -300,7 +300,7 @@ const CanvasContent = ({
   const onConnect = useCallback(
     (params: Connection | FlowEdge) => {
       setEdges((eds: FlowEdge[]) => {
-        const newEdges = addEdge(params, eds);
+        const newEdges = addEdge({ ...params, type: 'buttonedge' }, eds);
         if (onEdgesChangeProp) {
           onEdgesChangeProp(newEdges.map((e: FlowEdge) => ({
             source: e.source,
