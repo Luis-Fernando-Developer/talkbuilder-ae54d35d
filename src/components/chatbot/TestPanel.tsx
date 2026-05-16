@@ -110,6 +110,10 @@ export interface TestPanelTheme {
   primaryColor?: string;
   backgroundColor?: string;
   backgroundImage?: string;
+  headerBackgroundColor?: string;
+  headerTextColor?: string;
+  inputBackgroundColor?: string;
+  inputTextColor?: string;
   textColor?: string;
   botBubbleColor?: string;
   botTextColor?: string;
