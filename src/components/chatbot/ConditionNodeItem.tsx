@@ -47,7 +47,7 @@ export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIn
   const conditions: ConditionGroup[] = node.config.conditions || [];
 
   return (
-    <div className=" flex flex-col flex-1 relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible">
+    <div className=" inline flex-col flex-1 relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible">
       {/* Header */}
       <div
         onClick={(e) => {
