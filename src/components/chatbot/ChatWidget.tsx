@@ -382,7 +382,7 @@ export const ChatWidget = ({
 
       {/* Input */}
       {waitingFor && waitingFor !== "buttons" && (
-        <div className="p-3 border-t border-border" style={{ background: themeSettings?.inputBackgroundColor }}>
+        <div className="p-3 border-t border-border" style={{ background: themeSettings?.inputBackgroundColor || '#ffffff' }}>
           <div className="flex gap-2">
             <Input
               value={input}
@@ -393,7 +393,7 @@ export const ChatWidget = ({
               className="flex-1 rounded-full"
               style={{ 
                 color: themeSettings?.inputTextColor || '#1f2937',
-                backgroundColor: themeSettings?.inputBackgroundColor ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)', // Subtle overlay
                 borderColor: themeSettings?.inputTextColor ? `${themeSettings.inputTextColor}40` : undefined
               }}
             />
