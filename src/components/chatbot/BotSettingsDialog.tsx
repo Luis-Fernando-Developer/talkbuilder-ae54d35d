@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { GradientPicker } from './GradientPicker';
 import { Settings, Palette, Type, FileText, Upload, Download, Copy, Image as ImageIcon, MessageCircle, X } from 'lucide-react';
 import {
   Dialog,
@@ -298,22 +299,11 @@ export function BotSettingsDialog({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="backgroundColor">Cor de Fundo da Janela</Label>
-                  <div className="flex gap-2">
-                    <input
-                      type="color"
-                      id="backgroundColor"
-                      value={theme.backgroundColor}
-                      onChange={(e) => setTheme({ ...theme, backgroundColor: e.target.value })}
-                      className="w-10 h-10 rounded cursor-pointer border-none"
-                    />
-                    <Input
-                      value={theme.backgroundColor}
-                      onChange={(e) => setTheme({ ...theme, backgroundColor: e.target.value })}
-                      placeholder="#ffffff"
-                      className="flex-1"
-                    />
-                  </div>
+                  <GradientPicker 
+                    label="Cor de Fundo da Janela"
+                    value={theme.backgroundColor}
+                    onChange={(val) => setTheme({ ...theme, backgroundColor: val })}
+                  />
                 </div>
 
                 <div className="space-y-2">
@@ -340,34 +330,12 @@ export function BotSettingsDialog({
                 </h4>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Cabeçalho (Fundo)</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.headerBackgroundColor || theme.primaryColor}
-                        onChange={(e) => setTheme({ ...theme, headerBackgroundColor: e.target.value })}
-                        placeholder="#075E54 ou linear-gradient(...)"
-                        className="h-8 text-[10px]"
-                      />
-                      <div className="flex gap-1">
-                        <input
-                          type="color"
-                          value={theme.headerBackgroundColor?.startsWith('#') ? theme.headerBackgroundColor : '#075E54'}
-                          onChange={(e) => setTheme({ ...theme, headerBackgroundColor: e.target.value })}
-                          className="w-full h-6 rounded cursor-pointer border-none"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6" 
-                          title="Transparente"
-                          onClick={() => setTheme({ ...theme, headerBackgroundColor: 'transparent' })}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="col-span-2">
+                    <GradientPicker 
+                      label="Cabeçalho (Fundo)"
+                      value={theme.headerBackgroundColor || theme.primaryColor}
+                      onChange={(val) => setTheme({ ...theme, headerBackgroundColor: val })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Cabeçalho (Texto)</Label>
@@ -390,34 +358,12 @@ export function BotSettingsDialog({
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label className="text-xs">Campo Input (Fundo)</Label>
-                    <div className="flex flex-col gap-1">
-                      <Input
-                        type="text"
-                        value={theme.inputBackgroundColor}
-                        onChange={(e) => setTheme({ ...theme, inputBackgroundColor: e.target.value })}
-                        placeholder="#ffffff ou linear-gradient(...)"
-                        className="h-8 text-[10px]"
-                      />
-                      <div className="flex gap-1">
-                        <input
-                          type="color"
-                          value={theme.inputBackgroundColor?.startsWith('#') ? theme.inputBackgroundColor : '#ffffff'}
-                          onChange={(e) => setTheme({ ...theme, inputBackgroundColor: e.target.value })}
-                          className="w-full h-6 rounded cursor-pointer border-none"
-                        />
-                        <Button 
-                          variant="outline" 
-                          size="icon" 
-                          className="h-6 w-6" 
-                          title="Transparente"
-                          onClick={() => setTheme({ ...theme, inputBackgroundColor: 'transparent' })}
-                        >
-                          <X className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
+                  <div className="col-span-2">
+                    <GradientPicker 
+                      label="Campo Input (Fundo)"
+                      value={theme.inputBackgroundColor}
+                      onChange={(val) => setTheme({ ...theme, inputBackgroundColor: val })}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Campo Input (Texto)</Label>
