@@ -120,6 +120,7 @@ export interface TestPanelTheme {
   userBubbleColor?: string;
   userTextColor?: string;
   fontFamily?: string;
+  avatarUrl?: string;
 }
 
 interface TestPanelProps {
@@ -491,8 +492,12 @@ export const TestPanel = ({
             background: theme?.headerBackgroundColor || "bg-gradient-to-r from-primary/20 via-card to-card",
             color: theme?.headerTextColor || "inherit"
           }}>
-          <div className="flex items-center gap-2 min-w-0">
-            <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: theme?.headerTextColor || "var(--bot-flow)" }} />
+          <div className="flex items-center gap-3 min-w-0">
+            {theme?.avatarUrl ? (
+              <img src={theme.avatarUrl} alt="Avatar" className="w-8 h-8 rounded-full object-cover shrink-0" />
+            ) : (
+              <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: theme?.headerTextColor || "var(--bot-flow)" }} />
+            )}
             <div className="min-w-0">
               <h2 className="font-semibold text-sm truncate" style={{ color: theme?.headerTextColor }}>{headerTitle}</h2>
               {headerSubtitle && <p className="text-[11px] leading-tight truncate opacity-70" style={{ color: theme?.headerTextColor }}>{headerSubtitle}</p>}
