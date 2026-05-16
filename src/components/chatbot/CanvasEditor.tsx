@@ -610,8 +610,14 @@ const CanvasContent = ({
                               onCheckedChange={(checked) => {
                                 if (checked) {
                                   setSelectedContainerIds(prev => [...prev, id]);
+                                  setAccumulatedSelectedIds(prev => new Set(prev).add(id));
                                 } else {
                                   setSelectedContainerIds(prev => prev.filter(i => i !== id));
+                                  setAccumulatedSelectedIds(prev => {
+                                    const next = new Set(prev);
+                                    next.delete(id);
+                                    return next;
+                                  });
                                 }
                               }}
                             />
