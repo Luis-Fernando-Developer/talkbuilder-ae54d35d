@@ -583,69 +583,69 @@ const CanvasContent = ({
             <div 
               className="flex items-center gap-1 p-1.5 bg-card border border-border rounded-lg shadow-2xl animate-in fade-in zoom-in duration-200"
               onMouseDown={(e) => e.stopPropagation()}
-              onPointerDown={(e) => e.stopPropagation()}
             >
-              <Popover modal={true}>
-                <PopoverTrigger asChild>
-                  <Button 
-                    variant="ghost" 
-                    size="xs" 
-                    className="px-2 h-8 gap-1 hover:bg-primary/10 select-none"
-                  >
-                    <span className="text-xs font-medium text-muted-foreground mr-1">
-                      {selectedContainerIds.length} selecionados
-                    </span>
-                    <ChevronDown className="w-3 h-3 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent 
-                  className="w-64 p-0" 
-                  align="start" 
-                  side="bottom"
-                  sideOffset={8}
-                  onOpenAutoFocus={(e) => e.preventDefault()}
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onPointerDown={(e) => e.stopPropagation()}
+              <div className="relative">
+                <Button 
+                  variant="ghost" 
+                  size="xs" 
+                  className="px-2 h-8 gap-1 hover:bg-primary/10 select-none"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsListOpen(!isListOpen);
+                  }}
                 >
-                  <div className="p-2 border-b bg-muted/30">
-                    <h4 className="text-xs font-semibold">Blocos Selecionados</h4>
-                  </div>
-                  <ScrollArea className="h-64">
-                    <div className="p-1">
-                      {selectedContainerIds.map((id) => {
-                        const container = containers.find(c => c.id === id);
-                        return (
-                          <div key={id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-sm">
-                            <Checkbox 
-                              id={`select-${id}`}
-                              checked={selectedContainerIds.includes(id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedContainerIds(prev => [...prev, id]);
-                                  setAccumulatedSelectedIds(prev => new Set(prev).add(id));
-                                } else {
-                                  setSelectedContainerIds(prev => prev.filter(i => i !== id));
-                                  setAccumulatedSelectedIds(prev => {
-                                    const next = new Set(prev);
-                                    next.delete(id);
-                                    return next;
-                                  });
-                                }
-                              }}
-                            />
-                            <label 
-                              htmlFor={`select-${id}`}
-                              className="text-xs truncate flex-1 cursor-pointer select-none"
-                            >
-                              {container?.nameContainer || `Bloco ${id.slice(-4)}`}
-                            </label>
-                          </div>
-                        );
-                      })}
+                  <span className="text-xs font-medium text-muted-foreground mr-1">
+                    {selectedContainerIds.length} selecionados
+                  </span>
+                  <ChevronDown className={`w-3 h-3 opacity-50 transition-transform ${isListOpen ? 'rotate-180' : ''}`} />
+                </Button>
+
+                {isListOpen && (
+                  <div 
+                    className="absolute top-full left-0 mt-2 w-64 bg-card border border-border rounded-lg shadow-2xl z-[1001] animate-in fade-in zoom-in duration-200"
+                    onMouseDown={(e) => e.stopPropagation()}
+                  >
+                    <div className="p-2 border-b bg-muted/30">
+                      <h4 className="text-xs font-semibold">Blocos Selecionados</h4>
                     </div>
-                  </ScrollArea>
-                </PopoverContent>
-              </Popover>
+                    <ScrollArea className="h-64">
+                      <div className="p-1">
+                        {selectedContainerIds.map((id) => {
+                          const container = containers.find(c => c.id === id);
+                          return (
+                            <div key={id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-sm">
+                              <Checkbox 
+                                id={`select-${id}`}
+                                checked={selectedContainerIds.includes(id)}
+                                onCheckedChange={(checked) => {
+                                  if (checked) {
+                                    setSelectedContainerIds(prev => [...prev, id]);
+                                    setAccumulatedSelectedIds(prev => new Set(prev).add(id));
+                                  } else {
+                                    const nextIds = selectedContainerIds.filter(i => i !== id);
+                                    setSelectedContainerIds(nextIds);
+                                    setAccumulatedSelectedIds(new Set(nextIds));
+                                    if (nextIds.length === 0) {
+                                      setIsListOpen(false);
+                                      setShowMultiSelectMenu(null);
+                                    }
+                                  }
+                                }}
+                              />
+                              <label 
+                                htmlFor={`select-${id}`}
+                                className="text-xs truncate flex-1 cursor-pointer select-none"
+                              >
+                                {container?.nameContainer || `Bloco ${id.slice(-4)}`}
+                              </label>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
+              </div>
 
               <div className="w-[1px] h-4 bg-border mx-1" />
 
