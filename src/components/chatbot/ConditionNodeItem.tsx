@@ -162,7 +162,7 @@ export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIn
             id={`${node.id}-else`}
             style={{
               position: "absolute",
-              right: "-10%",
+              right: "-8%",
               top: "50%",
               transform: "translate(50%, -50%)",
             }}
