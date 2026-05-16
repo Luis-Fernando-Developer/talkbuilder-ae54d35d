@@ -494,53 +494,17 @@ const CanvasContent = ({
 
   const onPaneMouseUp = useCallback((event: React.MouseEvent) => {
     if (isSelectionActive && selectionBox) {
-      const rect = (event.currentTarget as HTMLElement)
-        .closest('.react-flow')
-        ?.getBoundingClientRect();
-      if (!rect) {
-        setIsSelectionActive(false);
-        setSelectionBox(null);
-        return;
-      }
+      const finalSelectedIds = Array.from(accumulatedSelectedIds);
+      setSelectedContainerIds(finalSelectedIds);
 
-      // Convert screen-relative box to flow coordinates for hit-testing
-      const startFlow = reactFlowInstance.screenToFlowPosition({
-        x: selectionBox.start.x + rect.left,
-        y: selectionBox.start.y + rect.top,
-      });
-      const endFlow = reactFlowInstance.screenToFlowPosition({
-        x: selectionBox.end.x + rect.left,
-        y: selectionBox.end.y + rect.top,
-      });
-      const minX = Math.min(startFlow.x, endFlow.x);
-      const maxX = Math.max(startFlow.x, endFlow.x);
-      const minY = Math.min(startFlow.y, endFlow.y);
-      const maxY = Math.max(startFlow.y, endFlow.y);
-
-      const newlySelectedIds = nodes
-        .filter((node) => {
-          const { x, y } = node.position;
-          const nodeWidth = 305;
-          const nodeHeight = 200;
-          return (
-            x < maxX &&
-            x + nodeWidth > minX &&
-            y < maxY &&
-            y + nodeHeight > minY
-          );
-        })
-        .map((node) => node.id);
-
-      setSelectedContainerIds(newlySelectedIds);
-
-      if (newlySelectedIds.length > 0) {
+      if (finalSelectedIds.length > 0) {
         setShowMultiSelectMenu({ x: event.clientX, y: event.clientY });
       }
 
       setIsSelectionActive(false);
       setSelectionBox(null);
     }
-  }, [isSelectionActive, selectionBox, nodes, reactFlowInstance]);
+  }, [isSelectionActive, selectionBox, accumulatedSelectedIds]);
 
   const handleMultiDelete = useCallback(() => {
     if (selectedContainerIds.length === 0) return;
