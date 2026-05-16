@@ -317,6 +317,12 @@ export const TestPanel = ({
         nextButtons = cfg.buttons || [];
       } else if (nodeType === "set-variable" && cfg.variableName) {
         variables[cfg.variableName] = replaceVars(cfg.value || "");
+      } else if (nodeType === "condition") {
+        const conditions: ConditionGroup[] = cfg.conditions || [];
+        const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
+        const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
+        currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
+        continue;
       }
 
       if (waitingFor) break;
