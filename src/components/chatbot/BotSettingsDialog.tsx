@@ -341,65 +341,101 @@ export function BotSettingsDialog({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs">Fundo Header</Label>
-                    <div className="flex gap-1">
-                      <input
-                        type="color"
+                    <Label className="text-xs">Cabeçalho (Fundo)</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
                         value={theme.headerBackgroundColor || theme.primaryColor}
                         onChange={(e) => setTheme({ ...theme, headerBackgroundColor: e.target.value })}
-                        className="w-8 h-8 rounded cursor-pointer border-none"
+                        placeholder="#075E54 ou linear-gradient(...)"
+                        className="h-8 text-[10px]"
                       />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        title="Transparente"
-                        onClick={() => setTheme({ ...theme, headerBackgroundColor: 'transparent' })}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <input
+                          type="color"
+                          value={theme.headerBackgroundColor?.startsWith('#') ? theme.headerBackgroundColor : '#075E54'}
+                          onChange={(e) => setTheme({ ...theme, headerBackgroundColor: e.target.value })}
+                          className="w-full h-6 rounded cursor-pointer border-none"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-6 w-6" 
+                          title="Transparente"
+                          onClick={() => setTheme({ ...theme, headerBackgroundColor: 'transparent' })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto Header</Label>
-                    <input
-                      type="color"
-                      value={theme.headerTextColor}
-                      onChange={(e) => setTheme({ ...theme, headerTextColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
-                    />
+                    <Label className="text-xs">Cabeçalho (Texto)</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
+                        value={theme.headerTextColor}
+                        onChange={(e) => setTheme({ ...theme, headerTextColor: e.target.value })}
+                        placeholder="#ffffff"
+                        className="h-8 text-[10px]"
+                      />
+                      <input
+                        type="color"
+                        value={theme.headerTextColor?.startsWith('#') ? theme.headerTextColor : '#ffffff'}
+                        onChange={(e) => setTheme({ ...theme, headerTextColor: e.target.value })}
+                        className="w-full h-6 rounded cursor-pointer border-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs">Fundo Input</Label>
-                    <div className="flex gap-1">
-                      <input
-                        type="color"
+                    <Label className="text-xs">Campo Input (Fundo)</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
                         value={theme.inputBackgroundColor}
                         onChange={(e) => setTheme({ ...theme, inputBackgroundColor: e.target.value })}
-                        className="w-8 h-8 rounded cursor-pointer border-none"
+                        placeholder="#ffffff ou linear-gradient(...)"
+                        className="h-8 text-[10px]"
                       />
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8" 
-                        title="Transparente"
-                        onClick={() => setTheme({ ...theme, inputBackgroundColor: 'transparent' })}
-                      >
-                        <X className="h-3 w-3" />
-                      </Button>
+                      <div className="flex gap-1">
+                        <input
+                          type="color"
+                          value={theme.inputBackgroundColor?.startsWith('#') ? theme.inputBackgroundColor : '#ffffff'}
+                          onChange={(e) => setTheme({ ...theme, inputBackgroundColor: e.target.value })}
+                          className="w-full h-6 rounded cursor-pointer border-none"
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          className="h-6 w-6" 
+                          title="Transparente"
+                          onClick={() => setTheme({ ...theme, inputBackgroundColor: 'transparent' })}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label className="text-xs">Texto Input</Label>
-                    <input
-                      type="color"
-                      value={theme.inputTextColor}
-                      onChange={(e) => setTheme({ ...theme, inputTextColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
-                    />
+                    <Label className="text-xs">Campo Input (Texto)</Label>
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
+                        value={theme.inputTextColor}
+                        onChange={(e) => setTheme({ ...theme, inputTextColor: e.target.value })}
+                        placeholder="#111b21"
+                        className="h-8 text-[10px]"
+                      />
+                      <input
+                        type="color"
+                        value={theme.inputTextColor?.startsWith('#') ? theme.inputTextColor : '#111b21'}
+                        onChange={(e) => setTheme({ ...theme, inputTextColor: e.target.value })}
+                        className="w-full h-6 rounded cursor-pointer border-none"
+                      />
+                    </div>
                   </div>
                 </div>
               </div>
