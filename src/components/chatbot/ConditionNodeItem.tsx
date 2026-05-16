@@ -54,7 +54,7 @@ export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIn
           e.stopPropagation();
           onGroupClick();
         }}
-        className="flex items-center justify-between px-3 py-2 bg-purple-200 rounded-lg border-b border-purple-300 cursor-pointer hover:bg-purple-300 transition-colors"
+        className="flex items-center justify-between px-3 py-2 bg-purple-200 rounded-t-lg border-b border-purple-300 cursor-pointer hover:bg-purple-300 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-purple-700" />
