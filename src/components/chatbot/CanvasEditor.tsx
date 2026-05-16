@@ -677,6 +677,7 @@ const CanvasContent = ({
                   setShowMultiSelectMenu(null);
                   setSelectedContainerIds([]);
                   setAccumulatedSelectedIds(new Set());
+                  setIsListOpen(false);
                 }}
               >
                 <X className="w-3.5 h-3.5" />
