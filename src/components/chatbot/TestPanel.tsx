@@ -482,15 +482,19 @@ export const TestPanel = ({
   return (
     <aside className={containerClass} style={themeStyle}>
       <div className="flex flex-col w-full h-full">
-        <div className="sticky top-0 z-10 shrink-0 min-h-14 border-b border-border px-3 py-2 flex items-center justify-between bg-gradient-to-r from-primary/20 via-card to-card">
+        <div className="sticky top-0 z-10 shrink-0 min-h-14 border-b border-border px-3 py-2 flex items-center justify-between"
+          style={{ 
+            background: theme?.headerBackgroundColor || "bg-gradient-to-r from-primary/20 via-card to-card",
+            color: theme?.headerTextColor || "inherit"
+          }}>
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: "var(--bot-flow)" }} />
+            <div className="w-2 h-2 rounded-full animate-pulse shrink-0" style={{ background: theme?.headerTextColor || "var(--bot-flow)" }} />
             <div className="min-w-0">
-              <h2 className="font-semibold text-sm text-foreground truncate">{headerTitle}</h2>
-              {headerSubtitle && <p className="text-[11px] leading-tight text-muted-foreground truncate">{headerSubtitle}</p>}
+              <h2 className="font-semibold text-sm truncate" style={{ color: theme?.headerTextColor }}>{headerTitle}</h2>
+              {headerSubtitle && <p className="text-[11px] leading-tight truncate opacity-70" style={{ color: theme?.headerTextColor }}>{headerSubtitle}</p>}
             </div>
           </div>
-          {!hideClose && <Button variant="ghost" size="icon" onClick={onClose}><X className="h-5 w-5" /></Button>}
+          {!hideClose && <Button variant="ghost" size="icon" onClick={onClose} style={{ color: theme?.headerTextColor }}><X className="h-5 w-5" /></Button>}
         </div>
         <ScrollArea className="flex-1 p-3" ref={scrollRef}>
           <div className="space-y-3">
@@ -524,9 +528,26 @@ export const TestPanel = ({
           </div>
         )}
         {waitingForInput && !waitingForButton && (
-          <div className="p-3 border-t border-border flex gap-2 bg-card">
-            <Input value={currentInput} onChange={(e) => setCurrentInput(e.target.value)} onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()} placeholder="Digite..." className="flex-1 bg-background" disabled={isLoading} />
-            <Button size="icon" onClick={handleSendMessage} disabled={isLoading || !currentInput.trim()}>
+          <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
+            <Input 
+              value={currentInput} 
+              onChange={(e) => setCurrentInput(e.target.value)} 
+              onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()} 
+              placeholder="Digite..." 
+              className="flex-1" 
+              style={{ 
+                background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined,
+                color: theme?.inputTextColor || "inherit",
+                borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined
+              }}
+              disabled={isLoading} 
+            />
+            <Button 
+              size="icon" 
+              onClick={handleSendMessage} 
+              disabled={isLoading || !currentInput.trim()}
+              style={{ background: theme?.primaryColor, color: "#ffffff" }}
+            >
               <Send className="h-4 w-4" />
             </Button>
           </div>

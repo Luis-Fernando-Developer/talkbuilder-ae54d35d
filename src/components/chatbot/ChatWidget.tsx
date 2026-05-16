@@ -275,7 +275,7 @@ export const ChatWidget = ({
       <div
         className="p-4 flex items-center justify-between"
         style={{ 
-          backgroundColor: themeSettings?.headerBackgroundColor || primaryColor,
+          background: themeSettings?.headerBackgroundColor || primaryColor,
           color: themeSettings?.headerTextColor || '#ffffff'
         }}
       >
@@ -382,7 +382,7 @@ export const ChatWidget = ({
 
       {/* Input */}
       {waitingFor && waitingFor !== "buttons" && (
-        <div className="p-3 border-t border-border" style={{ backgroundColor: themeSettings?.inputBackgroundColor || 'transparent' }}>
+        <div className="p-3 border-t border-border" style={{ background: themeSettings?.inputBackgroundColor }}>
           <div className="flex gap-2">
             <Input
               value={input}
@@ -390,10 +390,11 @@ export const ChatWidget = ({
               onKeyPress={handleKeyPress}
               placeholder="Digite sua mensagem..."
               disabled={isLoading}
-              className="flex-1 rounded-full bg-white/10"
+              className="flex-1 rounded-full"
               style={{ 
-                color: themeSettings?.inputTextColor || themeSettings?.textColor || '#1f2937',
-                backgroundColor: themeSettings?.inputBackgroundColor !== 'transparent' ? 'rgba(255,255,255,0.05)' : undefined
+                color: themeSettings?.inputTextColor || '#1f2937',
+                backgroundColor: themeSettings?.inputBackgroundColor ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)',
+                borderColor: themeSettings?.inputTextColor ? `${themeSettings.inputTextColor}40` : undefined
               }}
             />
             <Button
