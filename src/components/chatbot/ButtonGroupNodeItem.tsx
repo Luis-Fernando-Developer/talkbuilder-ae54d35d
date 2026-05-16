@@ -76,7 +76,7 @@ export const ButtonGroupNodeItem = ({
   const handleSpacing = 44; // Space between each button handle
 
   return (
-    <div className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible" style={{ width: 285 }}>
+    <div className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible" style={{ width: 280 }}>
       {/* Header - Click to open group config */}
       <div
         onClick={(e) => {
@@ -89,14 +89,10 @@ export const ButtonGroupNodeItem = ({
           <Settings className="h-4 w-4 text-orange-600" />
           <span className="text-sm font-medium text-orange-600">Botões</span>
           {saveVariable && (
-            <span className="text-xs bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded">
-              {saveVariable}
-            </span>
+            <span className="text-xs bg-orange-200 text-orange-700 px-1.5 py-0.5 rounded">{saveVariable}</span>
           )}
           {isMultipleChoice && (
-            <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">
-              Múltipla
-            </span>
+            <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">Múltipla</span>
           )}
         </div>
         {/* Drag Handle */}
@@ -117,12 +113,9 @@ export const ButtonGroupNodeItem = ({
       </div>
 
       {/* Buttons list */}
-      <div className="pl-2 pr-8 py-2 space-y-1.5 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="p-2 space-y-1.5">
         {buttons.map((button) => (
-          <div
-            key={button.id}
-            className="group relative flex items-center"
-          >
+          <div key={button.id} className="group relative flex items-center">
             {editingButtonId === button.id ? (
               <Input
                 ref={inputRef}
@@ -152,7 +145,7 @@ export const ButtonGroupNodeItem = ({
                   "flex-1 px-3 py-2 bg-white border border-gray-200 rounded-md",
                   "text-xs text-gray-700 font-medium cursor-pointer",
                   "hover:border-orange-400 hover:bg-orange-50 transition-colors",
-                  "flex items-center justify-between gap-2"
+                  "flex items-center justify-between gap-2",
                 )}
               >
                 <span className="truncate">{button.label}</span>
@@ -161,17 +154,17 @@ export const ButtonGroupNodeItem = ({
                 </span>
               </div>
             )}
-            
+
             {/* Individual button handle - positioned at container edge (half in, half out) */}
             <Handle
               type="source"
               position={Position.Right}
               id={`${node.id}-btn-${button.id}`}
-              style={{ 
-                position: 'absolute',
-                right: 0,
-                top: '50%',
-                transform: 'translate(50%, -50%)',
+              style={{
+                position: "absolute",
+                right: "-10.5%",
+                top: "50%",
+                transform: "translate(50%, -50%)",
               }}
               className="!bg-orange-500 !w-3 !h-3"
             />
@@ -187,11 +180,11 @@ export const ButtonGroupNodeItem = ({
             type="source"
             position={Position.Right}
             id={`${node.id}-default`}
-            style={{ 
-              position: 'absolute',
-              right: 0,
-              top: '50%',
-              transform: 'translate(50%, -50%)',
+            style={{
+              position: "absolute",
+              right: "-10.5%",
+              top: "50%",
+              transform: "translate(50%, -50%)",
             }}
             className="!bg-gray-400 !w-3 !h-3"
           />
@@ -218,7 +211,7 @@ export const ButtonGroupNodeItem = ({
               "transition-colors",
               newButtonLabel.trim()
                 ? "bg-orange-500 text-white border-orange-500 hover:bg-orange-600"
-                : "bg-gray-100 text-gray-400 border-gray-200"
+                : "bg-gray-100 text-gray-400 border-gray-200",
             )}
           >
             <Plus className="h-4 w-4" />
