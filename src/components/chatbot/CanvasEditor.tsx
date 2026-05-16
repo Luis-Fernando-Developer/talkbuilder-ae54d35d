@@ -360,9 +360,14 @@ const CanvasContent = ({
   // Sync edge deletions from ReactFlow back to parent
   const handleEdgesChangeWrapper = useCallback((changes: any) => {
     onEdgesChange(changes);
-    // After applying changes, sync with parent state
-    setTimeout(() => {
-      setEdges((currentEdges: FlowEdge[]) => {
+    
+    // Check if any edge was removed via 'remove' change
+    const hasRemoval = changes.some((change: any) => change.type === 'remove');
+    
+    if (hasRemoval) {
+      // Use setTimeout to ensure we get the updated edges from ReactFlow state
+      setTimeout(() => {
+        const currentEdges = reactFlowInstance.getEdges();
         if (onEdgesChangeProp) {
           onEdgesChangeProp(currentEdges.map((e: FlowEdge) => ({
             source: e.source,
@@ -370,10 +375,9 @@ const CanvasContent = ({
             sourceHandle: e.sourceHandle || undefined
           })));
         }
-        return currentEdges;
-      });
-    }, 0);
-  }, [onEdgesChange, onEdgesChangeProp, setEdges]);
+      }, 0);
+    }
+  }, [onEdgesChange, onEdgesChangeProp, reactFlowInstance]);
 
   return (
     <>
