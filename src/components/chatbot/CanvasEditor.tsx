@@ -40,6 +40,12 @@ const edgeTypes: EdgeTypes = {
   buttonedge: ButtonEdge,
 };
 
+const defaultEdgeOptions = {
+  type: 'buttonedge',
+  focusable: true,
+  selectable: true,
+};
+
 // Inner component that has access to useReactFlow
 const CanvasContent = ({ 
   containers, 
@@ -393,7 +399,7 @@ const CanvasContent = ({
         onNodeDragStop={onNodeDragStop}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        defaultEdgeOptions={{ type: 'buttonedge' }}
+        defaultEdgeOptions={defaultEdgeOptions}
         proOptions={{ hideAttribution: true }}
         fitView
         className="flex flex-grow h-full"
