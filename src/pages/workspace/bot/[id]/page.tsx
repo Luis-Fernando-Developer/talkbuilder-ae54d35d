@@ -181,6 +181,30 @@ export default function BotPage() {
     });
   }, [botId, containers, edges, hydrated, historyIndex]);
 
+  const handleUndo = useCallback(() => {
+    if (historyIndex > 0) {
+      const prevIndex = historyIndex - 1;
+      const prevState = history[prevIndex];
+      isInternalChangeRef.current = true;
+      setContainers(prevState.containers);
+      setEdges(prevState.edges);
+      setHistoryIndex(prevIndex);
+      toast.info("Desfeito");
+    }
+  }, [history, historyIndex]);
+
+  const handleRedo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const nextIndex = historyIndex + 1;
+      const nextState = history[nextIndex];
+      isInternalChangeRef.current = true;
+      setContainers(nextState.containers);
+      setEdges(nextState.edges);
+      setHistoryIndex(nextIndex);
+      toast.info("Refeito");
+    }
+  }, [history, historyIndex]);
+
   // Atalhos de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -201,23 +225,6 @@ export default function BotPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
-
-  const handleUndo = useCallback(() => {
-    if (historyIndex > 0) {
-      const prevIndex = historyIndex - 1;
-      const prevState = history[prevIndex];
-      isInternalChangeRef.current = true;
-      setContainers(prevState.containers);
-      setEdges(prevState.edges);
-      setHistoryIndex(prevIndex);
-      toast.info("Desfeito");
-    }
-  }, [history, historyIndex]);
-
-  const handleRedo = useCallback(() => {
-    if (historyIndex < history.length - 1) {
-      const nextIndex = historyIndex + 1;
-      const nextState = history[nextIndex];
       isInternalChangeRef.current = true;
       setContainers(nextState.containers);
       setEdges(nextState.edges);
