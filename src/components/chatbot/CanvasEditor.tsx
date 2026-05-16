@@ -584,9 +584,52 @@ const CanvasContent = ({
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <div className="px-2 text-xs font-medium text-muted-foreground border-r mr-1">
-                {selectedContainerIds.length} selecionados
-              </div>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button variant="ghost" size="xs" className="px-2 h-8 gap-1 hover:bg-primary/10">
+                    <span className="text-xs font-medium text-muted-foreground mr-1">
+                      {selectedContainerIds.length} selecionados
+                    </span>
+                    <ChevronDown className="w-3 h-3 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-64 p-0" align="start">
+                  <div className="p-2 border-b bg-muted/30">
+                    <h4 className="text-xs font-semibold">Blocos Selecionados</h4>
+                  </div>
+                  <ScrollArea className="h-64">
+                    <div className="p-1">
+                      {selectedContainerIds.map((id) => {
+                        const container = containers.find(c => c.id === id);
+                        return (
+                          <div key={id} className="flex items-center gap-2 px-2 py-1.5 hover:bg-muted/50 rounded-sm">
+                            <Checkbox 
+                              id={`select-${id}`}
+                              checked={selectedContainerIds.includes(id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedContainerIds(prev => [...prev, id]);
+                                } else {
+                                  setSelectedContainerIds(prev => prev.filter(i => i !== id));
+                                }
+                              }}
+                            />
+                            <label 
+                              htmlFor={`select-${id}`}
+                              className="text-xs truncate flex-1 cursor-pointer"
+                            >
+                              {container?.nameContainer || `Bloco ${id.slice(-4)}`}
+                            </label>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </PopoverContent>
+              </Popover>
+
+              <div className="w-[1px] h-4 bg-border mx-1" />
+
               <Button 
                 variant="ghost" 
                 size="xs" 
@@ -609,7 +652,11 @@ const CanvasContent = ({
                 variant="ghost" 
                 size="icon-xs" 
                 className="h-8 w-8 ml-1"
-                onClick={() => setShowMultiSelectMenu(null)}
+                onClick={() => {
+                  setShowMultiSelectMenu(null);
+                  setSelectedContainerIds([]);
+                  setAccumulatedSelectedIds(new Set());
+                }}
               >
                 <X className="w-3.5 h-3.5" />
               </Button>
