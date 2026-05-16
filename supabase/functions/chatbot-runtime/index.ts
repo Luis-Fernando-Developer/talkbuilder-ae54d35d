@@ -477,7 +477,27 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         }));
         break;
       case "set-variable":
-        if (cfg.variableName) variables[cfg.variableName] = replaceVars(cfg.value || "");
+        if (cfg.variableName) {
+          const valueType = String(cfg.valueType || "custom").toLowerCase();
+          const raw = String(cfg.value ?? "");
+          if (valueType === "empty") {
+            variables[cfg.variableName] = "";
+          } else {
+            const interpolated = raw.replace(/\{\{\s*(.*?)\s*\}\}/g, (_m: string, key: string) => {
+              const v = variables[String(key).trim()];
+              return JSON.stringify(v == null ? "" : v);
+            });
+            try {
+              const hasReturn = /\breturn\b/.test(interpolated);
+              const body = hasReturn ? interpolated : `return (${interpolated});`;
+              const fn = new Function(`"use strict"; ${body}`);
+              variables[cfg.variableName] = fn();
+            } catch (err) {
+              console.warn("[set-variable] eval failed:", err);
+              variables[cfg.variableName] = valueType === "custom" ? replaceVars(raw) : raw;
+            }
+          }
+        }
         break;
       case "condition": {
         const conditions = cfg.conditions || [];
