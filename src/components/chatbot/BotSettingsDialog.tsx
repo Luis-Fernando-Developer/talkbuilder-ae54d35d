@@ -393,43 +393,57 @@ export function BotSettingsDialog({
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs">Balão Bot</Label>
-                    <input
-                      type="color"
+                    <GradientPicker 
+                      label="Balão Bot"
                       value={theme.botBubbleColor}
-                      onChange={(e) => setTheme({ ...theme, botBubbleColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
+                      onChange={(val) => setTheme({ ...theme, botBubbleColor: val })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Texto Bot</Label>
-                    <input
-                      type="color"
-                      value={theme.botTextColor}
-                      onChange={(e) => setTheme({ ...theme, botTextColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
+                        value={theme.botTextColor}
+                        onChange={(e) => setTheme({ ...theme, botTextColor: e.target.value })}
+                        placeholder="#1f2937"
+                        className="h-8 text-[10px]"
+                      />
+                      <input
+                        type="color"
+                        value={theme.botTextColor?.startsWith('#') ? theme.botTextColor : '#1f2937'}
+                        onChange={(e) => setTheme({ ...theme, botTextColor: e.target.value })}
+                        className="w-full h-6 rounded cursor-pointer border-none"
+                      />
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label className="text-xs">Balão Usuário</Label>
-                    <input
-                      type="color"
+                    <GradientPicker 
+                      label="Balão Usuário"
                       value={theme.userBubbleColor}
-                      onChange={(e) => setTheme({ ...theme, userBubbleColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
+                      onChange={(val) => setTheme({ ...theme, userBubbleColor: val })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label className="text-xs">Texto Usuário</Label>
-                    <input
-                      type="color"
-                      value={theme.userTextColor}
-                      onChange={(e) => setTheme({ ...theme, userTextColor: e.target.value })}
-                      className="w-full h-8 rounded cursor-pointer border-none"
-                    />
+                    <div className="flex flex-col gap-1">
+                      <Input
+                        type="text"
+                        value={theme.userTextColor}
+                        onChange={(e) => setTheme({ ...theme, userTextColor: e.target.value })}
+                        placeholder="#ffffff"
+                        className="h-8 text-[10px]"
+                      />
+                      <input
+                        type="color"
+                        value={theme.userTextColor?.startsWith('#') ? theme.userTextColor : '#ffffff'}
+                        onChange={(e) => setTheme({ ...theme, userTextColor: e.target.value })}
+                        className="w-full h-6 rounded cursor-pointer border-none"
+                      />
+                    </div>
                   </div>
                 </div>
 

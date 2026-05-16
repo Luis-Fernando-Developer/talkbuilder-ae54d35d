@@ -314,7 +314,7 @@ export function GradientPicker({ value, onChange, label }: GradientPickerProps) 
             <div className="absolute inset-0" style={{ background: value || "transparent" }} />
           </button>
         </PopoverTrigger>
-        <PopoverContent className="w-[560px] p-0" align="start" side="bottom">
+        <PopoverContent className="w-[560px] p-0 z-[100]" align="start" side="bottom">
           <div className="grid grid-cols-[1fr_200px] gap-0">
             {/* Left: Color picker */}
             <div className="p-4 border-r">

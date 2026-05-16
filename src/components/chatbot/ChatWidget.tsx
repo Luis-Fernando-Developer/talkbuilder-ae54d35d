@@ -333,8 +333,8 @@ export const ChatWidget = ({
                 }`}
                 style={
                   message.type === "user" 
-                    ? { backgroundColor: themeSettings?.userBubbleColor || primaryColor, color: themeSettings?.userTextColor || '#ffffff' } 
-                    : { backgroundColor: themeSettings?.botBubbleColor || '#f3f4f6', color: themeSettings?.botTextColor || '#1f2937' }
+                    ? { background: themeSettings?.userBubbleColor || primaryColor, color: themeSettings?.userTextColor || '#ffffff' } 
+                    : { background: themeSettings?.botBubbleColor || '#f3f4f6', color: themeSettings?.botTextColor || '#1f2937' }
                 }
               >
                 {message.isImage ? (
