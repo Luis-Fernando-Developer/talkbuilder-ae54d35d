@@ -584,9 +584,13 @@ const CanvasContent = ({
               onMouseDown={(e) => e.stopPropagation()}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              <Popover>
+              <Popover modal={true}>
                 <PopoverTrigger asChild>
-                  <Button variant="ghost" size="xs" className="px-2 h-8 gap-1 hover:bg-primary/10">
+                  <Button 
+                    variant="ghost" 
+                    size="xs" 
+                    className="px-2 h-8 gap-1 hover:bg-primary/10 select-none"
+                  >
                     <span className="text-xs font-medium text-muted-foreground mr-1">
                       {selectedContainerIds.length} selecionados
                     </span>
@@ -599,13 +603,14 @@ const CanvasContent = ({
                   side="bottom"
                   sideOffset={8}
                   onOpenAutoFocus={(e) => e.preventDefault()}
-                  onCloseAutoFocus={(e) => e.preventDefault()}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onPointerDown={(e) => e.stopPropagation()}
                 >
                   <div className="p-2 border-b bg-muted/30">
                     <h4 className="text-xs font-semibold">Blocos Selecionados</h4>
                   </div>
                   <ScrollArea className="h-64">
-                    <div className="p-1" onMouseDown={(e) => e.stopPropagation()}>
+                    <div className="p-1">
                       {selectedContainerIds.map((id) => {
                         const container = containers.find(c => c.id === id);
                         return (
@@ -629,7 +634,7 @@ const CanvasContent = ({
                             />
                             <label 
                               htmlFor={`select-${id}`}
-                              className="text-xs truncate flex-1 cursor-pointer"
+                              className="text-xs truncate flex-1 cursor-pointer select-none"
                             >
                               {container?.nameContainer || `Bloco ${id.slice(-4)}`}
                             </label>
