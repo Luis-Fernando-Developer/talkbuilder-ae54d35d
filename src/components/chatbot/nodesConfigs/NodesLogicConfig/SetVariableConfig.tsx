@@ -124,55 +124,66 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent className="w-full p-0" align="start">
-            <Command shouldFilter={false}>
+          <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+            <Command shouldFilter={false} className="w-full">
               <CommandInput 
                 placeholder="Pesquisar variável..." 
                 value={searchValue}
                 onValueChange={setSearchValue}
+                className="h-9"
               />
-              <CommandList>
-                <CommandEmpty className="py-2 px-4 text-sm">
+              <CommandList className="max-h-[300px] overflow-y-auto">
+                <CommandEmpty className="p-0">
                   {canCreateNew ? (
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start gap-2 h-8 px-2"
-                      onClick={handleCreateVariable}
-                    >
-                      <Plus className="h-4 w-4" />
-                      Criar "{searchValue}"
-                    </Button>
+                    <div className="p-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start gap-2 h-9 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCreateVariable();
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Criar "{searchValue}"
+                      </Button>
+                    </div>
                   ) : (
-                    "Nenhuma variável encontrada."
+                    <div className="py-6 text-center text-sm text-muted-foreground">
+                      Nenhuma variável encontrada.
+                    </div>
                   )}
                 </CommandEmpty>
-                <CommandGroup>
-                  {filteredVariables.map((varName) => (
-                    <CommandItem
-                      key={varName}
-                      value={varName}
-                      onSelect={() => handleSelectVariable(varName)}
-                      className="cursor-pointer"
-                    >
-                      <div className="flex items-center w-full">
+                
+                {filteredVariables.length > 0 && (
+                  <CommandGroup heading="Variáveis existentes">
+                    {filteredVariables.map((varName) => (
+                      <CommandItem
+                        key={varName}
+                        value={varName}
+                        onSelect={() => handleSelectVariable(varName)}
+                        className="cursor-pointer flex items-center gap-2 h-9"
+                      >
                         <Check
                           className={cn(
-                            "mr-2 h-4 w-4",
+                            "h-4 w-4 flex-shrink-0",
                             selectedVariable === varName ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {varName}
-                      </div>
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
+                        <span className="truncate">{varName}</span>
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+
                 {canCreateNew && filteredVariables.length > 0 && (
-                  <CommandGroup className="border-t border-border mt-1 pt-1">
+                  <CommandGroup heading="Ações" className="border-t border-border mt-1 pt-1">
                     <CommandItem 
                       onSelect={handleCreateVariable}
-                      className="cursor-pointer text-primary"
+                      className="cursor-pointer text-primary flex items-center gap-2 h-9"
                     >
-                      <Plus className="mr-2 h-4 w-4" />
+                      <Plus className="h-4 w-4" />
                       Criar "{searchValue}"
                     </CommandItem>
                   </CommandGroup>
