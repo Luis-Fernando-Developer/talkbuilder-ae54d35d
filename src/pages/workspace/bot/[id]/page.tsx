@@ -225,13 +225,6 @@ export default function BotPage() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleUndo, handleRedo]);
-      isInternalChangeRef.current = true;
-      setContainers(nextState.containers);
-      setEdges(nextState.edges);
-      setHistoryIndex(nextIndex);
-      toast.info("Refeito");
-    }
-  }, [history, historyIndex]);
 
   const status: FlowStatus = useMemo(() => {
     if (!flow) return "draft";
