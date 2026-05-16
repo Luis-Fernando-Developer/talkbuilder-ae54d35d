@@ -52,7 +52,7 @@ export const ConditionNodeItem = ({
   const conditions: ConditionGroup[] = node.config.conditions || [];
 
   return (
-    <div className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible" style={{ width: 285 }}>
+    <div className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible" style={{ width: 280 }}>
       {/* Header */}
       <div
         onClick={(e) => {
@@ -83,7 +83,7 @@ export const ConditionNodeItem = ({
       </div>
 
       {/* Conditions list */}
-      <div className="pl-2 pr-8 py-2 space-y-1.5 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
+      <div className="p-2 space-y-1.5">
         {conditions.map((condition, idx) => (
           <div
             key={condition.id}
@@ -174,7 +174,7 @@ export const ConditionNodeItem = ({
             id={`${node.id}-else`}
             style={{ 
               position: 'absolute',
-              right: 0,
+              right: -20%,
               top: '50%',
               transform: 'translate(50%, -50%)',
             }}
