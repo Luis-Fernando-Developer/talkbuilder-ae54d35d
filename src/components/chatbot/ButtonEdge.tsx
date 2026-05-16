@@ -46,6 +46,7 @@ export function ButtonEdge({
         stroke="transparent"
         className="react-flow__edge-interaction cursor-pointer"
         onClick={onEdgeClick}
+        style={{ cursor: 'pointer', pointerEvents: 'all' }}
       />
       <BaseEdge 
         path={edgePath} 
@@ -54,9 +55,7 @@ export function ButtonEdge({
           ...style,
           strokeWidth: selected ? 4 : 2,
           stroke: selected ? '#ef4444' : '#94a3b8',
-          cursor: 'pointer'
         }}
-        onClick={onEdgeClick}
       />
     </>
   );
