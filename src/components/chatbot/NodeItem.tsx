@@ -177,16 +177,18 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
         onDragStart={handleDragStart}
         onMouseDown={handleDragHandleMouseDown}
         onClick={(e) => e.stopPropagation()}
-        className="nodrag nopan absolute top-0 right-0 p-1 rounded-md bg-muted/80 hover:bg-muted border border-border/50 cursor-grab active:cursor-grabbing transition-all opacity-100 hover:opacity-100 z-10"
+        className="nodrag nopan absolute top-1 right-1 p-1 rounded-md bg-muted/80 hover:bg-muted border border-border/50 cursor-grab active:cursor-grabbing transition-all opacity-100 hover:opacity-100 z-10 flex items-center justify-center"
         title="Arraste para mover para outro bloco"
       >
-        <MoveIcon className="h-3.5 w-3.5 p-0  text-muted-foreground rounded-none" />
+        <MoveIcon className="h-3 w-3 text-muted-foreground" />
       </div>
 
-      <div className="flex items-center justify-center gap-2 pr-8 rounded-md px-1 min-h-[40px]">
-        {nodeIcons[effectiveType]}
-        <div className="flex-1 min-w-0 flex py-1 px-1 overflow-hidden max-w-[90%] flex-col gap-1">
-          <p className="text-xs font-semibold text-left w-full">{nodeLabels[effectiveType]}</p>
+      <div className="flex items-start gap-2 p-3 min-h-[40px]">
+        <div className="mt-0.5 shrink-0">
+          {nodeIcons[effectiveType]}
+        </div>
+        <div className="flex-1 min-w-0 flex flex-col gap-1">
+          <p className="text-xs font-semibold text-left w-full pr-4">{nodeLabels[effectiveType]}</p>
 
           {hasVideoPreview ? (
             <div className="mt-2 max-h-[150px] overflow-hidden">
@@ -260,7 +262,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               <div className="mt-1 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent pr-1">
                 <RichText
                   as="p"
-                  className="text-xs text-black text-left max-w-[180px] h-auto leading-relaxed text-wrap py-0 whitespace-pre-wrap break-words rich-bubble-preview"
+                  className="text-xs text-black text-left w-full h-auto leading-relaxed text-wrap py-0 whitespace-pre-wrap break-words rich-bubble-preview"
                   value={messageValue as string}
                   variableClassName="bg-orange-400 px-1 py-0.5 text-white rounded"
                   linkClassName="text-blue-600 underline hover:text-blue-800"
