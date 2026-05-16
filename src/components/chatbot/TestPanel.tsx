@@ -1,11 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause, Image as ImageIcon, Video as VideoIcon, FileText, Mic, Camera, Upload, Trash2, StopCircle, Loader2 } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, FileText, Loader2 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
 import { ScrollArea } from "../../components/ui/scroll-area";
-import { Checkbox } from "../../components/ui/checkbox";
-import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
 import { renderTextSegments } from "@/lib/textParser";
 import { richHtmlFor, richToPlainText } from "@/lib/richText";
 
@@ -148,9 +146,6 @@ export const TestPanel = ({
   const [waitingForButton, setWaitingForButton] = useState(false);
   const [activeButtons, setActiveButtons] = useState<ButtonConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isMultipleChoice, setIsMultipleChoice] = useState(false);
-  const [selectedButtons, setSelectedButtons] = useState<string[]>([]);
-  const [submitLabel, setSubmitLabel] = useState("Enviar");
   const scrollRef = useRef<HTMLDivElement>(null);
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
@@ -158,10 +153,6 @@ export const TestPanel = ({
   const waitTimerRef = useRef<number | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
-
-  const getRuntimeUrl = () => {
-    return "https://fwoescubnnagdvwasbjl.functions.supabase.co/chatbot-runtime";
-  };
 
   const firstNodeOfContainer = (containerId: string) => {
     const container = allContainers.find((c) => c.id === containerId);
