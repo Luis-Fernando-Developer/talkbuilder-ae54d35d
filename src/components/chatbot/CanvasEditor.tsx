@@ -422,8 +422,28 @@ const CanvasContent = ({
     if (isSelectionActive && selectionBox) {
       const pos = getRelativePos(event);
       setSelectionBox({ ...selectionBox, end: pos });
+
+      // Auto-scroll when near edges
+      const flowBounds = document.querySelector('.react-flow')?.getBoundingClientRect();
+      if (flowBounds) {
+        const threshold = 50;
+        const scrollSpeed = 10;
+        let dx = 0;
+        let dy = 0;
+
+        if (event.clientX < flowBounds.left + threshold) dx = scrollSpeed;
+        else if (event.clientX > flowBounds.right - threshold) dx = -scrollSpeed;
+
+        if (event.clientY < flowBounds.top + threshold) dy = scrollSpeed;
+        else if (event.clientY > flowBounds.bottom - threshold) dy = -scrollSpeed;
+
+        if (dx !== 0 || dy !== 0) {
+          const { x, y, zoom } = reactFlowInstance.getViewport();
+          reactFlowInstance.setViewport({ x: x + dx, y: y + dy, zoom }, { duration: 0 });
+        }
+      }
     }
-  }, [isSelectionActive, selectionBox]);
+  }, [isSelectionActive, selectionBox, reactFlowInstance]);
 
   const onPaneMouseUp = useCallback((event: React.MouseEvent) => {
     if (isSelectionActive && selectionBox) {
