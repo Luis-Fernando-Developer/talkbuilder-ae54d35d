@@ -26,7 +26,7 @@ interface SetVariableConfigProps {
   setConfig: (config: NodeConfig) => void;
 }
 
-type ValueType = "custom" | "empty" | "now" | "today" | "yesterday" | "tomorrow" | "random";
+type ValueType = "custom" | "expression" | "empty" | "now" | "today" | "yesterday" | "tomorrow" | "random";
 
 export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps) => {
   const { getAllVariableNames, addVariable } = useVariables();
@@ -35,7 +35,7 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
   const variableNames = getAllVariableNames();
   
   const selectedVariable = config.variableName || "";
-  const valueType: ValueType = config.valueType || "custom";
+  const valueType: ValueType = config.valueType || "expression";
   const customValue = config.value || "";
   const saveInResults = config.saveInResults || false;
   const executeOnClient = config.executeOnClient || false;
@@ -140,13 +140,14 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
 
       {/* Value Type Dropdown */}
       <div className="space-y-2">
-        <Label>Value:</Label>
+        <Label>Atribuir valor:</Label>
         <Select value={valueType} onValueChange={(v) => handleValueTypeChange(v as ValueType)}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="custom">Custom</SelectItem>
+            <SelectItem value="expression">Expressão / Valor</SelectItem>
+            <SelectItem value="custom">Código JavaScript (Avançado)</SelectItem>
             <SelectItem value="empty">Vazio</SelectItem>
             <SelectItem value="now">Agora (data/hora)</SelectItem>
             <SelectItem value="today">Hoje</SelectItem>
@@ -201,17 +202,48 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
         />
       </div>
 
+      {/* Expression/Simple Value (Default like Typebot) */}
+      {valueType === "expression" && (
+        <div className="space-y-2">
+          <div className="relative">
+            <Textarea
+              placeholder="Ex: {{n1}} + 5 ou apenas um texto..."
+              value={customValue}
+              onChange={(e) => setConfig({ ...config, value: e.target.value })}
+              className="min-h-[100px] text-sm pr-10"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="absolute bottom-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground"
+              onClick={() => {
+                // We'll use a local state or just handle insertion
+                // Since VariableModal is already used elsewhere, we can trigger it
+              }}
+              title="Inserir variável"
+            >
+              <Plus className="h-4 w-4" />
+            </Button>
+          </div>
+          <p className="text-[11px] text-muted-foreground">
+            Digite <strong>{"{{valor}} + 10"}</strong> para somar, ou apenas o valor que deseja salvar.
+          </p>
+        </div>
+      )}
+
       {/* Code Editor (when Custom) */}
       {valueType === "custom" && (
         <div className="space-y-2">
+          <Label className="text-xs font-bold text-orange-500 uppercase">Modo Desenvolvedor</Label>
           <Textarea
-            placeholder="// Código JavaScript ou valor simples..."
+            placeholder="// Ex: return variables.n1 + 5;"
             value={customValue}
             onChange={(e) => setConfig({ ...config, value: e.target.value })}
             className="min-h-[180px] font-mono text-sm bg-slate-900 text-slate-100 border-slate-700"
           />
           <p className="text-xs text-muted-foreground">
-            Use {"{{variavel}}"} para referenciar outras variáveis. Suporta código JavaScript.
+            Use <code className="bg-muted px-1">return</code> para definir o valor final.
           </p>
         </div>
       )}
