@@ -105,6 +105,17 @@ export const InputMailConfig = ({ config, setConfig }: InputMailConfigProps) => 
         </div>
       </div>
 
+      <div className="space-y-2">
+        <Label htmlFor="invalidMessage">Mensagem de erro customizada</Label>
+        <Input
+          id="invalidMessage"
+          type="text"
+          placeholder="Ex: Por favor, insira um e-mail válido."
+          value={config.invalidMessage || ""}
+          onChange={(e) => setConfig({ ...config, invalidMessage: e.target.value })}
+        />
+      </div>
+
       <VariableModal
         open={variableModalOpen}
         onClose={() => setVariableModalOpen(false)}

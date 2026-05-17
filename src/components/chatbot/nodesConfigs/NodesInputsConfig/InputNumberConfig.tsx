@@ -42,6 +42,40 @@ export const InputNumberConfig = ({ config, setConfig }: InputNumberConfigProps)
 
   return (
     <div className="p-4 space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="min">Mínimo</Label>
+          <Input
+            id="min"
+            type="number"
+            placeholder="Ex: 0"
+            value={config.min ?? ""}
+            onChange={(e) => setConfig({ ...config, min: e.target.value !== "" ? Number(e.target.value) : undefined })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="max">Máximo</Label>
+          <Input
+            id="max"
+            type="number"
+            placeholder="Ex: 100"
+            value={config.max ?? ""}
+            onChange={(e) => setConfig({ ...config, max: e.target.value !== "" ? Number(e.target.value) : undefined })}
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="step">Incremento (Step)</Label>
+        <Input
+          id="step"
+          type="number"
+          placeholder="Ex: 1"
+          value={config.step ?? ""}
+          onChange={(e) => setConfig({ ...config, step: e.target.value !== "" ? Number(e.target.value) : undefined })}
+        />
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="placeholder">Placeholder</Label>
         <div className="flex gap-2">
@@ -103,6 +137,17 @@ export const InputNumberConfig = ({ config, setConfig }: InputNumberConfigProps)
             </Button>
           )}
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="invalidMessage">Mensagem de erro (opcional)</Label>
+        <Input
+          id="invalidMessage"
+          type="text"
+          placeholder="Ex: Por favor, digite um número válido dentro do intervalo."
+          value={config.invalidMessage || ""}
+          onChange={(e) => setConfig({ ...config, invalidMessage: e.target.value })}
+        />
       </div>
 
       <VariableModal
