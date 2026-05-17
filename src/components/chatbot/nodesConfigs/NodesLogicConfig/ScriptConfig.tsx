@@ -74,10 +74,13 @@ export const ScriptConfig = ({ config, setConfig }: ScriptConfigProps) => {
           onCheckedChange={(checked) => setConfig({ ...config, executeOnServer: checked })}
         />
       </div>
-      <div className="space-y-1.5 text-xs text-muted-foreground">
-        <p><strong>Variáveis:</strong> Use <code className="bg-muted px-1 rounded">{"{{nome}}"}</code>, <code className="bg-muted px-1 rounded">getVariable('nome')</code> ou <code className="bg-muted px-1 rounded">variables.nome</code></p>
-        <p><strong>Definir:</strong> <code className="bg-muted px-1 rounded">setVariable('nome', valor)</code></p>
-        <p><strong>Redirecionar:</strong> <code className="bg-muted px-1 rounded">window.location.href = "https://..."</code></p>
+      <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-border">
+        <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Como usar (Estilo Typebot):</p>
+        <div className="space-y-1 text-[11px] text-muted-foreground">
+          <p>• <strong>Variáveis:</strong> <code className="bg-background px-1 rounded">variables.nome</code></p>
+          <p>• <strong>Salvar resultado:</strong> <code className="bg-background px-1 rounded">return {"{ result: 10 }"}</code></p>
+          <p>• <strong>Exemplo:</strong> <code className="bg-background px-1 rounded font-mono">return {"{ soma: variables.n1 + variables.n2 }"}</code></p>
+        </div>
       </div>
 
       <VariableModal
