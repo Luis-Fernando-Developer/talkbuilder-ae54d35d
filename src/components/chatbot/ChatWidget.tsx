@@ -131,8 +131,9 @@ export const ChatWidget = ({
     }
     
     setWaitingFor(data.waiting_for);
+    setWaitingForConfig(data.waiting_for_config || null);
     setButtons(data.buttons || []);
-    
+
     return scheduleRuntimeContinue(data.wait_ms);
   };
 
@@ -200,6 +201,53 @@ export const ChatWidget = ({
   const sendMessage = async (message?: string, buttonId?: string) => {
     const msgToSend = message || input;
     if (!msgToSend && !buttonId) return;
+
+    // Validation
+    if (!buttonId && waitingFor && msgToSend) {
+      if (waitingFor === "input-mail") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(msgToSend)) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um e-mail válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setInput("");
+          return;
+        }
+      } else if (waitingFor === "input-webSite") {
+        try {
+          new URL(msgToSend.startsWith('http') ? msgToSend : `https://${msgToSend}`);
+        } catch (e) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um link válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setInput("");
+          return;
+        }
+      } else if (waitingFor === "input-number") {
+        const num = Number(msgToSend);
+        if (isNaN(num)) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um número válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setInput("");
+          return;
+        }
+        if (waitingForConfig?.min !== undefined && num < waitingForConfig.min) {
+          const errorMsg = waitingForConfig?.invalidMessage || `O valor mínimo é ${waitingForConfig.min}.`;
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setInput("");
+          return;
+        }
+        if (waitingForConfig?.max !== undefined && num > waitingForConfig.max) {
+          const errorMsg = waitingForConfig?.invalidMessage || `O valor máximo é ${waitingForConfig.max}.`;
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setInput("");
+          return;
+        }
+      }
+    }
 
     if (msgToSend) {
       setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
