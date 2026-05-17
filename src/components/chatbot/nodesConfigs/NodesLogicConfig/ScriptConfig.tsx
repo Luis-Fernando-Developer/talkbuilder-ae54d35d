@@ -3,7 +3,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Braces } from "lucide-react";
+import { Braces, X } from "lucide-react";
 import { useState, useRef } from "react";
 import { VariableModal } from "../../VariableModal";
 
@@ -14,9 +14,17 @@ interface ScriptConfigProps {
 
 export const ScriptConfig = ({ config, setConfig }: ScriptConfigProps) => {
   const [variableModalOpen, setVariableModalOpen] = useState(false);
+  const [isSavingToVar, setIsSavingToVar] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const handleVariableSelect = (variableName: string) => {
+    if (isSavingToVar) {
+      setConfig({ ...config, variableName });
+      setVariableModalOpen(false);
+      setIsSavingToVar(false);
+      return;
+    }
+
     const textarea = textareaRef.current;
     if (!textarea) return;
 
@@ -38,6 +46,11 @@ export const ScriptConfig = ({ config, setConfig }: ScriptConfigProps) => {
     }, 0);
   };
 
+  const openVariableSelectorForSave = () => {
+    setIsSavingToVar(true);
+    setVariableModalOpen(true);
+  };
+
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
@@ -56,13 +69,48 @@ export const ScriptConfig = ({ config, setConfig }: ScriptConfigProps) => {
             variant="ghost"
             size="icon"
             className="absolute bottom-2 right-2 h-7 w-7 text-muted-foreground hover:text-foreground"
-            onClick={() => setVariableModalOpen(true)}
+            onClick={() => {
+              setIsSavingToVar(false);
+              setVariableModalOpen(true);
+            }}
             title="Inserir variável"
           >
             <Braces className="h-4 w-4" />
           </Button>
         </div>
       </div>
+
+      <div className="space-y-2">
+        <Label>Salvar o resultado em</Label>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            className="w-full justify-start font-normal"
+            onClick={openVariableSelectorForSave}
+          >
+            {config.variableName ? (
+              <span className="flex items-center gap-2">
+                <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-xs">{"{{"}{config.variableName}{"}}"}</code>
+              </span>
+            ) : (
+              <span className="text-muted-foreground">Selecionar variável (opcional)</span>
+            )}
+          </Button>
+          {config.variableName && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setConfig({ ...config, variableName: undefined })}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        <p className="text-[10px] text-muted-foreground">
+          O valor retornado pelo script (<code>return ...</code>) será salvo nesta variável.
+        </p>
+      </div>
+
       <div className="flex items-center justify-between">
         <div>
           <Label htmlFor="executeOnServer">Executar no Servidor</Label>
@@ -74,18 +122,22 @@ export const ScriptConfig = ({ config, setConfig }: ScriptConfigProps) => {
           onCheckedChange={(checked) => setConfig({ ...config, executeOnServer: checked })}
         />
       </div>
+
       <div className="space-y-2 p-3 bg-muted/50 rounded-lg border border-border">
         <p className="text-xs font-semibold text-foreground uppercase tracking-wider">Como usar (Estilo Typebot):</p>
         <div className="space-y-1 text-[11px] text-muted-foreground">
           <p>• <strong>Variáveis:</strong> <code className="bg-background px-1 rounded">variables.nome</code></p>
-          <p>• <strong>Salvar resultado:</strong> <code className="bg-background px-1 rounded">return {"{ result: 10 }"}</code></p>
-          <p>• <strong>Exemplo:</strong> <code className="bg-background px-1 rounded font-mono">return {"{ soma: variables.n1 + variables.n2 }"}</code></p>
+          <p>• <strong>Simples:</strong> <code className="bg-background px-1 rounded">return variables.n1 + 5;</code></p>
+          <p>• <strong>Várias:</strong> <code className="bg-background px-1 rounded">return {"{ soma: 15, msg: 'ok' }"}</code></p>
         </div>
       </div>
 
       <VariableModal
         open={variableModalOpen}
-        onClose={() => setVariableModalOpen(false)}
+        onClose={() => {
+          setVariableModalOpen(false);
+          setIsSavingToVar(false);
+        }}
         onSelect={handleVariableSelect}
       />
     </div>
