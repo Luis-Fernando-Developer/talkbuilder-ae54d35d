@@ -852,48 +852,22 @@ export const HttpRequestConfig = ({
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">data:</Label>
                     <div className="flex gap-2">
-                      <Popover open={openDataPopovers[index]} onOpenChange={(open) => setOpenDataPopovers(prev => ({ ...prev, [index]: open }))}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between h-10 text-sm font-normal bg-background"
-                          >
-                            <span className="truncate">
-                              {mapping.jsonPath || "Select data path..."}
-                            </span>
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent 
-                          className="w-[300px] p-0" 
-                          align="start" 
-                          side="bottom"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
+                      <div className="flex-1 relative">
+                        <select
+                          className="w-full h-10 px-3 py-2 text-sm bg-background border rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                          value={mapping.jsonPath}
+                          onChange={(e) => handleResponseMappingChange(index, "jsonPath", e.target.value)}
                         >
-                          <Command>
-                            <CommandInput placeholder="Search path..." />
-                            <CommandList className="max-h-[200px] overflow-y-auto">
-                              <CommandEmpty>No path found. Try testing first.</CommandEmpty>
-                              <CommandGroup>
-                                {jsonPaths.map((path) => (
-                                  <CommandItem
-                                    key={path}
-                                    value={path}
-                                    onSelect={(currentValue) => {
-                                      handleResponseMappingChange(index, "jsonPath", currentValue);
-                                      setOpenDataPopovers(prev => ({ ...prev, [index]: false }));
-                                    }}
-                                  >
-                                    {path}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
+                          <option value="">Select data path...</option>
+                          {jsonPaths.map((path) => (
+                            <option key={path} value={path}>
+                              {path}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" />
+                      </div>
+                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs shrink-0">
                         {"{{ }}"}
                       </div>
                     </div>
@@ -902,48 +876,22 @@ export const HttpRequestConfig = ({
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">set variable:</Label>
                     <div className="flex gap-2">
-                      <Popover open={openVariablePopovers[index]} onOpenChange={(open) => setOpenVariablePopovers(prev => ({ ...prev, [index]: open }))}>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            className="w-full justify-between h-10 text-sm font-normal bg-background"
-                          >
-                            <span className="truncate">
-                              {mapping.variableName ? `{{${mapping.variableName}}}` : "Select variable..."}
-                            </span>
-                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent 
-                          className="w-[300px] p-0" 
-                          align="start" 
-                          side="bottom"
-                          onOpenAutoFocus={(e) => e.preventDefault()}
+                      <div className="flex-1 relative">
+                        <select
+                          className="w-full h-10 px-3 py-2 text-sm bg-background border rounded-md appearance-none focus:outline-none focus:ring-2 focus:ring-ring"
+                          value={mapping.variableName}
+                          onChange={(e) => handleResponseMappingChange(index, "variableName", e.target.value)}
                         >
-                          <Command>
-                            <CommandInput placeholder="Search variable..." />
-                            <CommandList className="max-h-[200px] overflow-y-auto">
-                              <CommandEmpty>No variable found.</CommandEmpty>
-                              <CommandGroup>
-                                {availableVariables.map((v) => (
-                                  <CommandItem
-                                    key={v}
-                                    value={v}
-                                    onSelect={(currentValue) => {
-                                      handleResponseMappingChange(index, "variableName", currentValue);
-                                      setOpenVariablePopovers(prev => ({ ...prev, [index]: false }));
-                                    }}
-                                  >
-                                    {v}
-                                  </CommandItem>
-                                ))}
-                              </CommandGroup>
-                            </CommandList>
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
+                          <option value="">Select variable...</option>
+                          {availableVariables.map((v) => (
+                            <option key={v} value={v}>
+                              {v}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-3 h-4 w-4 opacity-50 pointer-events-none" />
+                      </div>
+                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs shrink-0">
                         {"{{ }}"}
                       </div>
                     </div>
