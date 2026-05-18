@@ -108,10 +108,11 @@ export default function WorkspaceConfig() {
 		});
 	}
 
-	const members = [
-		{ name: "Luis", email: "email@exemplo.com", role: "Admin" },
-		{ name: "Maria", email: "maria@exemplo.com", role: "Membro" },
-	];
+	// const members = [
+	// 	{ name: "Luis", email: "email@exemplo.com", role: "Admin" },
+	// 	{ name: "Maria", email: "maria@exemplo.com", role: "Membro" },
+	// ];
+	const members: any[] = [];
 
 	return (
 		<div className="flex flex-col gap-6">
@@ -216,39 +217,45 @@ export default function WorkspaceConfig() {
 				</CardHeader>
 				<CardContent className="pt-6">
 					<div className="space-y-3">
-						{members.map((member, index) => (
-							<div
-								key={index}
-								className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors gap-4"
-							>
-								<div className="flex items-center gap-4">
-									<div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-										{member.name.charAt(0)}
+						{members.length > 0 ? (
+							members.map((member, index) => (
+								<div
+									key={index}
+									className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors gap-4"
+								>
+									<div className="flex items-center gap-4">
+										<div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+											{member.name?.charAt(0) || "U"}
+										</div>
+										<div className="flex flex-col">
+											<p className="font-bold text-gray-800">{member.name}</p>
+											<p className="text-sm text-gray-500">{member.email}</p>
+										</div>
 									</div>
-									<div className="flex flex-col">
-										<p className="font-bold text-gray-800">{member.name}</p>
-										<p className="text-sm text-gray-500">{member.email}</p>
+									
+									<div className="flex items-center gap-3">
+										<Select defaultValue={member.role?.toLowerCase()}>
+											<SelectTrigger className="w-[130px] bg-white border-gray-200">
+												<SelectValue />
+											</SelectTrigger>
+											<SelectContent>
+												<SelectItem value="admin">Administrador</SelectItem>
+												<SelectItem value="editor">Editor</SelectItem>
+												<SelectItem value="membro">Membro</SelectItem>
+												<SelectItem value="viewer">Visualizador</SelectItem>
+											</SelectContent>
+										</Select>
+										<Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+											<Trash2Icon className="w-5 h-5" />
+										</Button>
 									</div>
 								</div>
-								
-								<div className="flex items-center gap-3">
-									<Select defaultValue={member.role.toLowerCase()}>
-										<SelectTrigger className="w-[130px] bg-white border-gray-200">
-											<SelectValue />
-										</SelectTrigger>
-										<SelectContent>
-											<SelectItem value="admin">Administrador</SelectItem>
-											<SelectItem value="editor">Editor</SelectItem>
-											<SelectItem value="membro">Membro</SelectItem>
-											<SelectItem value="viewer">Visualizador</SelectItem>
-										</SelectContent>
-									</Select>
-									<Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50">
-										<Trash2Icon className="w-5 h-5" />
-									</Button>
-								</div>
+							))
+						) : (
+							<div className="flex flex-col items-center justify-center py-12 text-center border-2 border-dashed border-gray-100 rounded-xl">
+								<p className="text-gray-400">Nenhum membro encontrado.</p>
 							</div>
-						))}
+						)}
 					</div>
 				</CardContent>
 			</Card>
