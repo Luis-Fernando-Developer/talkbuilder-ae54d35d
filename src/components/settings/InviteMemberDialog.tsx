@@ -33,7 +33,15 @@ export function InviteMemberDialog() {
   const { toast } = useToast();
 
   const handleInvite = async () => {
-    if (!email || !currentWorkspace || !user) return;
+    console.log("Iniciando convite:", { email, currentWorkspace, userId: user?.id });
+    if (!email || !currentWorkspace || !user) {
+      toast({
+        title: "Atenção",
+        description: "Certifique-se de que o e-mail está preenchido e o workspace está selecionado.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
