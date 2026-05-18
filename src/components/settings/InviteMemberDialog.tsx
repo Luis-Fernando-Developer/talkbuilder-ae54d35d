@@ -33,11 +33,10 @@ export function InviteMemberDialog() {
   const { toast } = useToast();
 
   const handleInvite = async () => {
-    console.log("Iniciando convite:", { email, currentWorkspace, userId: user?.id });
-    if (!email || !currentWorkspace || !user) {
+    if (!email || !user) {
       toast({
         title: "Atenção",
-        description: "Certifique-se de que o e-mail está preenchido e o workspace está selecionado.",
+        description: "Certifique-se de que o e-mail está preenchido.",
         variant: "destructive",
       });
       return;
@@ -48,10 +47,28 @@ export function InviteMemberDialog() {
       const supabase = getSupabase();
       if (!supabase) throw new Error("Supabase não configurado");
 
+      // Garantir que temos um workspace_id
+      let workspaceId = currentWorkspace?.id;
+      
+      if (!workspaceId) {
+        // Fallback: buscar o primeiro workspace onde o usuário é owner ou admin
+        const { data: wsData, error: wsError } = await supabase
+          .from("workspace_members")
+          .select("workspace_id")
+          .eq("user_id", user.id)
+          .in("role", ["owner", "admin"])
+          .limit(1)
+          .maybeSingle();
+          
+        if (wsError) throw wsError;
+        if (!wsData) throw new Error("Você não possui permissão para convidar membros em nenhum workspace.");
+        workspaceId = wsData.workspace_id;
+      }
+
       const { data, error } = await supabase
         .from("workspace_invitations")
         .insert({
-          workspace_id: currentWorkspace.id,
+          workspace_id: workspaceId,
           email: email.toLowerCase().trim(),
           role,
           invited_by: user.id,
