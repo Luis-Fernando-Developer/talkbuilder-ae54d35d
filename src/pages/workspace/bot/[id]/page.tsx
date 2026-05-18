@@ -491,7 +491,7 @@ export default function BotPage() {
         </header>
 
         {/* Sidebar + canvas */}
-        <div className="flex-1 flex w-full overflow-hidden">
+        <div className="flex-1 flex w-full overflow-hidden relative">
           <NodesSidebar onAddNode={handleAddNode} />
           <div className="flex-1 h-full">
             <CanvasEditor
@@ -503,17 +503,17 @@ export default function BotPage() {
               onGetCenterPosition={(getter) => setGetCenter(() => getter)}
             />
           </div>
-        </div>
 
-        {/* Test panel */}
-        <TestPanel
-          isOpen={testContainer !== null}
-          onClose={() => setTestContainer(null)}
-          startContainer={testContainer}
-          allContainers={containers}
-          edges={edges}
-          flowId={flow?.id}
-        />
+          {/* Test panel - moved inside relative container to start below header */}
+          <TestPanel
+            isOpen={testContainer !== null}
+            onClose={() => setTestContainer(null)}
+            startContainer={testContainer}
+            allContainers={containers}
+            edges={edges}
+            flowId={flow?.id}
+          />
+        </div>
 
         {/* Settings */}
         {flow && (
