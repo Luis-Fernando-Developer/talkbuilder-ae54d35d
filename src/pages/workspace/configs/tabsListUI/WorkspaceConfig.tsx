@@ -108,11 +108,30 @@ export default function WorkspaceConfig() {
 		});
 	}
 
-	// const members = [
-	// 	{ name: "Luis", email: "email@exemplo.com", role: "Admin" },
-	// 	{ name: "Maria", email: "maria@exemplo.com", role: "Membro" },
-	// ];
-	const members: any[] = [];
+	const [members, setMembers] = useState<any[]>([]);
+	const { currentWorkspace } = useAuth();
+
+	useEffect(() => {
+		const supabase = getSupabase();
+		if (!supabase || !currentWorkspace) return;
+
+		supabase
+			.from("workspace_members")
+			.select("role, user_id")
+			.eq("workspace_id", currentWorkspace.id)
+			.then(({ data, error }) => {
+				if (error) console.error(error);
+				if (data) {
+					// Aqui idealmente faríamos um join com profiles para pegar nome/email
+					// Por simplicidade agora, usaremos os IDs
+					setMembers(data.map(m => ({ 
+						name: `Usuário ${m.user_id.slice(0,4)}`, 
+						email: "Carregando...", 
+						role: m.role 
+					})));
+				}
+			});
+	}, [currentWorkspace]);
 
 	return (
 		<div className="flex flex-col gap-6">

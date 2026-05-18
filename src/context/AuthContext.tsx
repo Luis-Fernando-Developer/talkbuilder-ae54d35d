@@ -32,6 +32,9 @@ type AuthContextType = {
 	isConfigured: boolean;
 	signOut: () => Promise<void>;
 	refreshProfile: () => Promise<void>;
+	workspaces: any[];
+	currentWorkspace: any | null;
+	switchWorkspace: (slug: string) => void;
 };
 
 const AuthContext = createContext<AuthContextType | null>(null);
@@ -103,6 +106,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		await supabase.auth.signOut();
 	}
 
+	const [workspaces, setWorkspaces] = useState<any[]>([]);
+	const [currentWorkspace, setCurrentWorkspace] = useState<any | null>(null);
+
+	async function loadWorkspaces(userId: string) {
+		const supabase = getSupabase();
+		if (!supabase) return;
+		const { data, error } = await supabase
+			.from("workspace_members")
+			.select("role, workspaces(id, name, slug)")
+			.eq("user_id", userId);
+		
+		if (error) {
+			console.error("[Auth] Erro ao carregar workspaces:", error);
+			return;
+		}
+
+		const mapped = data.map((m: any) => ({ ...m.workspaces, role: m.role }));
+		setWorkspaces(mapped);
+		
+		// Auto-select based on URL or first available
+		const pathSlug = window.location.pathname.split("/")[1];
+		const found = mapped.find((w: any) => w.slug === pathSlug);
+		setCurrentWorkspace(found || mapped[0] || null);
+	}
+
+	function switchWorkspace(slug: string) {
+		const found = workspaces.find(w => w.slug === slug);
+		if (found) setCurrentWorkspace(found);
+	}
+
+	useEffect(() => {
+		if (user) {
+			loadWorkspaces(user.id);
+		} else {
+			setWorkspaces([]);
+			setCurrentWorkspace(null);
+		}
+	}, [user]);
+
 	return (
 		<AuthContext.Provider
 			value={{
@@ -113,6 +155,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 				isConfigured,
 				signOut,
 				refreshProfile,
+				workspaces,
+				currentWorkspace,
+				switchWorkspace,
 			}}
 		>
 			{children}
