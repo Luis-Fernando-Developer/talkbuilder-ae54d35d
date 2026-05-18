@@ -153,6 +153,8 @@ export const TestPanel = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
   const [waitingForInput, setWaitingForInput] = useState(false);
+  const [waitingForType, setWaitingForType] = useState<string | null>(null);
+  const [waitingForConfig, setWaitingForConfig] = useState<any>(null);
   const [waitingForButton, setWaitingForButton] = useState(false);
   const [activeButtons, setActiveButtons] = useState<ButtonConfig[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -260,7 +262,8 @@ export const TestPanel = ({
     let currentNodeId = state?.current_node_id || startContainer?.nodes?.[0]?.id || null;
     const variables = { ...(state?.variables || {}) };
     const nextMessages: Message[] = [];
-    let waitingFor: "text" | "buttons" | null = null;
+    let waitingFor: string | null = null;
+    let waitingForCfg: any = null;
     let nextButtons: ButtonConfig[] = [];
     let waitMs = 0;
     let steps = 0;
@@ -338,9 +341,11 @@ export const TestPanel = ({
       } else if (nodeType === "bubble-document" || nodeType === "bubble-file") {
         nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.FileURL, cfg.fileUrl, cfg.url, cfg.FileName, cfg.name), isFile: true });
       } else if (nodeType.startsWith("input-") && nodeType !== "input-buttons") {
-        waitingFor = "text";
+        waitingFor = nodeType;
+        waitingForCfg = cfg;
       } else if (nodeType === "input-buttons") {
         waitingFor = "buttons";
+        waitingForCfg = cfg;
         nextButtons = cfg.buttons || [];
       } else if (nodeType === "script") {
         const code = String(cfg.code || "");
@@ -397,7 +402,7 @@ export const TestPanel = ({
       currentNodeId = nextFromNode(node.id, container.id);
     }
 
-    return { messages: nextMessages, wait_ms: waitMs, waiting_for: waitingFor, buttons: nextButtons, runtime_state: { current_node_id: currentNodeId, variables, waiting_for_input: !!waitingFor } };
+    return { messages: nextMessages, wait_ms: waitMs, waiting_for: waitingFor, waiting_for_config: waitingForCfg, buttons: nextButtons, runtime_state: { current_node_id: currentNodeId, variables, waiting_for_input: !!waitingFor } };
   };
 
   useEffect(() => {
@@ -453,7 +458,9 @@ export const TestPanel = ({
     runtimeStateRef.current = incomingState;
     if (replaceMessages) setMessages(data.messages || []);
     else if (!hasActiveWait || (data.messages || []).length > 0) setMessages(prev => [...prev, ...(data.messages || [])]);
-    setWaitingForInput(data.waiting_for === "text");
+    setWaitingForInput(!!data.waiting_for && data.waiting_for !== "buttons");
+    setWaitingForType(data.waiting_for);
+    setWaitingForConfig(data.waiting_for_config || null);
     setWaitingForButton(data.waiting_for === "buttons");
     setActiveButtons(data.buttons || []);
     return scheduleRuntimeContinue(data.wait_ms);
@@ -475,6 +482,57 @@ export const TestPanel = ({
   const sendMessage = async (message?: string, buttonId?: string) => {
     const msgToSend = message || currentInput;
     if (!msgToSend && !buttonId) return;
+
+    if (!buttonId && waitingForType && msgToSend) {
+      if (waitingForType === "input-mail") {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(msgToSend)) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um e-mail válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setCurrentInput("");
+          setIsLoading(false);
+          return;
+        }
+      } else if (waitingForType === "input-webSite") {
+        try {
+          new URL(msgToSend.startsWith('http') ? msgToSend : `https://${msgToSend}`);
+        } catch (e) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um link válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setCurrentInput("");
+          setIsLoading(false);
+          return;
+        }
+      } else if (waitingForType === "input-number") {
+        const num = Number(msgToSend);
+        if (isNaN(num)) {
+          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um número válido.";
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setCurrentInput("");
+          setIsLoading(false);
+          return;
+        }
+        if (waitingForConfig?.min !== undefined && num < waitingForConfig.min) {
+          const errorMsg = waitingForConfig?.invalidMessage || `O valor mínimo é ${waitingForConfig.min}.`;
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setCurrentInput("");
+          setIsLoading(false);
+          return;
+        }
+        if (waitingForConfig?.max !== undefined && num > waitingForConfig.max) {
+          const errorMsg = waitingForConfig?.invalidMessage || `O valor máximo é ${waitingForConfig.max}.`;
+          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          setCurrentInput("");
+          setIsLoading(false);
+          return;
+        }
+      }
+    }
 
     if (msgToSend) {
       setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
@@ -583,7 +641,16 @@ export const TestPanel = ({
               value={currentInput} 
               onChange={(e) => setCurrentInput(e.target.value)} 
               onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()} 
-              placeholder="Digite..." 
+              placeholder={
+                waitingForConfig?.resPonseUserNumber || 
+                waitingForConfig?.responseUserTextInput || 
+                waitingForConfig?.placeholder || 
+                "Digite..."
+              }
+              type={waitingForType === "input-number" ? "number" : waitingForType === "input-mail" ? "email" : waitingForType === "input-webSite" ? "url" : "text"}
+              min={waitingForType === "input-number" ? waitingForConfig?.min : undefined}
+              max={waitingForType === "input-number" ? waitingForConfig?.max : undefined}
+              step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
               className="flex-1" 
               style={{ 
                 background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined,

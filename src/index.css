@@ -444,3 +444,14 @@ code {
 .rich-bubble-preview s {
   text-decoration: line-through;
 }
+
+/* Force numeric input spin buttons to be visible */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  opacity: 1 !important;
+  margin-left: 5px;
+}
+
+input[type="number"] {
+  -moz-appearance: number-input;
+}

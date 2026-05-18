@@ -438,9 +438,14 @@ export const ChatWidget = ({
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyPress={handleKeyPress}
-              placeholder={waitingForConfig?.placeholder || "Digite sua mensagem..."}
+              placeholder={
+                waitingForConfig?.resPonseUserNumber || 
+                waitingForConfig?.responseUserTextInput || 
+                waitingForConfig?.placeholder || 
+                "Digite sua mensagem..."
+              }
               disabled={isLoading}
-              type={waitingFor === "input-number" ? "number" : "text"}
+              type={waitingFor === "input-number" ? "number" : waitingFor === "input-mail" ? "email" : waitingFor === "input-webSite" ? "url" : "text"}
               min={waitingFor === "input-number" ? waitingForConfig?.min : undefined}
               max={waitingFor === "input-number" ? waitingForConfig?.max : undefined}
               step={waitingFor === "input-number" ? waitingForConfig?.step : undefined}
