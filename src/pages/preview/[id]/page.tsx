@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { ensureFlow, getFlowByWorkspaceItem, type ChatbotFlowRow } from "@/lib/flowsApi";
 import { getSupabase } from "@/lib/supabaseClient";
 import type { Container, Edge } from "@/types/chatbot";
+import { useAuth } from "@/context/AuthContext";
 
 type BotMeta = { id: string; title: string; emoji: string | null };
 
@@ -31,6 +32,7 @@ function loadLocal(botId: string): { containers: Container[]; edges: Edge[] } {
 export default function PreviewPage() {
   const params = useParams();
   const navigate = useNavigate();
+  const { currentWorkspace } = useAuth();
   const botId = (params.id as string) ?? "";
   const [bot, setBot] = useState<BotMeta | null>(null);
 
@@ -70,7 +72,7 @@ export default function PreviewPage() {
         if (!cancelled) setBot(botMeta);
 
         const row = botMeta
-          ? await ensureFlow(botId, botMeta.title || "Bot")
+          ? await ensureFlow(botId, botMeta.title || "Bot", currentWorkspace?.id)
           : await getFlowByWorkspaceItem(botId);
         if (cancelled || !row) {
           setLoading(false);

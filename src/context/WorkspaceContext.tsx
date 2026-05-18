@@ -59,7 +59,7 @@ export function WorkspaceProvider({
 }: {
 	children: React.ReactNode;
 }) {
-	const { user } = useAuth();
+	const { user, currentWorkspace } = useAuth();
 	const [items, setItemsState] = useState<typeItem[]>([]);
 	const [activeId, setActiveId] = useState<string | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -69,7 +69,7 @@ export function WorkspaceProvider({
 	// Carrega do banco quando logar
 	useEffect(() => {
 		const supabase = getSupabase();
-		if (!supabase || !user) {
+		if (!supabase || !user || !currentWorkspace) {
 			setItemsState([]);
 			setLoading(false);
 			return;
@@ -80,7 +80,7 @@ export function WorkspaceProvider({
 		supabase
 			.from("workspace_items")
 			.select("id,user_id,type,title,description,emoji,parent_id,index_item")
-			.eq("user_id", user.id)
+			.eq("workspace_id", currentWorkspace.id)
 			.order("created_at", { ascending: true })
 			.then(({ data, error }) => {
 				if (cancelled) return;
@@ -96,7 +96,7 @@ export function WorkspaceProvider({
 		return () => {
 			cancelled = true;
 		};
-	}, [user]);
+	}, [user, currentWorkspace]);
 
 	// setItems "smart": detecta diff entre antigo/novo e propaga ao Supabase.
 	// Mantém compatibilidade com toda a UI legada que faz setItems(prev => ...).
@@ -112,7 +112,7 @@ export function WorkspaceProvider({
 
 		setItemsState(next);
 
-		if (!supabase || !user) return;
+		if (!supabase || !user || !currentWorkspace) return;
 
 		const prevById = new Map(prev.map((i) => [i.id, i]));
 		const nextById = new Map(next.map((i) => [i.id, i]));
@@ -125,7 +125,7 @@ export function WorkspaceProvider({
 				.insert(
 					inserts.map((i) => ({
 						id: i.id,
-						user_id: user.id,
+						workspace_id: currentWorkspace.id,
 						type: i.type,
 						title: i.title,
 						description: i.description,
@@ -180,7 +180,7 @@ export function WorkspaceProvider({
 					});
 			}
 		}
-	}, [user]);
+	}, [user, currentWorkspace]);
 
 	return (
 		<WorkspaceContext.Provider
