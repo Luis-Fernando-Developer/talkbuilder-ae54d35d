@@ -645,7 +645,7 @@ export const TestPanel = ({
                 waitingForConfig?.resPonseUserNumber || 
                 waitingForConfig?.responseUserTextInput || 
                 waitingForConfig?.placeholder || 
-                "Digite..."
+                "Digite aqui"
               }
               type={
                 waitingForType === "input-number" 

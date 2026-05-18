@@ -48,7 +48,7 @@ export const InputTextConfig = ({ config, setConfig }: InputTextConfigProps) => 
           <Input
             id="placeholder"
             type="text"
-            placeholder="Digite sua resposta..."
+            placeholder="Digite sua resposta"
             value={config.responseUserTextInput || ""}
             onChange={(e) => setConfig({ ...config, responseUserTextInput: e.target.value })}
             className="flex-1"

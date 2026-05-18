@@ -442,7 +442,7 @@ export const ChatWidget = ({
                 waitingForConfig?.resPonseUserNumber || 
                 waitingForConfig?.responseUserTextInput || 
                 waitingForConfig?.placeholder || 
-                "Digite sua mensagem..."
+                "Digite sua mensagem"
               }
               disabled={isLoading}
               type={
