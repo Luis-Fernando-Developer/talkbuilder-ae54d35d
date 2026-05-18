@@ -73,7 +73,7 @@ export default function BotPage() {
   const location = useLocation();
   const botId = (params.id as string) ?? "default";
   const { items, setItems } = useWorkspace();
-  const { profile } = useAuth();
+  const { profile, currentWorkspace } = useAuth();
 
   const bot = useMemo(() => items.find((i) => i.id === botId && i.type === "bot"), [items, botId]);
 
@@ -121,7 +121,7 @@ export default function BotPage() {
         return;
       }
       try {
-        const row = await ensureFlow(botId, bot.title || "Novo bot");
+        const row = await ensureFlow(botId, bot.title || "Novo bot", currentWorkspace?.id);
         if (cancelled) return;
         setFlow(row);
         // Se o servidor tem dados mais recentes, prefere ele
