@@ -31,8 +31,9 @@ export default function LoginPage() {
 
 	// Se vier de uma rota protegida (ProtectedRoute setou state.from), volta pra ela.
 	// Caso contrário, manda pra "/" e o HomeRoute redireciona pro workspace do slug.
+	const query = new URLSearchParams(location.search);
 	const redirectTo =
-		(location.state as { from?: string } | null)?.from ?? "/";
+		query.get("redirect") || (location.state as { from?: string } | null)?.from || "/";
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
