@@ -119,10 +119,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		
 		if (error) {
 			console.error("[Auth] Erro ao carregar workspaces:", error);
+			setWorkspaces([]);
+			setCurrentWorkspace(null);
 			return;
 		}
 
-		const mapped = data.map((m: any) => ({ ...m.workspaces, role: m.role }));
+		const mapped = (data ?? [])
+			.map((m: any) => ({ ...m.workspaces, role: m.role }))
+			.filter((workspace: any) => Boolean(workspace.id));
 		setWorkspaces(mapped);
 		
 		// Auto-select based on URL or first available

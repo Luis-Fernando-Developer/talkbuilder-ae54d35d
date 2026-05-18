@@ -48,14 +48,24 @@ export default function LoginPage() {
 		}
 
 		setSubmitting(true);
-		const supabase = getSupabase()!;
+		const supabase = getSupabase();
+		if (!supabase) {
+			setSubmitting(false);
+			toast({
+				title: "Supabase não configurado",
+				description: "Não foi possível conectar ao banco do projeto.",
+				variant: "destructive",
+			});
+			return;
+		}
+
 		const { data, error } = await supabase.auth.signInWithPassword({
 			email: parsed.data.email,
 			password: parsed.data.password,
 		});
-		setSubmitting(false);
 
 		if (error) {
+			setSubmitting(false);
 			toast({
 				title: "Falha ao entrar",
 				description: error.message,
@@ -67,14 +77,18 @@ export default function LoginPage() {
 		// Busca slug do profile pra montar a URL do workspace
 		let target = redirectTo;
 		if (target === "/" && data.user) {
-			const { data: prof } = await supabase
+			const { data: prof, error: profileError } = await supabase
 				.from("profiles")
 				.select("slug")
 				.eq("id", data.user.id)
 				.maybeSingle();
+			if (profileError) {
+				console.error("[Login] Falha ao carregar profile:", profileError);
+			}
 			if (prof?.slug) target = `/${prof.slug}/workspace`;
 		}
 
+		setSubmitting(false);
 		toast({ title: "Bem-vindo de volta!" });
 		navigate(target, { replace: true });
 	}
