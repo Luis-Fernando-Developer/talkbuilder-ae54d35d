@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause, FileText, Loader2 } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, FileText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
@@ -162,6 +162,7 @@ export const TestPanel = ({
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
   const startedFlowRef = useRef<string | null>(null);
+  const lastStartNodeIdRef = useRef<string | null>(null);
   const waitTimerRef = useRef<number | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -580,8 +581,8 @@ export const TestPanel = ({
   if (theme?.fontFamily) themeStyle.fontFamily = theme.fontFamily;
 
   const containerClass = fullScreen
-    ? "absolute inset-0 h-full w-full bg-card flex flex-col z-50"
-    : "w-80 absolute top-0 right-0 h-full bg-card border-l border-border shadow-2xl flex flex-col z-50";
+    ? "absolute top-[49px] bottom-0 left-0 right-0 w-full bg-card flex flex-col z-50"
+    : "w-80 absolute top-[49px] right-0 bottom-0 bg-card border-l border-border shadow-2xl flex flex-col z-50";
 
   return (
     <aside className={containerClass} style={themeStyle}>
@@ -602,7 +603,21 @@ export const TestPanel = ({
               {headerSubtitle && <p className="text-[11px] leading-tight truncate opacity-70" style={{ color: theme?.headerTextColor }}>{headerSubtitle}</p>}
             </div>
           </div>
-          {!hideClose && <Button variant="ghost" size="icon" onClick={onClose} style={{ color: theme?.headerTextColor }}><X className="h-5 w-5" /></Button>}
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => {
+                runtimeStateRef.current = null;
+                startRuntimeSession();
+              }} 
+              style={{ color: theme?.headerTextColor }}
+              title="Reiniciar chat"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            {!hideClose && <Button variant="ghost" size="icon" onClick={onClose} style={{ color: theme?.headerTextColor }}><X className="h-5 w-5" /></Button>}
+          </div>
         </div>
         <ScrollArea className="flex-1 p-3" ref={scrollRef}>
           <div className="space-y-3">
