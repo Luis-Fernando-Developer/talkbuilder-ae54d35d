@@ -30,7 +30,7 @@ import { workspaceRoot } from './lib/workspaceRoutes';
  * - Logado → redireciona para /{slug}/workspace.
  */
 function HomeRoute() {
-  const { user, loading, isConfigured, profile } = useAuth();
+  const { user, loading, isConfigured, profile, currentWorkspace } = useAuth();
   const { mode, session } = useEmbed();
 
   if (loading) return null;
@@ -38,7 +38,7 @@ function HomeRoute() {
     return <Navigate to={workspaceRoot(session.workspaceSlug)} replace />;
   }
   if (!isConfigured || !user) return <LandingPage />;
-  return <Navigate to={workspaceRoot(profile?.slug)} replace />;
+  return <Navigate to={workspaceRoot(currentWorkspace?.slug ?? profile?.slug)} replace />;
 }
 
 /**
@@ -197,9 +197,9 @@ function App() {
 
 /** Redireciona links antigos /workspace/... para /:slug/workspace/... */
 function LegacyWorkspaceRedirect() {
-  const { profile, loading } = useAuth();
+  const { profile, loading, currentWorkspace } = useAuth();
   if (loading) return null;
-  const slug = profile?.slug ?? "u";
+  const slug = currentWorkspace?.slug ?? profile?.slug ?? "u";
   // Pega o resto do path depois de /workspace
   const rest = window.location.pathname.replace(/^\/workspace/, "");
   return <Navigate to={`/${slug}/workspace${rest}`} replace />;
