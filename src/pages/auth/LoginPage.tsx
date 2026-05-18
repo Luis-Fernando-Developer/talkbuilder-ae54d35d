@@ -166,13 +166,6 @@ export default function LoginPage() {
 						>
 							{submitting ? "Entrando..." : "Entrar"}
 						</Button>
-								required
-								autoComplete="current-password"
-							/>
-						</div>
-						<Button type="submit" className="w-full" disabled={submitting}>
-							{submitting ? "Entrando..." : "Entrar"}
-						</Button>
 						<p className="text-sm text-muted-foreground text-center">
 							Ainda não tem conta?{" "}
 							<Link to={`/signup${location.search}`} className="text-primary underline">
