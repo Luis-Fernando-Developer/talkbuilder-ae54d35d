@@ -852,7 +852,7 @@ export const HttpRequestConfig = ({
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">data:</Label>
                     <div className="flex gap-2">
-                      <Popover>
+                      <Popover open={openDataPopovers[index]} onOpenChange={(open) => setOpenDataPopovers(prev => ({ ...prev, [index]: open }))}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -877,6 +877,7 @@ export const HttpRequestConfig = ({
                                     value={path}
                                     onSelect={() => {
                                       handleResponseMappingChange(index, "jsonPath", path);
+                                      setOpenDataPopovers(prev => ({ ...prev, [index]: false }));
                                     }}
                                   >
                                     {path}
