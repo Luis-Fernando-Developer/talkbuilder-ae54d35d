@@ -55,7 +55,7 @@ export function deriveStatus(row: Pick<ChatbotFlowRow, "is_published" | "draft_u
  * Garante que existe uma linha em chatbot_flows para o item de workspace.
  * Se não existir, cria com defaults usando o título/descrição do workspace_item.
  */
-export async function ensureFlow(workspaceItemId: string, fallbackName: string): Promise<ChatbotFlowRow> {
+export async function ensureFlow(workspaceItemId: string, fallbackName: string, workspaceId: string): Promise<ChatbotFlowRow> {
   const c = client();
   const { data: existing, error: selErr } = await c
     .from("chatbot_flows")
@@ -72,7 +72,7 @@ export async function ensureFlow(workspaceItemId: string, fallbackName: string):
   const { data, error } = await c
     .from("chatbot_flows")
     .insert({
-      workspace_id: (window as any).__CURRENT_WORKSPACE_ID__, // Fallback global ou injetar via hook
+      workspace_id: workspaceId,
       user_id: userId,
       workspace_item_id: workspaceItemId,
       name: fallbackName,
