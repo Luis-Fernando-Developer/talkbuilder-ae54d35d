@@ -1,0 +1,161 @@
+import { useState } from "react";
+import { Button } from "../ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "../ui/dialog";
+import { Input } from "../ui/input";
+import { Label } from "../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { getSupabase } from "../../lib/supabaseClient";
+import { useAuth } from "../../context/AuthContext";
+import { useToast } from "../../hooks/use-toast";
+import { Copy, Loader2 } from "lucide-react";
+
+export function InviteMemberDialog() {
+  const [email, setEmail] = useState("");
+  const [role, setRole] = useState("membro");
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const { currentWorkspace, user } = useAuth();
+  const { toast } = useToast();
+
+  const handleInvite = async () => {
+    if (!email || !currentWorkspace || !user) return;
+
+    setLoading(true);
+    try {
+      const supabase = getSupabase();
+      if (!supabase) throw new Error("Supabase não configurado");
+
+      const { data, error } = await supabase
+        .from("workspace_invitations")
+        .insert({
+          workspace_id: currentWorkspace.id,
+          email: email.toLowerCase().trim(),
+          role,
+          invited_by: user.id,
+        })
+        .select("token")
+        .single();
+
+      if (error) throw error;
+
+      const link = `${window.location.origin}/invite/${data.token}`;
+      setInviteLink(link);
+      
+      toast({
+        title: "Convite gerado!",
+        description: `O convite para ${email} foi criado com sucesso.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: "Erro ao convidar",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      toast({
+        title: "Link copiado!",
+        description: "O link do convite foi copiado para a área de transferência.",
+      });
+    }
+  };
+
+  const resetForm = () => {
+    setEmail("");
+    setRole("membro");
+    setInviteLink(null);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={(v) => { setOpen(v); if(!v) resetForm(); }}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="border-primary text-primary hover:bg-primary/5">
+          Convidar Membro
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Convidar para a Equipe</DialogTitle>
+          <DialogDescription>
+            Envie um convite para que novos membros se juntem ao seu workspace.
+          </DialogDescription>
+        </DialogHeader>
+        
+        {!inviteLink ? (
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">E-mail</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="email@exemplo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="role">Cargo</Label>
+              <Select value={role} onValueChange={setRole}>
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Selecione o cargo" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="editor">Editor</SelectItem>
+                  <SelectItem value="membro">Membro</SelectItem>
+                  <SelectItem value="viewer">Visualizador</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        ) : (
+          <div className="py-4 space-y-4">
+            <div className="p-3 bg-green-50 border border-green-100 rounded-lg text-sm text-green-700">
+              Convite criado! Envie o link abaixo para o novo membro:
+            </div>
+            <div className="flex gap-2">
+              <Input value={inviteLink} readOnly className="bg-gray-50" />
+              <Button size="icon" variant="outline" onClick={copyToClipboard}>
+                <Copy className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          {!inviteLink ? (
+            <Button onClick={handleInvite} disabled={loading || !email}>
+              {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Gerar Convite
+            </Button>
+          ) : (
+            <Button variant="secondary" onClick={() => setOpen(false)}>
+              Fechar
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
