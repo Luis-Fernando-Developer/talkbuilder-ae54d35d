@@ -120,7 +120,7 @@ export default function LoginPage() {
 						</Button>
 						<p className="text-sm text-muted-foreground text-center">
 							Ainda não tem conta?{" "}
-							<Link to="/signup" className="text-primary underline">
+							<Link to={`/signup${location.search}`} className="text-primary underline">
 								Criar agora
 							</Link>
 						</p>
