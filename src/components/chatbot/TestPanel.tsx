@@ -3,6 +3,12 @@ import { X, Send, Headphones, Play, Pause, FileText, Loader2, RefreshCw } from "
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
+
+interface ResponseMapping {
+  jsonPath: string;
+  variableName: string;
+}
+
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { renderTextSegments } from "@/lib/textParser";
 import { richHtmlFor, richToPlainText } from "@/lib/richText";
