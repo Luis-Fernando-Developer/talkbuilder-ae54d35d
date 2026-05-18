@@ -230,7 +230,10 @@ export default function WorkspaceConfig() {
 							Gerencie os membros da sua equipe e suas permissões
 						</CardDescription>
 					</div>
-					<Button variant="outline" className="border-primary text-primary hover:bg-primary/5">
+					<Button variant="outline" className="border-primary text-primary hover:bg-primary/5" onClick={() => {
+						const email = prompt("Digite o email do convidado:");
+						if (email) toast({ title: "Convite enviado!", description: `Um convite foi enviado para ${email}` });
+					}}>
 						Convidar Membro
 					</Button>
 				</CardHeader>
@@ -244,10 +247,10 @@ export default function WorkspaceConfig() {
 								>
 									<div className="flex items-center gap-4">
 										<div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
-											{member.name?.charAt(0) || "U"}
+											{member.role === 'owner' ? '👑' : (member.name?.charAt(0) || "U")}
 										</div>
 										<div className="flex flex-col">
-											<p className="font-bold text-gray-800">{member.name}</p>
+											<p className="font-bold text-gray-800">{member.name} {member.role === 'owner' && <span className="text-[10px] bg-amber-100 text-amber-700 px-1 rounded ml-1">OWNER</span>}</p>
 											<p className="text-sm text-gray-500">{member.email}</p>
 										</div>
 									</div>
