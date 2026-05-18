@@ -807,28 +807,8 @@ export const HttpRequestConfig = ({
             </div>
             
             <CollapsibleContent className="space-y-4 pt-2">
-              <div className="space-y-2">
-                <Label>Full response variable</Label>
-                <Input
-                  value={responseVariable}
-                  onChange={(e) => setResponseVariable(e.target.value)}
-                  placeholder="httpResponse"
-                />
-              </div>
+              {/* Removed full response variable and format fields per user design preference */}
 
-              <div className="space-y-2">
-                <Label>Response Format</Label>
-                <Select value={responseFormat} onValueChange={setResponseFormat}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="json">JSON</SelectItem>
-                    <SelectItem value="text">Texto</SelectItem>
-                    <SelectItem value="binary">Binário</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
 
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
