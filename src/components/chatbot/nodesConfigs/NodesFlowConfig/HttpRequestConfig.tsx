@@ -897,7 +897,7 @@ export const HttpRequestConfig = ({
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">set variable:</Label>
                     <div className="flex gap-2">
-                      <Popover>
+                      <Popover open={openVariablePopovers[index]} onOpenChange={(open) => setOpenVariablePopovers(prev => ({ ...prev, [index]: open }))}>
                         <PopoverTrigger asChild>
                           <Button
                             variant="outline"
@@ -922,6 +922,7 @@ export const HttpRequestConfig = ({
                                     value={v}
                                     onSelect={() => {
                                       handleResponseMappingChange(index, "variableName", v);
+                                      setOpenVariablePopovers(prev => ({ ...prev, [index]: false }));
                                     }}
                                   >
                                     {v}
