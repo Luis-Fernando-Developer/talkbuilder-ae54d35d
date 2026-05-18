@@ -452,17 +452,20 @@ export const TestPanel = ({
                 // unless the actual response has a "data" property.
                 // Most users will type the path relative to the root.
                 
-                for (const part of parts) {
+                for (let i = 0; i < parts.length; i++) {
+                  const part = parts[i];
                   if (value && typeof value === 'object' && part in value) {
                     value = value[part];
-                  } else if (part === 'data' && parts.indexOf(part) === 0) {
-                    // Skip 'data' if it's the first part and not in root (common helper)
+                  } else if (part === 'data' && i === 0 && (!value || !(part in value))) {
+                    // Skip 'data' if it's the first part and NOT in the root response object
+                    // This handles users who think they need to prefix with 'data'
                     continue;
                   } else {
                     value = undefined;
                     break;
                   }
                 }
+
                 
                 if (value !== undefined) {
                   variables[mapping.variableName] = value;
