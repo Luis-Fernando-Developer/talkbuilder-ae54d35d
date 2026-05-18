@@ -264,6 +264,7 @@ export const TestPanel = ({
     const nextMessages: Message[] = [];
     let waitingFor: string | null = null;
     let waitingForCfg: any = null;
+    let nextButtons: ButtonConfig[] = [];
     let waitMs = 0;
     let steps = 0;
     const firstText = (...values: any[]) => String(values.find((v) => typeof v === "string" && v.trim()) || "");
