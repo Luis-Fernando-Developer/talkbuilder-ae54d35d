@@ -412,17 +412,24 @@ export const TestPanel = ({
       hasStartedRef.current = false;
       runtimeStateRef.current = null;
       startedFlowRef.current = null;
+      lastStartNodeIdRef.current = null;
       return;
     }
 
-    if (hasStartedRef.current && startedFlowRef.current === flowId) return;
+    const startNodeId = startContainer?.nodes?.[0]?.id || null;
+    
+    // Se o container de início mudou, reinicia
+    if (hasStartedRef.current && startedFlowRef.current === flowId && lastStartNodeIdRef.current === startNodeId) {
+      return;
+    }
 
     contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     runtimeStateRef.current = null;
     hasStartedRef.current = true;
     startedFlowRef.current = flowId;
+    lastStartNodeIdRef.current = startNodeId;
     startRuntimeSession();
-  }, [isOpen, flowId]);
+  }, [isOpen, flowId, startContainer?.id]);
 
   useEffect(() => {
     return () => clearWaitTimer();
