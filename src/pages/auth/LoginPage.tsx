@@ -126,7 +126,13 @@ export default function LoginPage() {
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
-					<form onSubmit={handleSubmit} className="space-y-4">
+					<form 
+						onSubmit={(e) => {
+							console.log("[Login] onSubmit disparado");
+							handleSubmit(e);
+						}} 
+						className="space-y-4"
+					>
 						<div>
 							<Label htmlFor="email">Email</Label>
 							<Input
@@ -152,7 +158,12 @@ export default function LoginPage() {
 								autoComplete="current-password"
 							/>
 						</div>
-						<Button type="submit" className="w-full" disabled={submitting}>
+						<Button 
+							type="submit" 
+							className="w-full" 
+							disabled={submitting}
+							onClick={() => console.log("[Login] Button onClick")}
+						>
 							{submitting ? "Entrando..." : "Entrar"}
 						</Button>
 						<p className="text-sm text-muted-foreground text-center">
