@@ -930,8 +930,7 @@ export const HttpRequestConfig = ({
           </CollapsibleContent>
         </Collapsible>
       </div>
-        </TabsContent>
-      </Tabs>
+
 
       {/* Test Result */}
       {testResult && (
