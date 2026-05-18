@@ -791,138 +791,146 @@ export const HttpRequestConfig = ({
             />
             <Label htmlFor="ignoreSSL">Ignorar Erros SSL</Label>
           </div>
+        </TabsContent>
+      </Tabs>
 
-          <Collapsible
-            open={isSaveExpanded}
-            onOpenChange={setIsSaveExpanded}
-            className="space-y-2 border rounded-lg p-3"
-          >
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-semibold">Save in variable</Label>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="sm">
-                  {isSaveExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+      <div className="space-y-4 pt-4 border-t">
+        <Collapsible
+          open={isSaveExpanded}
+          onOpenChange={setIsSaveExpanded}
+          className="space-y-2 border rounded-lg p-3"
+        >
+          <div className="flex items-center justify-between">
+            <Label className="text-sm font-semibold">Save in variable</Label>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" size="sm">
+                {isSaveExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+              </Button>
+            </CollapsibleTrigger>
+          </div>
+          
+          <CollapsibleContent className="space-y-4 pt-2">
+            <div className="space-y-3 pt-0">
+              <div className="flex items-center justify-between">
+                <div />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs"
+                  onClick={handleAddResponseMapping}
+                >
+                  <Plus className="h-3 w-3 mr-1" />
+                  Add an entry
                 </Button>
-              </CollapsibleTrigger>
-            </div>
-            
-            <CollapsibleContent className="space-y-4 pt-2">
-              {/* Removed full response variable and format fields per user design preference */}
+              </div>
 
-
-              <div className="space-y-3 pt-0">
-                <div className="flex items-center justify-between">
-                  <div />
+              {responseMappings.map((mapping, index) => (
+                <div key={index} className="space-y-4 p-4 border rounded-md bg-muted/30 relative">
                   <Button
                     type="button"
-                    variant="outline"
-                    size="sm"
-                    className="h-7 text-xs"
-                    onClick={handleAddResponseMapping}
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 absolute top-1 right-1"
+                    onClick={() => handleRemoveResponseMapping(index)}
                   >
-                    <Plus className="h-3 w-3 mr-1" />
-                    Add an entry
+                    <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
-                </div>
 
-                {responseMappings.map((mapping, index) => (
-                  <div key={index} className="space-y-4 p-4 border rounded-md bg-muted/30 relative">
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 absolute top-1 right-1"
-                      onClick={() => handleRemoveResponseMapping(index)}
-                    >
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">data:</Label>
-                      <div className="flex gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="w-full justify-between h-10 text-sm font-normal bg-background"
-                            >
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">data:</Label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between h-10 text-sm font-normal bg-background"
+                          >
+                            <span className="truncate">
                               {mapping.jsonPath || "Select data path..."}
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Search path..." />
-                              <CommandList>
-                                <CommandEmpty>No path found. Try testing first.</CommandEmpty>
-                                <CommandGroup>
-                                  {jsonPaths.map((path) => (
-                                    <CommandItem
-                                      key={path}
-                                      value={path}
-                                      onSelect={() => handleResponseMappingChange(index, "jsonPath", path)}
-                                    >
-                                      {path}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
-                          {"{{ }}"}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label className="text-sm font-medium">set variable:</Label>
-                      <div className="flex gap-2">
-                        <Popover>
-                          <PopoverTrigger asChild>
-                            <Button
-                              variant="outline"
-                              role="combobox"
-                              className="w-full justify-between h-10 text-sm font-normal bg-background"
-                            >
-                              {mapping.variableName ? `{{${mapping.variableName}}}` : "Select variable..."}
-                              <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                            </Button>
-                          </PopoverTrigger>
-                          <PopoverContent className="w-[300px] p-0" align="start">
-                            <Command>
-                              <CommandInput placeholder="Search variable..." />
-                              <CommandList>
-                                <CommandEmpty>No variable found.</CommandEmpty>
-                                <CommandGroup>
-                                  {availableVariables.map((v) => (
-                                    <CommandItem
-                                      key={v}
-                                      value={v}
-                                      onSelect={() => handleResponseMappingChange(index, "variableName", v)}
-                                    >
-                                      {v}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </CommandList>
-                            </Command>
-                          </PopoverContent>
-                        </Popover>
-                        <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
-                          {"{{ }}"}
-                        </div>
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
+                          <Command>
+                            <CommandInput placeholder="Search path..." />
+                            <CommandList className="max-h-[200px] overflow-y-auto">
+                              <CommandEmpty>No path found. Try testing first.</CommandEmpty>
+                              <CommandGroup>
+                                {jsonPaths.map((path) => (
+                                  <CommandItem
+                                    key={path}
+                                    value={path}
+                                    onSelect={() => {
+                                      handleResponseMappingChange(index, "jsonPath", path);
+                                    }}
+                                  >
+                                    {path}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
+                        {"{{ }}"}
                       </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
-        </TabsContent>
-      </Tabs>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">set variable:</Label>
+                    <div className="flex gap-2">
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            className="w-full justify-between h-10 text-sm font-normal bg-background"
+                          >
+                            <span className="truncate">
+                              {mapping.variableName ? `{{${mapping.variableName}}}` : "Select variable..."}
+                            </span>
+                            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-[300px] p-0" align="start" side="bottom">
+                          <Command>
+                            <CommandInput placeholder="Search variable..." />
+                            <CommandList className="max-h-[200px] overflow-y-auto">
+                              <CommandEmpty>No variable found.</CommandEmpty>
+                              <CommandGroup>
+                                {availableVariables.map((v) => (
+                                  <CommandItem
+                                    key={v}
+                                    value={v}
+                                    onSelect={() => {
+                                      handleResponseMappingChange(index, "variableName", v);
+                                    }}
+                                  >
+                                    {v}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs">
+                        {"{{ }}"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+        </Collapsible>
+      </div>
+
 
       {/* Test Result */}
       {testResult && (
