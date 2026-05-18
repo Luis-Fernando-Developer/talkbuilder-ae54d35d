@@ -115,7 +115,8 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
   };
 
   useEffect(() => {
-    if (valueType === "custom") return;
+    // Preview calculation logic
+    if (false) return; // Keep the flow for all types
 
     if (valueType === "expression") {
       try {
@@ -330,7 +331,7 @@ export const SetVariableConfig = ({ config, setConfig }: SetVariableConfigProps)
         </div>
       )}
 
-      {valueType !== "custom" && (
+      {true && (
         <div className="p-3 bg-muted rounded-lg">
           <p className="text-xs text-muted-foreground mb-1">Preview do valor:</p>
           <code className="text-sm font-mono text-primary break-all">
