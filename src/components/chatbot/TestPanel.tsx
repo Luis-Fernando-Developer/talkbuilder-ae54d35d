@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { X, Send, Headphones, Play, Pause, FileText, Loader2 } from "lucide-react";
+import { X, Send, Headphones, Play, Pause, FileText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
 import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
@@ -162,6 +162,7 @@ export const TestPanel = ({
   const runtimeStateRef = useRef<RuntimeState | null>(null);
   const hasStartedRef = useRef(false);
   const startedFlowRef = useRef<string | null>(null);
+  const lastStartNodeIdRef = useRef<string | null>(null);
   const waitTimerRef = useRef<number | null>(null);
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -411,17 +412,24 @@ export const TestPanel = ({
       hasStartedRef.current = false;
       runtimeStateRef.current = null;
       startedFlowRef.current = null;
+      lastStartNodeIdRef.current = null;
       return;
     }
 
-    if (hasStartedRef.current && startedFlowRef.current === flowId) return;
+    const startNodeId = startContainer?.nodes?.[0]?.id || null;
+    
+    // Se o container de início mudou, reinicia
+    if (hasStartedRef.current && startedFlowRef.current === flowId && lastStartNodeIdRef.current === startNodeId) {
+      return;
+    }
 
     contactIdRef.current = `test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     runtimeStateRef.current = null;
     hasStartedRef.current = true;
     startedFlowRef.current = flowId;
+    lastStartNodeIdRef.current = startNodeId;
     startRuntimeSession();
-  }, [isOpen, flowId]);
+  }, [isOpen, flowId, startContainer?.id]);
 
   useEffect(() => {
     return () => clearWaitTimer();
@@ -602,7 +610,21 @@ export const TestPanel = ({
               {headerSubtitle && <p className="text-[11px] leading-tight truncate opacity-70" style={{ color: theme?.headerTextColor }}>{headerSubtitle}</p>}
             </div>
           </div>
-          {!hideClose && <Button variant="ghost" size="icon" onClick={onClose} style={{ color: theme?.headerTextColor }}><X className="h-5 w-5" /></Button>}
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => {
+                runtimeStateRef.current = null;
+                startRuntimeSession();
+              }} 
+              style={{ color: theme?.headerTextColor }}
+              title="Reiniciar chat"
+            >
+              <RefreshCw className="h-4 w-4" />
+            </Button>
+            {!hideClose && <Button variant="ghost" size="icon" onClick={onClose} style={{ color: theme?.headerTextColor }}><X className="h-5 w-5" /></Button>}
+          </div>
         </div>
         <ScrollArea className="flex-1 p-3" ref={scrollRef}>
           <div className="space-y-3">
