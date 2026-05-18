@@ -851,23 +851,18 @@ export const HttpRequestConfig = ({
 
                   <div className="space-y-2">
                     <Label className="text-sm font-medium">data:</Label>
-                    <div className="flex gap-2">
-                      <div className="flex-1 relative">
-                        <Input
-                          placeholder="Select or type data path..."
-                          value={mapping.jsonPath}
-                          onChange={(e) => handleResponseMappingChange(index, "jsonPath", e.target.value)}
-                          list={`jsonPaths-${index}`}
-                        />
-                        <datalist id={`jsonPaths-${index}`}>
-                          {jsonPaths.map((path) => (
-                            <option key={path} value={path} />
-                          ))}
-                        </datalist>
-                      </div>
-                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs shrink-0">
-                        {"{{ }}"}
-                      </div>
+                    <div className="flex-1 relative">
+                      <Input
+                        placeholder="Select or type data path..."
+                        value={mapping.jsonPath}
+                        onChange={(e) => handleResponseMappingChange(index, "jsonPath", e.target.value)}
+                        list={`jsonPaths-${index}`}
+                      />
+                      <datalist id={`jsonPaths-${index}`}>
+                        {jsonPaths.map((path) => (
+                          <option key={path} value={path} />
+                        ))}
+                      </datalist>
                     </div>
                   </div>
 
@@ -887,9 +882,19 @@ export const HttpRequestConfig = ({
                           ))}
                         </datalist>
                       </div>
-                      <div className="flex items-center px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs shrink-0">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        className="px-3 border rounded-md bg-muted/50 text-muted-foreground font-mono text-xs shrink-0 h-10 w-auto"
+                        onClick={() => {
+                          if (mapping.variableName) {
+                            handleResponseMappingChange(index, "variableName", `{{${mapping.variableName}}}`);
+                          }
+                        }}
+                      >
                         {"{{ }}"}
-                      </div>
+                      </Button>
                     </div>
                   </div>
                 </div>
