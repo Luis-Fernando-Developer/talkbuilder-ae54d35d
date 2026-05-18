@@ -12,12 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Trash2, Play, Loader2, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Play, Loader2, ChevronDown, ChevronRight, Braces } from "lucide-react";
 import { toast } from "sonner";
 import { useVariables } from "@/context/VariablesContext";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { VariableModal } from "../../VariableModal";
 import { cn } from "@/lib/utils";
 
 interface KeyValuePair {
@@ -106,6 +107,7 @@ export const HttpRequestConfig = ({
   const [isSaveExpanded, setIsSaveExpanded] = useState(false);
   const [openDataPopovers, setOpenDataPopovers] = useState<Record<number, boolean>>({});
   const [openVariablePopovers, setOpenVariablePopovers] = useState<Record<number, boolean>>({});
+  const [variableModalOpen, setVariableModalOpen] = useState<{ open: boolean; index: number }>({ open: false, index: -1 });
 
   useEffect(() => {
     setConfig({
@@ -884,23 +886,13 @@ export const HttpRequestConfig = ({
                       </div>
                       <Button
                         type="button"
-                        variant="secondary"
+                        variant="ghost"
                         size="icon"
-                        className="px-3 border rounded-md bg-primary text-primary-foreground font-mono text-xs shrink-0 h-10 w-auto hover:bg-primary/90 cursor-pointer shadow-sm active:scale-95 transition-all"
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          if (mapping.variableName) {
-                            const cleanName = mapping.variableName.replace(/[{}]/g, "");
-                            addVariable(cleanName);
-                            handleResponseMappingChange(index, "variableName", cleanName);
-                            toast.success(`Variável ${cleanName} criada com sucesso!`);
-                          } else {
-                            toast.error("Digite o nome da variável primeiro");
-                          }
-                        }}
+                        className="h-10 w-10 text-muted-foreground hover:text-foreground border rounded-md"
+                        onClick={() => setVariableModalOpen({ open: true, index })}
+                        title="Selecionar ou criar variável"
                       >
-                        {"{{ }}"}
+                        <Braces className="h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -909,7 +901,14 @@ export const HttpRequestConfig = ({
             </div>
           </CollapsibleContent>
         </Collapsible>
-      </div>
+      <VariableModal
+        open={variableModalOpen.open}
+        onClose={() => setVariableModalOpen({ ...variableModalOpen, open: false })}
+        onSelect={(varName) => {
+          handleResponseMappingChange(variableModalOpen.index, "variableName", varName);
+        }}
+      />
+    </div>
 
       <div className="bg-muted/50 rounded-lg p-3">
         <p className="text-xs text-muted-foreground">
