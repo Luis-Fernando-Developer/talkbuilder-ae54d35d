@@ -871,7 +871,7 @@ export const HttpRequestConfig = ({
                           side="bottom"
                           onOpenAutoFocus={(e) => e.preventDefault()}
                         >
-                          <Command manualFiltering={false}>
+                          <Command>
                             <CommandInput placeholder="Search path..." />
                             <CommandList className="max-h-[200px] overflow-y-auto">
                               <CommandEmpty>No path found. Try testing first.</CommandEmpty>
