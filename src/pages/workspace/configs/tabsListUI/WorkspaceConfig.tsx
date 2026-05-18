@@ -114,129 +114,145 @@ export default function WorkspaceConfig() {
 	];
 
 	return (
-		<div className="flex flex-col gap-4">
-			<Card>
-				<CardHeader>
-					<CardTitle>Configurações do Workspace</CardTitle>
-					<CardDescription>
+		<div className="flex flex-col gap-6">
+			<Card className="border-none shadow-sm bg-white overflow-hidden">
+				<CardHeader className="border-b border-gray-100 bg-gray-50/50 pb-6">
+					<CardTitle className="text-xl font-bold text-gray-800">Geral</CardTitle>
+					<CardDescription className="text-gray-500">
 						Configurações operacionais do seu ambiente de trabalho
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="flex flex-col gap-4">
+				<CardContent className="pt-8">
 					{loading ? (
-						<div className="text-sm text-gray-500">Carregando...</div>
+						<div className="flex items-center justify-center py-12">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+						</div>
 					) : (
-						<form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+						<form onSubmit={handleSubmit(onSubmit)} className="space-y-6 max-w-2xl">
 							<FormInputField
 								label="Nome do Workspace"
 								name="workspaceName"
 								register={register}
 								errors={errors}
-								placeholder="Digite o Nome do Workspace"
+								placeholder="Ex: Minha Empresa"
 							/>
 
-							<div className="space-y-1">
-								<Label>Fuso Horário</Label>
-								<Controller
-									name="fusoHours"
-									control={control}
-									render={({ field }) => (
-										<Select onValueChange={field.onChange} value={field.value}>
-											<SelectTrigger>
-												<SelectValue placeholder="Selecione um fuso horário" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="america/saopaulo">
-													America/Sao Paulo (GMT-3)
-												</SelectItem>
-												<SelectItem value="america/new_york">
-													America/New York (GMT-5)
-												</SelectItem>
-												<SelectItem value="europe/london">
-													Europe/London (GMT+0)
-												</SelectItem>
-												<SelectItem value="asia/tokyo">Asia/Tokyo (GMT+9)</SelectItem>
-											</SelectContent>
-										</Select>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div className="space-y-2">
+									<Label className="text-sm font-semibold text-gray-700">Fuso Horário</Label>
+									<Controller
+										name="fusoHours"
+										control={control}
+										render={({ field }) => (
+											<Select onValueChange={field.onChange} value={field.value}>
+												<SelectTrigger className="bg-white border-gray-200 focus:ring-primary/20">
+													<SelectValue placeholder="Selecione um fuso horário" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="america/saopaulo">
+														America/Sao Paulo (GMT-3)
+													</SelectItem>
+													<SelectItem value="america/new_york">
+														America/New York (GMT-5)
+													</SelectItem>
+													<SelectItem value="europe/london">
+														Europe/London (GMT+0)
+													</SelectItem>
+													<SelectItem value="asia/tokyo">Asia/Tokyo (GMT+9)</SelectItem>
+												</SelectContent>
+											</Select>
+										)}
+									/>
+									{errors.fusoHours && (
+										<p className="text-xs text-red-500 mt-1">{errors.fusoHours.message}</p>
 									)}
-								/>
-								{errors.fusoHours && (
-									<p className="text-red-500">{errors.fusoHours.message}</p>
-								)}
-							</div>
-							<div className="space-y-1">
-								<Label> Idioma</Label>
-								<Controller
-									name="language"
-									control={control}
-									render={({ field }) => (
-										<Select onValueChange={field.onChange} value={field.value}>
-											<SelectTrigger>
-												<SelectValue placeholder="Selecione um idioma" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="BR">Brasil</SelectItem>
-												<SelectItem value="EN">Inglês(us)</SelectItem>
-												<SelectItem value="ES">Espanhol</SelectItem>
-											</SelectContent>
-										</Select>
+								</div>
+
+								<div className="space-y-2">
+									<Label className="text-sm font-semibold text-gray-700">Idioma</Label>
+									<Controller
+										name="language"
+										control={control}
+										render={({ field }) => (
+											<Select onValueChange={field.onChange} value={field.value}>
+												<SelectTrigger className="bg-white border-gray-200 focus:ring-primary/20">
+													<SelectValue placeholder="Selecione um idioma" />
+												</SelectTrigger>
+												<SelectContent>
+													<SelectItem value="BR">Português (Brasil)</SelectItem>
+													<SelectItem value="EN">English (US)</SelectItem>
+													<SelectItem value="ES">Español</SelectItem>
+												</SelectContent>
+											</Select>
+										)}
+									/>
+									{errors.language && (
+										<p className="text-xs text-red-500 mt-1">{errors.language.message}</p>
 									)}
-								/>
-								{errors.language && (
-									<p className="text-red-500">{errors.language.message}</p>
-								)}
+								</div>
 							</div>
-							<Button type="submit" disabled={isSubmitting}>
-								{isSubmitting ? "Salvando..." : "Salvar alterações"}
-							</Button>
+
+							<div className="pt-4 border-t border-gray-100 flex justify-end">
+								<Button type="submit" disabled={isSubmitting} className="px-8 shadow-sm hover:shadow-md transition-all">
+									{isSubmitting ? "Salvando..." : "Salvar alterações"}
+								</Button>
+							</div>
 						</form>
 					)}
 				</CardContent>
 			</Card>
-			<Card>
-				<CardHeader>
-					<div className="flex justify-between items-center">
-						<CardTitle>Membros da Equipe</CardTitle>
-						<Button variant="default">Convidar</Button>
+
+			<Card className="border-none shadow-sm bg-white overflow-hidden">
+				<CardHeader className="border-b border-gray-100 bg-gray-50/50 pb-6 flex flex-row justify-between items-center">
+					<div className="space-y-1">
+						<CardTitle className="text-xl font-bold text-gray-800">Membros da Equipe</CardTitle>
+						<CardDescription className="text-gray-500">
+							Gerencie os membros da sua equipe e suas permissões
+						</CardDescription>
 					</div>
-					<CardDescription>
-						Gerencie os membros da sua equipe, convites e permissões do seu
-						workspace
-					</CardDescription>
+					<Button variant="outline" className="border-primary text-primary hover:bg-primary/5">
+						Convidar Membro
+					</Button>
 				</CardHeader>
-				<CardContent>
-					<div className="space-y-2">
-						<div className="flex flex-col gap-2 justify-between ">
-							{members.map((member, item) => (
-								<div
-									key={item}
-									className="flex flex-col p-3 gap-2 rounded-2xl bg-gray-200/40 "
-								>
-									<div className="flex gap-4 items-center">
-										<p className="font-semibold">{member.name}</p>
-										<p className="text-sm text-muted-foreground">{member.email}</p>
+				<CardContent className="pt-6">
+					<div className="space-y-3">
+						{members.map((member, index) => (
+							<div
+								key={index}
+								className="flex flex-col md:flex-row md:items-center justify-between p-4 rounded-xl border border-gray-100 bg-gray-50/30 hover:bg-gray-50 transition-colors gap-4"
+							>
+								<div className="flex items-center gap-4">
+									<div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+										{member.name.charAt(0)}
 									</div>
-									<div className="flex items-center gap-2">
-										<Select>
-											<SelectTrigger>
-												<SelectValue placeholder="Selecione uma permissão" />
-											</SelectTrigger>
-											<SelectContent>
-												<SelectItem value="admin">Admin</SelectItem>
-												<SelectItem value="editor">Editor</SelectItem>
-												<SelectItem value="viewer">Viewer</SelectItem>
-											</SelectContent>
-										</Select>
-										<Button variant="destructive">
-											<Trash2Icon />{" "}
-										</Button>
+									<div className="flex flex-col">
+										<p className="font-bold text-gray-800">{member.name}</p>
+										<p className="text-sm text-gray-500">{member.email}</p>
 									</div>
 								</div>
-							))}
-						</div>
+								
+								<div className="flex items-center gap-3">
+									<Select defaultValue={member.role.toLowerCase()}>
+										<SelectTrigger className="w-[130px] bg-white border-gray-200">
+											<SelectValue />
+										</SelectTrigger>
+										<SelectContent>
+											<SelectItem value="admin">Administrador</SelectItem>
+											<SelectItem value="editor">Editor</SelectItem>
+											<SelectItem value="membro">Membro</SelectItem>
+											<SelectItem value="viewer">Visualizador</SelectItem>
+										</SelectContent>
+									</Select>
+									<Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600 hover:bg-red-50">
+										<Trash2Icon className="w-5 h-5" />
+									</Button>
+								</div>
+							</div>
+						))}
 					</div>
 				</CardContent>
 			</Card>
 		</div>
+
 	);
 }
