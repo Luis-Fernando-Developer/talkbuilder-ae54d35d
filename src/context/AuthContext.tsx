@@ -170,15 +170,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		if (found) setCurrentWorkspace(found);
 	}
 
-	// Remove redundant useEffect that calls loadWorkspaces independently
-	// useEffect(() => {
-	// 	if (user) {
-	// 		loadWorkspaces(user.id);
-	// 	} else {
-	// 		setWorkspaces([]);
-	// 		setCurrentWorkspace(null);
-	// 	}
-	// }, [user]);
 
 	return (
 		<AuthContext.Provider
