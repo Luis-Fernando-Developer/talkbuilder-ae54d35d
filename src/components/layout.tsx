@@ -77,7 +77,7 @@ function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 			const [botEmoji, setBotEmoji] = useState<string>(defaultBotEmoji);
 		
 		
-			async function createFolder() {
+			function createFolder() {
 				if (!folderName.trim()) return;
 				
 				const newFolder = {
@@ -98,7 +98,7 @@ function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 				setFolderEmoji(defaultFolderEmoji);
 			}
 		
-			async function createBot() {
+			function createBot() {
 				if (!botName.trim()) return;
 				
 				const newBot = {
