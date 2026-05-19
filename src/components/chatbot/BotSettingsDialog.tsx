@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { GradientPicker } from './GradientPicker';
-import { Settings, Palette, Type, FileText, Upload, Download, Copy, Image as ImageIcon, MessageCircle, X, Loader2 } from 'lucide-react';
+import { Settings, Palette, Type, FileText, Upload, Download, Copy, Image as ImageIcon, MessageCircle, X, Loader2, Key } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -59,6 +59,12 @@ export function BotSettingsDialog({
     description: settings.metadata?.description || '',
     favicon: settings.metadata?.favicon || '',
   });
+  const [aiKeys, setAiKeys] = useState({
+    openaiKey: settings.aiKeys?.openaiKey || '',
+    anthropicKey: settings.aiKeys?.anthropicKey || '',
+    googleKey: settings.aiKeys?.googleKey || '',
+  });
+
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -116,7 +122,13 @@ export function BotSettingsDialog({
       description: settings.metadata?.description || '',
       favicon: settings.metadata?.favicon || '',
     });
+    setAiKeys({
+      openaiKey: settings.aiKeys?.openaiKey || '',
+      anthropicKey: settings.aiKeys?.anthropicKey || '',
+      googleKey: settings.aiKeys?.googleKey || '',
+    });
   }, [flowName, flowDescription, settings, open]);
+
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -125,7 +137,9 @@ export function BotSettingsDialog({
         ...settings,
         theme,
         metadata,
+        aiKeys,
       };
+
 
       const { error } = await supabaseClient
         .from('chatbot_flows')
@@ -164,7 +178,7 @@ export function BotSettingsDialog({
         </DialogHeader>
 
         <Tabs defaultValue="general" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="general">
               <FileText className="h-4 w-4 mr-2" />
               Geral
@@ -177,7 +191,12 @@ export function BotSettingsDialog({
               <Type className="h-4 w-4 mr-2" />
               SEO
             </TabsTrigger>
+            <TabsTrigger value="ai">
+              <Key className="h-4 w-4 mr-2" />
+              IA & Chaves
+            </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="general" className="space-y-4 py-4">
             <div className="space-y-2">
@@ -426,7 +445,62 @@ export function BotSettingsDialog({
               />
             </div>
           </TabsContent>
+
+          <TabsContent value="ai" className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  Configure as chaves de API para habilitar os recursos de Inteligência Artificial e o Agente Autônomo. Suas chaves são armazenadas de forma segura.
+                </p>
+              </div>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="openaiKey">OpenAI API Key</Label>
+                    <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">Obter chave</a>
+                  </div>
+                  <Input
+                    id="openaiKey"
+                    type="password"
+                    value={aiKeys.openaiKey}
+                    onChange={(e) => setAiKeys({ ...aiKeys, openaiKey: e.target.value })}
+                    placeholder="sk-..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="anthropicKey">Anthropic API Key</Label>
+                    <a href="https://console.anthropic.com/" target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">Obter chave</a>
+                  </div>
+                  <Input
+                    id="anthropicKey"
+                    type="password"
+                    value={aiKeys.anthropicKey}
+                    onChange={(e) => setAiKeys({ ...aiKeys, anthropicKey: e.target.value })}
+                    placeholder="sk-ant-..."
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="googleKey">Google Gemini API Key</Label>
+                    <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" className="text-[10px] text-primary hover:underline">Obter chave</a>
+                  </div>
+                  <Input
+                    id="googleKey"
+                    type="password"
+                    value={aiKeys.googleKey}
+                    onChange={(e) => setAiKeys({ ...aiKeys, googleKey: e.target.value })}
+                    placeholder="AIza..."
+                  />
+                </div>
+              </div>
+            </div>
+          </TabsContent>
         </Tabs>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
