@@ -23,6 +23,9 @@ import {
   Hourglass,
   ExternalLink,
   Redo2,
+  Cpu,
+  Table,
+  UserRound,
 } from "lucide-react";
 import { Node, NodeType } from "@/types/chatbot";
 import { renderTextSegments } from "@/lib/textParser";
@@ -65,6 +68,11 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   "condition": <Filter className="h-4 w-4" />,
   "wait": <Hourglass className="h-4 w-4" />,
   "await": <Hourglass className="h-4 w-4" />,
+  // AI
+  "ai-node": <Cpu className="h-4 w-4" />,
+  // Integrations
+  "google-sheets": <Table className="h-4 w-4" />,
+  "human-handoff": <UserRound className="h-4 w-4" />,
 };
 
 const nodeColors: Record<NodeType, string> = {
@@ -98,6 +106,9 @@ const nodeColors: Record<NodeType, string> = {
   "condition": "bg-purple-100 border-purple-300 text-purple-700",
   "wait": "bg-purple-100 border-purple-300 text-purple-700",
   "await": "bg-purple-100 border-purple-300 text-purple-700",
+  "ai-node": "bg-cyan-100 border-cyan-300 text-cyan-700",
+  "google-sheets": "bg-orange-100 border-orange-300 text-orange-700",
+  "human-handoff": "bg-orange-100 border-orange-300 text-orange-700",
 };
 
 const nodeLabels: Record<NodeType, string> = {
@@ -131,6 +142,9 @@ const nodeLabels: Record<NodeType, string> = {
   "condition": "Condição",
   "wait": "Aguardar",
   "await": "Aguardar",
+  "ai-node": "Inteligência Artificial",
+  "google-sheets": "Google Sheets / Excel",
+  "human-handoff": "Transbordo Humano",
 };
 
 export const NodeItem = ({ node, onClick }: NodeItemProps) => {
