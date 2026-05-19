@@ -154,3 +154,26 @@ CREATE POLICY "Admins can manage invitations" ON public.workspace_invites
             AND role IN ('owner', 'admin')
         )
     );
+
+-- 4. Backfill existing users
+DO $$
+BEGIN
+    INSERT INTO public.profiles (id, slug, display_name)
+    SELECT id, 
+           COALESCE(raw_user_meta_data->>'slug', split_part(email, '@', 1)),
+           COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1))
+    FROM auth.users
+    ON CONFLICT (id) DO NOTHING;
+
+    INSERT INTO public.workspaces (name, slug)
+    SELECT COALESCE(raw_user_meta_data->>'display_name', split_part(email, '@', 1)) || ' Workspace',
+           COALESCE(raw_user_meta_data->>'slug', split_part(email, '@', 1))
+    FROM auth.users
+    ON CONFLICT (slug) DO NOTHING;
+
+    INSERT INTO public.workspace_members (workspace_id, user_id, role)
+    SELECT w.id, u.id, 'owner'
+    FROM auth.users u
+    JOIN public.workspaces w ON w.slug = COALESCE(u.raw_user_meta_data->>'slug', split_part(u.email, '@', 1))
+    ON CONFLICT (workspace_id, user_id) DO NOTHING;
+END $$;
