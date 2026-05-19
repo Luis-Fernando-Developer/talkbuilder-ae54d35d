@@ -559,7 +559,12 @@ export const TestPanel = ({
                   }
                 }
               } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
-                const model = cfg.model === "gemini-1.5-pro" ? "gemini-1.5-pro-latest" : (cfg.model || "gemini-1.5-flash");
+                let model = cfg.model || "gemini-1.5-flash";
+                // Mapeamento de nomes simples para nomes técnicos exigidos pela API v1beta
+                if (model === "gemini-1.5-pro") model = "gemini-1.5-pro-latest";
+                if (model === "gemini-1.5-flash") model = "gemini-1.5-flash-latest";
+                if (model === "gemini-pro") model = "gemini-pro";
+
                 const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
