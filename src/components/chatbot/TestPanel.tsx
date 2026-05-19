@@ -490,12 +490,16 @@ export const TestPanel = ({
         const hasTools = allContainers.some(c => c.nodes.some(n => n.config?.isSkill));
         const userMessage = String(variables.__last_agent_user_message || "").trim();
         
-        // Verifica se existem chaves de API configuradas no settings
-        const keys = settings?.aiKeys || {};
-        const hasOpenAI = !!keys.openaiKey;
-        const hasAnthropic = !!keys.anthropicKey;
-        const hasGoogle = !!keys.googleKey;
+        // Verifica se existem chaves de API configuradas no settings ou no próprio nó
+        const nodeKey = cfg.apiKey;
+        const globalKeys = settings?.aiKeys || {};
+        const hasOpenAI = !!globalKeys.openaiKey || (cfg.provider === "openai" && !!nodeKey);
+        const hasAnthropic = !!globalKeys.anthropicKey || (cfg.provider === "anthropic" && !!nodeKey);
+        const hasGoogle = !!globalKeys.googleKey || (cfg.provider === "google" && !!nodeKey);
         const hasAnyKey = hasOpenAI || hasAnthropic || hasGoogle;
+
+        // Limpa a mensagem processada para evitar repetições
+        variables.__last_agent_user_message = "";
 
         if (!hasAnyKey) {
           nextMessages.push({ 
