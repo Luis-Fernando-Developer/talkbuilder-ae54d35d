@@ -544,7 +544,12 @@ export const TestPanel = ({
                   const data = await res.json();
                   aiReply = data.choices?.[0]?.message?.content || null;
                 } else {
-                  console.error("[TestPanel] OpenAI error", res.status, await res.text());
+                  const errorData = await res.json().catch(() => ({}));
+                  if (res.status === 429 && errorData.error?.code === "insufficient_quota") {
+                    aiReply = "❌ Sua chave da OpenAI está sem créditos ou atingiu o limite de uso (Quota Exceeded). Verifique seu plano e faturamento no painel da OpenAI.";
+                  } else {
+                    console.error("[TestPanel] OpenAI error", res.status, errorData);
+                  }
                 }
               } else if (selectedProvider === "google") {
                 const model = cfg.model || "gemini-1.5-flash";
@@ -560,7 +565,8 @@ export const TestPanel = ({
                   const data = await res.json();
                   aiReply = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || null;
                 } else {
-                  console.error("[TestPanel] Gemini error", res.status, await res.text());
+                  const errorData = await res.json().catch(() => ({}));
+                  console.error("[TestPanel] Gemini error", res.status, errorData);
                 }
               } else if (selectedProvider === "anthropic") {
                 const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -582,7 +588,8 @@ export const TestPanel = ({
                   const data = await res.json();
                   aiReply = data.content?.[0]?.text || null;
                 } else {
-                  console.error("[TestPanel] Anthropic error", res.status, await res.text());
+                  const errorData = await res.json().catch(() => ({}));
+                  console.error("[TestPanel] Anthropic error", res.status, errorData);
                 }
               }
             } catch (e) {
