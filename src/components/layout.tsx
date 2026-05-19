@@ -208,7 +208,11 @@ function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 									/>
 		
 									<button
-										onClick={createFolder}
+										type="button"
+										onClick={(e) => {
+											e.preventDefault();
+											createFolder();
+										}}
 										className="bg-blue-500 text-white p-2 rounded-md mt-2"
 									>
 										Criar pasta
@@ -270,7 +274,11 @@ function WorkspaceLayoutContent({ children }: { children: React.ReactNode }) {
 									/>
 		
 									<button
-										onClick={createBot}
+										type="button"
+										onClick={(e) => {
+											e.preventDefault();
+											createBot();
+										}}
 										className="bg-blue-500 text-white p-2 rounded-md mt-2"
 									>
 										Criar bot
