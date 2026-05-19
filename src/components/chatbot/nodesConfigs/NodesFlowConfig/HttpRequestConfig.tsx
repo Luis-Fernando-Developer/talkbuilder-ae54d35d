@@ -166,17 +166,23 @@ export const HttpRequestConfig = ({
 
   const handleAddKeyValue = (
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    field: "queryParams" | "headers" | "bodyParams"
   ) => {
-    setList([...list, { name: "", value: "" }]);
+    const newList = [...list, { name: "", value: "" }];
+    setList(newList);
+    setConfig({ ...config, [field]: newList });
   };
 
   const handleRemoveKeyValue = (
     index: number,
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    field: "queryParams" | "headers" | "bodyParams"
   ) => {
-    setList(list.filter((_, i) => i !== index));
+    const newList = list.filter((_, i) => i !== index);
+    setList(newList);
+    setConfig({ ...config, [field]: newList });
   };
 
   const handleKeyValueChange = (
@@ -184,26 +190,34 @@ export const HttpRequestConfig = ({
     field: keyof KeyValuePair,
     value: string,
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    configField: "queryParams" | "headers" | "bodyParams"
   ) => {
     const updated = [...list];
     updated[index] = { ...updated[index], [field]: value };
     setList(updated);
+    setConfig({ ...config, [configField]: updated });
   };
 
   const handleAddResponseMapping = () => {
-    setResponseMappings([...responseMappings, { jsonPath: "", variableName: "" }]);
+    const newList = [...responseMappings, { jsonPath: "", variableName: "" }];
+    setResponseMappings(newList);
+    setConfig({ ...config, responseMappings: newList });
   };
 
   const handleRemoveResponseMapping = (index: number) => {
-    setResponseMappings(responseMappings.filter((_, i) => i !== index));
+    const newList = responseMappings.filter((_, i) => i !== index);
+    setResponseMappings(newList);
+    setConfig({ ...config, responseMappings: newList });
   };
 
   const handleResponseMappingChange = (index: number, field: keyof ResponseMapping, value: string) => {
     const updated = [...responseMappings];
     updated[index] = { ...updated[index], [field]: value };
     setResponseMappings(updated);
+    setConfig({ ...config, responseMappings: updated });
   };
+
 
   const handleTestRequest = async () => {
     if (!url) {
@@ -360,7 +374,7 @@ export const HttpRequestConfig = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleAddKeyValue(queryParams, setQueryParams)}
+               onClick={() => handleAddKeyValue(queryParams, setQueryParams, "queryParams")}
             >
               <Plus className="h-4 w-4 mr-1" />
               Adicionar
@@ -395,8 +409,9 @@ export const HttpRequestConfig = ({
                         index,
                         "value",
                         e.target.value,
-                        queryParams,
-                        setQueryParams
+                         queryParams,
+                        setQueryParams,
+                        "queryParams"
                       )
                     }
                     placeholder="Valor (suporta {{var}})"
@@ -407,7 +422,7 @@ export const HttpRequestConfig = ({
                     variant="ghost"
                     size="icon"
                     onClick={() =>
-                      handleRemoveKeyValue(index, queryParams, setQueryParams)
+                       handleRemoveKeyValue(index, queryParams, setQueryParams, "queryParams")
                     }
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
