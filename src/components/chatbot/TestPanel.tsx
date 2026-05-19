@@ -1,7 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Send, Headphones, Play, Pause, FileText, Loader2, RefreshCw } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import { Button } from "../../components/ui/button";
 import { Input } from "../../components/ui/input";
+import { Textarea } from "../../components/ui/textarea";
 import { type Container, type Node, type ButtonConfig, type Edge, type ConditionComparison, type ConditionGroup } from "../../types/chatbot";
 
 interface ResponseMapping {
@@ -954,7 +957,12 @@ export const TestPanel = ({
                    : message.isAudio ? <div className="flex items-center gap-2"><Headphones className="h-4 w-4 shrink-0" /><AudioPlayer src={message.content} autoPlay={message.autoplay} /></div>
                    : message.isFile ? <div className="flex items-center gap-2"><FileText className="h-4 w-4 shrink-0" /><span className="truncate max-w-[180px]">{message.content}</span></div>
                    : message.isHtml ? <div className="rich-bubble whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: message.content }} />
-                   : renderTextSegments(message.content)}
+                   : message.type === "bot" ? (
+                       <div className="prose prose-sm max-w-none break-words [&>*]:my-1 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0" style={{ color: "inherit" }}>
+                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                       </div>
+                     )
+                   : <div className="whitespace-pre-wrap break-words">{renderTextSegments(message.content)}</div>}
                 </div>
               </div>
             ))}
@@ -974,36 +982,37 @@ export const TestPanel = ({
         )}
         {waitingForInput && !waitingForButton && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
-            <Input 
-              value={currentInput} 
-              onChange={(e) => setCurrentInput(e.target.value)} 
-              onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()} 
-              placeholder={
-                waitingForConfig?.resPonseUserNumber || 
-                waitingForConfig?.responseUserTextInput || 
-                waitingForConfig?.placeholder || 
-                "Digite aqui"
-              }
-              type={
-                waitingForType === "input-number" 
-                  ? (typeof waitingForConfig?.min === 'number' || typeof waitingForConfig?.max === 'number' ? "number" : "text") 
-                  : waitingForType === "input-mail" 
-                  ? "email" 
-                  : waitingForType === "input-webSite" 
-                  ? "url" 
-                  : "text"
-              }
-              min={waitingForType === "input-number" ? waitingForConfig?.min : undefined}
-              max={waitingForType === "input-number" ? waitingForConfig?.max : undefined}
-              step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
-              className="flex-1 min-w-0" 
-              style={{ 
-                background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined,
-                color: theme?.inputTextColor || "inherit",
-                borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined
-              }}
-              disabled={isLoading} 
-            />
+            {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
+              <Input 
+                value={currentInput} 
+                onChange={(e) => setCurrentInput(e.target.value)} 
+                onKeyPress={(e) => e.key === "Enter" && !isLoading && handleSendMessage()} 
+                placeholder={waitingForConfig?.resPonseUserNumber || waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui"}
+                type={waitingForType === "input-number" ? (typeof waitingForConfig?.min === 'number' || typeof waitingForConfig?.max === 'number' ? "number" : "text") : waitingForType === "input-mail" ? "email" : "url"}
+                min={waitingForType === "input-number" ? waitingForConfig?.min : undefined}
+                max={waitingForType === "input-number" ? waitingForConfig?.max : undefined}
+                step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
+                className="flex-1 min-w-0"
+                style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
+                disabled={isLoading}
+              />
+            ) : (
+              <Textarea
+                value={currentInput}
+                onChange={(e) => setCurrentInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (!isLoading) handleSendMessage();
+                  }
+                }}
+                placeholder={waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui (Shift+Enter para quebrar linha)"}
+                rows={1}
+                className="flex-1 min-w-0 resize-none min-h-[40px] max-h-[160px]"
+                style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
+                disabled={isLoading}
+              />
+            )}
             <Button 
               size="icon" 
               onClick={handleSendMessage} 
