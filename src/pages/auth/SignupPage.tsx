@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, Navigate, useNavigate, useLocation } from "react-router-dom";
 import { z } from "zod";
 import { getSupabase } from "../../lib/supabaseClient";
 import { Button } from "../../components/ui/button";
@@ -49,6 +49,7 @@ export default function SignupPage() {
 	const location = useLocation();
 	const query = new URLSearchParams(location.search);
 	const redirectUrl = query.get("redirect") || "/";
+	const isInviteSignup = redirectUrl.startsWith("/invite/");
 
 	const [displayName, setDisplayName] = useState("");
 	const [email, setEmail] = useState("");
@@ -60,6 +61,7 @@ export default function SignupPage() {
 
 	// debounce slug check
 	useEffect(() => {
+		if (isInviteSignup) return;
 		if (!slug) {
 			setSlugStatus("idle");
 			return;
@@ -83,7 +85,11 @@ export default function SignupPage() {
 			setSlugStatus(data ? "available" : "taken");
 		}, 400);
 		return () => clearTimeout(t);
-	}, [slug]);
+	}, [slug, isInviteSignup]);
+
+	if (isInviteSignup) {
+		return <Navigate to={redirectUrl} replace />;
+	}
 
 	async function handleSubmit(e: React.FormEvent) {
 		e.preventDefault();
