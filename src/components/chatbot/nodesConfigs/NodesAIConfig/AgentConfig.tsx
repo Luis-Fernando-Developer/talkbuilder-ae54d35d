@@ -10,8 +10,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Brain, Sparkles, MessageSquare, Target } from "lucide-react";
+import { Brain, Sparkles, Target } from "lucide-react";
 import { AI_PROVIDERS, MODELS_BY_PROVIDER } from "./constants";
+import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 
 interface AgentConfigProps {
   config: NodeConfig;
@@ -135,6 +136,8 @@ export const AgentConfig = ({ config, setConfig }: AgentConfigProps) => {
         </div>
       </div>
       
+      <KnowledgeBaseSection config={config} setConfig={setConfig} />
+
       <div className="p-3 bg-muted/30 border rounded-md">
         <p className="text-[11px] text-muted-foreground leading-relaxed">
           <strong>Dica:</strong> Para que este agente seja realmente autônomo, configure blocos de ação (como Sheets ou Redirect) e ative a opção "Habilitar como Skill" neles. O agente saberá usá-los quando necessário.
