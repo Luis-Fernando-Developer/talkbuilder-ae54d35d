@@ -25,6 +25,8 @@ export const AgentConfig = ({ config, setConfig }: AgentConfigProps) => {
   const apiKey = config.apiKey || "";
   const objective = config.objective || "";
   const instructions = config.instructions || "";
+  const startMode = config.startMode || "automatic";
+  const welcomeMessage = config.welcomeMessage || "";
   const toolCallingEnabled = config.toolCallingEnabled ?? true;
   const memoryEnabled = config.memoryEnabled ?? true;
   const apiKeyPlaceholder = API_KEY_PLACEHOLDERS_BY_PROVIDER[provider] || "Cole sua chave de API...";
@@ -98,6 +100,37 @@ export const AgentConfig = ({ config, setConfig }: AgentConfigProps) => {
           value={objective}
           onChange={(e) => setConfig({ ...config, objective: e.target.value })}
         />
+      </div>
+
+      <div className="space-y-4 pt-4 border-t">
+        <Label className="text-sm font-semibold">Comportamento de Início</Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Modo de Início</Label>
+            <Select 
+              value={startMode} 
+              onValueChange={(v) => setConfig({ ...config, startMode: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="automatic">Agente Inicia</SelectItem>
+                <SelectItem value="manual">Aguardar Usuário</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {startMode === "automatic" && (
+            <div className="space-y-2">
+              <Label>Mensagem de Boas-vindas</Label>
+              <Input 
+                placeholder="Deixe vazio para saudação da IA"
+                value={welcomeMessage}
+                onChange={(e) => setConfig({ ...config, welcomeMessage: e.target.value })}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="space-y-2">
