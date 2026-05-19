@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Brain, Sparkles, Target } from "lucide-react";
-import { AI_PROVIDERS, MODELS_BY_PROVIDER } from "./constants";
+import { AI_PROVIDERS, API_KEY_PLACEHOLDERS_BY_PROVIDER, MODELS_BY_PROVIDER } from "./constants";
 import { KnowledgeBaseSection } from "./KnowledgeBaseSection";
 
 interface AgentConfigProps {
@@ -27,6 +27,7 @@ export const AgentConfig = ({ config, setConfig }: AgentConfigProps) => {
   const instructions = config.instructions || "";
   const toolCallingEnabled = config.toolCallingEnabled ?? true;
   const memoryEnabled = config.memoryEnabled ?? true;
+  const apiKeyPlaceholder = API_KEY_PLACEHOLDERS_BY_PROVIDER[provider] || "Cole sua chave de API...";
 
   const selectedProvider = AI_PROVIDERS.find(p => p.id === provider);
 
@@ -80,7 +81,7 @@ export const AgentConfig = ({ config, setConfig }: AgentConfigProps) => {
           <Label>Chave de API (API Key)</Label>
           <Input 
             type="password"
-            placeholder="sk-..."
+            placeholder={apiKeyPlaceholder}
             value={apiKey}
             onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
           />
