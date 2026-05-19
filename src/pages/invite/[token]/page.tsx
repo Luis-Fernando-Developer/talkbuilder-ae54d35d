@@ -28,16 +28,17 @@ export default function InvitePage() {
         const { data, error } = await supabase
           .rpc("get_invitation_by_token", { invitation_token: token })
           .maybeSingle();
+        const invite = data as any;
 
         if (error) throw error;
-        if (!data) {
+        if (!invite) {
           setError("Convite não encontrado.");
-        } else if (data.accepted_at || data.status === "accepted") {
+        } else if (invite.accepted_at || invite.status === "accepted") {
           setError("Este convite já foi utilizado.");
-        } else if (new Date(data.expires_at) < new Date()) {
+        } else if (new Date(invite.expires_at) < new Date()) {
           setError("Este convite expirou.");
         } else {
-          setInviteData(data);
+          setInviteData(invite);
         }
       } catch (err: any) {
         console.error("Erro ao carregar convite:", err);
