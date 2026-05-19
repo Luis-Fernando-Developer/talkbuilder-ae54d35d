@@ -26,15 +26,13 @@ export default function InvitePage() {
         if (!supabase) return;
 
         const { data, error } = await supabase
-          .from("workspace_invitations")
-          .select("*, workspaces(name, slug)")
-          .eq("token", token)
+          .rpc("get_invitation_by_token", { invitation_token: token })
           .maybeSingle();
 
         if (error) throw error;
         if (!data) {
           setError("Convite não encontrado.");
-        } else if (data.accepted_at) {
+        } else if (data.accepted_at || data.status === "accepted") {
           setError("Este convite já foi utilizado.");
         } else if (new Date(data.expires_at) < new Date()) {
           setError("Este convite expirou.");
@@ -120,7 +118,7 @@ export default function InvitePage() {
               ? "Convite aceito com sucesso!" 
               : error 
                 ? "Não foi possível processar seu convite."
-                : `Você foi convidado para participar do workspace ${inviteData?.workspaces?.name}`
+                : `Você foi convidado para participar do workspace ${inviteData?.workspace_name}`
             }
           </CardDescription>
         </CardHeader>
