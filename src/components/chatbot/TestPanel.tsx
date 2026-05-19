@@ -559,24 +559,17 @@ export const TestPanel = ({
                   }
                 }
               } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
-                let modelsToTry = [];
-                const modelInput = cfg.model || "";
-                
-                // Fallback models if everything else fails
-                const defaultFallbacks = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"];
-                
-                if (modelInput.includes("gemini-1.5-pro")) {
-                  modelsToTry = ["gemini-1.5-pro-002", "gemini-1.5-pro-001", "gemini-1.5-pro", "gemini-1.5-pro-latest"];
-                } else if (modelInput.includes("gemini-1.5-flash")) {
-                  modelsToTry = ["gemini-1.5-flash-002", "gemini-1.5-flash-001", "gemini-1.5-flash", "gemini-1.5-flash-latest"];
-                } else if (modelInput === "gemini-pro") {
-                  modelsToTry = ["gemini-1.0-pro", "gemini-pro"];
-                } else {
-                  modelsToTry = [modelInput].filter(Boolean);
-                }
-                
-                // Ensure we always have fallbacks
-                modelsToTry = [...new Set([...modelsToTry, ...defaultFallbacks])];
+                const modelInput = (cfg.model || "gemini-2.5-flash").trim();
+                const normalizeGeminiModel = (model: string) => {
+                  if (model.includes("gemini-1.5") || model === "gemini-pro" || model.includes("gemini-1.0")) return "gemini-2.5-flash";
+                  return model.replace(/^models\//, "");
+                };
+                const modelsToTry = [...new Set([
+                  normalizeGeminiModel(modelInput),
+                  "gemini-2.5-flash",
+                  "gemini-2.5-pro",
+                  "gemini-2.0-flash",
+                ].filter(Boolean))];
 
                 let lastError = null;
                 let success = false;
@@ -584,7 +577,6 @@ export const TestPanel = ({
                 for (const model of modelsToTry) {
                   try {
                     console.log(`[TestPanel] Trying Gemini model: ${model}`);
-                    // Try both v1 and v1beta as some keys only work with one
                     const versions = ["v1beta", "v1"];
                     
                     for (const version of versions) {

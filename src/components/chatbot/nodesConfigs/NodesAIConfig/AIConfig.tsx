@@ -22,7 +22,7 @@ interface AIConfigProps {
   setConfig: (config: NodeConfig) => void;
 }
 
-import { AI_PROVIDERS, MODELS_BY_PROVIDER } from "./constants";
+import { AI_PROVIDERS, API_KEY_PLACEHOLDERS_BY_PROVIDER, MODELS_BY_PROVIDER } from "./constants";
 
 export const AIConfig = ({ config, setConfig }: AIConfigProps) => {
   const { getAllVariableNames, addVariable } = useVariables();
@@ -46,6 +46,7 @@ export const AIConfig = ({ config, setConfig }: AIConfigProps) => {
   const visionEnabled = config.visionEnabled ?? false;
   const toolCallingEnabled = config.toolCallingEnabled ?? false;
   const knowledgeBaseId = config.knowledgeBaseId || "";
+  const apiKeyPlaceholder = API_KEY_PLACEHOLDERS_BY_PROVIDER[provider] || "Cole sua chave de API...";
 
   const selectedProvider = AI_PROVIDERS.find(p => p.id === provider);
 
@@ -120,7 +121,7 @@ export const AIConfig = ({ config, setConfig }: AIConfigProps) => {
           <Label>Chave de API (API Key)</Label>
           <Input 
             type="password"
-            placeholder="sk-..."
+            placeholder={apiKeyPlaceholder}
             value={apiKey}
             onChange={(e) => setConfig({ ...config, apiKey: e.target.value })}
           />
