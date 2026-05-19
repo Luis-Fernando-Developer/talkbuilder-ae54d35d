@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, useCallback, useContext } from "react";
+import { useVariables, VariablesProvider } from "@/context/VariablesContext";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
