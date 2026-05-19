@@ -223,7 +223,9 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
           <div className="flex items-center justify-between gap-2">
             <p className="text-xs font-semibold text-left w-full pr-4 truncate">{nodeLabels[effectiveType]}</p>
             {node.config.isSkill && (
-              <Brain className="h-3 w-3 text-primary shrink-0" title="Ativado como Skill para IA" />
+              <div title="Ativado como Skill para IA">
+                <Brain className="h-3 w-3 text-primary shrink-0" />
+              </div>
             )}
           </div>
 
