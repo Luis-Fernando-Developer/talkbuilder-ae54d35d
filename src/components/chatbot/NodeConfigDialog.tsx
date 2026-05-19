@@ -22,7 +22,11 @@ export const NodeConfigDialog = ({ node, open, onClose, onSave, containers = [] 
   const [config, setConfig] = useState<NodeConfig>({});
 
   useEffect(() => {
-    if (node) setConfig(node.config);
+    if (node) {
+      // Criamos uma cópia profunda para evitar mutação direta do estado do canvas
+      // enquanto o usuário ainda está editando no diálogo.
+      setConfig(JSON.parse(JSON.stringify(node.config || {})));
+    }
   }, [node]);
 
   const handleSave = () => {
