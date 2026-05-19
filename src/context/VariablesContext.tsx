@@ -5,6 +5,7 @@ type VariableContextType = {
   setVariables: React.Dispatch<React.SetStateAction<Record<string, any>>>;
   getAllVariableNames: () => string[];
   addVariable: (name: string, value?: any) => void;
+  removeVariable: (name: string) => void;
   setVariable: (name: string, value: any) => void;
   replaceVariablesInText: (text: string, extraVars?: Record<string, any>) => string;
 };
