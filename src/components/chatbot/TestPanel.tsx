@@ -314,7 +314,13 @@ export const TestPanel = ({
         const varName = current.node.config?.variableName || current.node.config?.saveVariable;
         const value = input.message ?? input.button_id;
         if (varName && value !== undefined) variables[varName] = value;
-        currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
+        const currentType = String(current.node.type || "").toLowerCase();
+        if (currentType === "ai-agent") {
+          variables.__last_agent_user_message = value ?? "";
+          currentNodeId = current.node.id;
+        } else {
+          currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
+        }
       }
     }
 
