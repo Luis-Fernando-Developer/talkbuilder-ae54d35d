@@ -156,6 +156,7 @@ export const TestPanel = ({
   fullScreen = false,
   theme,
   flowId,
+  settings,
 }: TestPanelProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentInput, setCurrentInput] = useState("");
