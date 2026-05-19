@@ -559,37 +559,60 @@ export const TestPanel = ({
                   }
                 }
               } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
-                let model = cfg.model || "gemini-1.5-flash";
-                // Mapeamento rigoroso para evitar sufixos como -latest que a v1beta pode rejeitar
-                if (model.includes("gemini-1.5-pro")) model = "gemini-1.5-pro";
-                else if (model.includes("gemini-1.5-flash")) model = "gemini-1.5-flash";
-                else if (model.includes("gemini-pro")) model = "gemini-pro";
-                
-                console.log("[TestPanel] Using Gemini model:", model);
-
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    system_instruction: { parts: [{ text: systemPrompt }] },
-                    contents: [{ role: "user", parts: [{ text: userMessage }] }],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  const firstCandidate = data.candidates?.[0];
-                  if (firstCandidate?.content?.parts) {
-                    aiReply = firstCandidate.content.parts.map((p: any) => p.text).join("");
-                  } else if (firstCandidate?.finishReason) {
-                    aiReply = `⚠️ O Gemini não gerou uma resposta. Motivo: ${firstCandidate.finishReason}`;
-                  } else {
-                    aiReply = "O Gemini retornou uma resposta vazia ou em formato inesperado.";
-                  }
+                let modelsToTry = [];
+                if (cfg.model?.includes("gemini-1.5-pro")) {
+                  modelsToTry = ["gemini-1.5-pro-latest", "gemini-1.5-pro"];
+                } else if (cfg.model?.includes("gemini-1.5-flash")) {
+                  modelsToTry = ["gemini-1.5-flash-latest", "gemini-1.5-flash"];
                 } else {
-                  const errorData = await res.json().catch(() => ({}));
-                  console.error("[TestPanel] Gemini error", res.status, errorData);
-                  if (res.status === 400 && errorData.error?.message?.includes("API key")) {
+                  modelsToTry = [cfg.model || "gemini-1.5-flash-latest", "gemini-1.5-flash", "gemini-pro"];
+                }
+
+                let lastError = null;
+                let success = false;
+
+                for (const model of modelsToTry) {
+                  try {
+                    console.log(`[TestPanel] Trying Gemini model: ${model}`);
+                    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        system_instruction: { parts: [{ text: systemPrompt }] },
+                        contents: [{ role: "user", parts: [{ text: userMessage }] }],
+                      }),
+                    });
+
+                    if (res.ok) {
+                      const data = await res.json();
+                      const firstCandidate = data.candidates?.[0];
+                      if (firstCandidate?.content?.parts) {
+                        aiReply = firstCandidate.content.parts.map((p: any) => p.text).join("");
+                      } else if (firstCandidate?.finishReason) {
+                        aiReply = `⚠️ O Gemini não gerou uma resposta. Motivo: ${firstCandidate.finishReason}`;
+                      } else {
+                        aiReply = "O Gemini retornou uma resposta vazia ou em formato inesperado.";
+                      }
+                      success = true;
+                      break;
+                    } else {
+                      lastError = await res.json().catch(() => ({}));
+                      console.warn(`[TestPanel] Gemini model ${model} failed:`, lastError);
+                      // Se for erro de chave, não adianta tentar outros modelos
+                      if (res.status === 400 && lastError.error?.message?.includes("API key")) break;
+                    }
+                  } catch (err) {
+                    console.error(`[TestPanel] Error calling Gemini model ${model}:`, err);
+                    lastError = err;
+                  }
+                }
+
+                if (!success) {
+                  console.error("[TestPanel] All Gemini models failed", lastError);
+                  if (lastError?.error?.message?.includes("API key")) {
                     aiReply = "❌ Chave de API do Gemini inválida ou não autorizada.";
+                  } else {
+                    aiReply = `❌ Erro no Gemini: ${lastError?.error?.message || "Não foi possível obter resposta."}`;
                   }
                 }
               } else if (selectedProvider === "anthropic") {
