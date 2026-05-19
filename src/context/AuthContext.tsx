@@ -138,8 +138,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		setWorkspaces(mapped);
 		
 		// Auto-select based on URL or first available
-		const pathParts = window.location.hash ? window.location.hash.split("/") : window.location.pathname.split("/");
-		const pathSlug = pathParts.find(p => p !== "" && p !== "#" && p !== "workspace" && p !== "configs");
+		const hash = window.location.hash || "";
+		const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
+		const pathParts = cleanHash.split("/").filter(p => p && p !== "workspace" && p !== "configs");
+		const pathSlug = pathParts[0];
+		
 		const found = mapped.find((w: any) => w.slug === pathSlug);
 		setCurrentWorkspace(found || mapped[0] || null);
 	}
