@@ -101,6 +101,28 @@ export const HttpRequestConfig = ({
   const [responseMappings, setResponseMappings] = useState<ResponseMapping[]>(
     config.responseMappings || []
   );
+
+  // Sincroniza estados locais se a config do pai mudar (ex: ao abrir o modal)
+  useEffect(() => {
+    console.log("[HttpRequestConfig] Parent config changed, syncing local state:", config);
+    if (config.method) setMethod(config.method);
+    if (config.url !== undefined) setUrl(config.url);
+    if (config.authType) setAuthType(config.authType);
+    if (config.authCredentials) setAuthCredentials(config.authCredentials);
+    if (config.queryParams) setQueryParams(config.queryParams);
+    if (config.headers) setHeaders(config.headers);
+    if (config.sendBody !== undefined) setSendBody(config.sendBody);
+    if (config.bodyContentType) setBodyContentType(config.bodyContentType);
+    if (config.bodyParams) setBodyParams(config.bodyParams);
+    if (config.bodyJson) setBodyJson(config.bodyJson);
+    if (config.bodyRaw) setBodyRaw(config.bodyRaw);
+    if (config.timeout) setTimeout_(config.timeout);
+    if (config.followRedirects !== undefined) setFollowRedirects(config.followRedirects);
+    if (config.ignoreSSL !== undefined) setIgnoreSSL(config.ignoreSSL);
+    if (config.responseVariable) setResponseVariable(config.responseVariable);
+    if (config.responseFormat) setResponseFormat(config.responseFormat);
+    if (config.responseMappings) setResponseMappings(config.responseMappings);
+  }, [config]);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [lastJsonResponse, setLastJsonResponse] = useState<any>(null);
@@ -110,7 +132,8 @@ export const HttpRequestConfig = ({
   const [variableModalOpen, setVariableModalOpen] = useState<{ open: boolean; index: number }>({ open: false, index: -1 });
 
   useEffect(() => {
-    setConfig({
+    // Evita loop infinito comparando config atual com o novo objeto
+    const newConfig = {
       method,
       url,
       authType,
@@ -128,7 +151,12 @@ export const HttpRequestConfig = ({
       responseVariable,
       responseFormat,
       responseMappings,
-    });
+    };
+
+    if (JSON.stringify(config) !== JSON.stringify(newConfig)) {
+      console.log("[HttpRequestConfig] Updating parent config:", newConfig);
+      setConfig(newConfig);
+    }
   }, [
     method,
     url,
@@ -147,6 +175,8 @@ export const HttpRequestConfig = ({
     responseVariable,
     responseFormat,
     responseMappings,
+    config,
+    setConfig
   ]);
 
   const availableVariables = useMemo(() => getAllVariableNames(), [getAllVariableNames]);
