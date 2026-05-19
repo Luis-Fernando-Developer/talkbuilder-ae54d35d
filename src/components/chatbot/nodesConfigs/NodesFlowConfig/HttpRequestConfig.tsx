@@ -101,6 +101,28 @@ export const HttpRequestConfig = ({
   const [responseMappings, setResponseMappings] = useState<ResponseMapping[]>(
     config.responseMappings || []
   );
+
+  // Sincroniza estados locais se a config do pai mudar (ex: ao abrir o modal)
+  useEffect(() => {
+    console.log("[HttpRequestConfig] Parent config changed, syncing local state:", config);
+    if (config.method) setMethod(config.method);
+    if (config.url !== undefined) setUrl(config.url);
+    if (config.authType) setAuthType(config.authType);
+    if (config.authCredentials) setAuthCredentials(config.authCredentials);
+    if (config.queryParams) setQueryParams(config.queryParams);
+    if (config.headers) setHeaders(config.headers);
+    if (config.sendBody !== undefined) setSendBody(config.sendBody);
+    if (config.bodyContentType) setBodyContentType(config.bodyContentType);
+    if (config.bodyParams) setBodyParams(config.bodyParams);
+    if (config.bodyJson) setBodyJson(config.bodyJson);
+    if (config.bodyRaw) setBodyRaw(config.bodyRaw);
+    if (config.timeout) setTimeout_(config.timeout);
+    if (config.followRedirects !== undefined) setFollowRedirects(config.followRedirects);
+    if (config.ignoreSSL !== undefined) setIgnoreSSL(config.ignoreSSL);
+    if (config.responseVariable) setResponseVariable(config.responseVariable);
+    if (config.responseFormat) setResponseFormat(config.responseFormat);
+    if (config.responseMappings) setResponseMappings(config.responseMappings);
+  }, [config]);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
   const [lastJsonResponse, setLastJsonResponse] = useState<any>(null);
@@ -109,45 +131,9 @@ export const HttpRequestConfig = ({
   const [openVariablePopovers, setOpenVariablePopovers] = useState<Record<number, boolean>>({});
   const [variableModalOpen, setVariableModalOpen] = useState<{ open: boolean; index: number }>({ open: false, index: -1 });
 
-  useEffect(() => {
-    setConfig({
-      method,
-      url,
-      authType,
-      authCredentials,
-      queryParams,
-      headers,
-      sendBody,
-      bodyContentType,
-      bodyParams,
-      bodyJson,
-      bodyRaw,
-      timeout,
-      followRedirects,
-      ignoreSSL,
-      responseVariable,
-      responseFormat,
-      responseMappings,
-    });
-  }, [
-    method,
-    url,
-    authType,
-    authCredentials,
-    queryParams,
-    headers,
-    sendBody,
-    bodyContentType,
-    bodyParams,
-    bodyJson,
-    bodyRaw,
-    timeout,
-    followRedirects,
-    ignoreSSL,
-    responseVariable,
-    responseFormat,
-    responseMappings,
-  ]);
+  // Removido useEffect que chamava setConfig automaticamente.
+  // Agora apenas o clique em "Salvar" no modal dispara a atualização no pai.
+
 
   const availableVariables = useMemo(() => getAllVariableNames(), [getAllVariableNames]);
 
@@ -180,17 +166,23 @@ export const HttpRequestConfig = ({
 
   const handleAddKeyValue = (
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    field: "queryParams" | "headers" | "bodyParams"
   ) => {
-    setList([...list, { name: "", value: "" }]);
+    const newList = [...list, { name: "", value: "" }];
+    setList(newList);
+    setConfig({ ...config, [field]: newList });
   };
 
   const handleRemoveKeyValue = (
     index: number,
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    field: "queryParams" | "headers" | "bodyParams"
   ) => {
-    setList(list.filter((_, i) => i !== index));
+    const newList = list.filter((_, i) => i !== index);
+    setList(newList);
+    setConfig({ ...config, [field]: newList });
   };
 
   const handleKeyValueChange = (
@@ -198,26 +190,34 @@ export const HttpRequestConfig = ({
     field: keyof KeyValuePair,
     value: string,
     list: KeyValuePair[],
-    setList: (val: KeyValuePair[]) => void
+    setList: (val: KeyValuePair[]) => void,
+    configField: "queryParams" | "headers" | "bodyParams"
   ) => {
     const updated = [...list];
     updated[index] = { ...updated[index], [field]: value };
     setList(updated);
+    setConfig({ ...config, [configField]: updated });
   };
 
   const handleAddResponseMapping = () => {
-    setResponseMappings([...responseMappings, { jsonPath: "", variableName: "" }]);
+    const newList = [...responseMappings, { jsonPath: "", variableName: "" }];
+    setResponseMappings(newList);
+    setConfig({ ...config, responseMappings: newList });
   };
 
   const handleRemoveResponseMapping = (index: number) => {
-    setResponseMappings(responseMappings.filter((_, i) => i !== index));
+    const newList = responseMappings.filter((_, i) => i !== index);
+    setResponseMappings(newList);
+    setConfig({ ...config, responseMappings: newList });
   };
 
   const handleResponseMappingChange = (index: number, field: keyof ResponseMapping, value: string) => {
     const updated = [...responseMappings];
     updated[index] = { ...updated[index], [field]: value };
     setResponseMappings(updated);
+    setConfig({ ...config, responseMappings: updated });
   };
+
 
   const handleTestRequest = async () => {
     if (!url) {
@@ -312,11 +312,14 @@ export const HttpRequestConfig = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 p-4">
       {/* Method & URL */}
       <div className="flex gap-2">
         <div className="w-32">
-          <Select value={method} onValueChange={setMethod}>
+          <Select value={method} onValueChange={(val) => {
+            setMethod(val);
+            setConfig({ ...config, method: val });
+          }}>
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -334,7 +337,10 @@ export const HttpRequestConfig = ({
         <Input
           className="flex-1"
           value={url}
-          onChange={(e) => setUrl(e.target.value)}
+          onChange={(e) => {
+            setUrl(e.target.value);
+            setConfig({ ...config, url: e.target.value });
+          }}
           placeholder="https://api.exemplo.com/endpoint"
         />
         <Button
@@ -368,7 +374,7 @@ export const HttpRequestConfig = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleAddKeyValue(queryParams, setQueryParams)}
+               onClick={() => handleAddKeyValue(queryParams, setQueryParams, "queryParams")}
             >
               <Plus className="h-4 w-4 mr-1" />
               Adicionar
@@ -390,7 +396,8 @@ export const HttpRequestConfig = ({
                         "name",
                         e.target.value,
                         queryParams,
-                        setQueryParams
+                        setQueryParams,
+                        "queryParams"
                       )
                     }
                     placeholder="Nome"
@@ -403,8 +410,9 @@ export const HttpRequestConfig = ({
                         index,
                         "value",
                         e.target.value,
-                        queryParams,
-                        setQueryParams
+                         queryParams,
+                        setQueryParams,
+                        "queryParams"
                       )
                     }
                     placeholder="Valor (suporta {{var}})"
@@ -415,7 +423,7 @@ export const HttpRequestConfig = ({
                     variant="ghost"
                     size="icon"
                     onClick={() =>
-                      handleRemoveKeyValue(index, queryParams, setQueryParams)
+                       handleRemoveKeyValue(index, queryParams, setQueryParams, "queryParams")
                     }
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -588,7 +596,7 @@ export const HttpRequestConfig = ({
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => handleAddKeyValue(headers, setHeaders)}
+              onClick={() => handleAddKeyValue(headers, setHeaders, "headers")}
             >
               <Plus className="h-4 w-4 mr-1" />
               Adicionar
@@ -608,7 +616,8 @@ export const HttpRequestConfig = ({
                         "name",
                         e.target.value,
                         headers,
-                        setHeaders
+                        setHeaders,
+                        "headers"
                       )
                     }
                     placeholder="Nome"
@@ -622,7 +631,8 @@ export const HttpRequestConfig = ({
                         "value",
                         e.target.value,
                         headers,
-                        setHeaders
+                        setHeaders,
+                        "headers"
                       )
                     }
                     placeholder="Valor (suporta {{var}})"
@@ -633,7 +643,7 @@ export const HttpRequestConfig = ({
                     variant="ghost"
                     size="icon"
                     onClick={() =>
-                      handleRemoveKeyValue(index, headers, setHeaders)
+                      handleRemoveKeyValue(index, headers, setHeaders, "headers")
                     }
                   >
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -699,7 +709,7 @@ export const HttpRequestConfig = ({
                       type="button"
                       variant="outline"
                       size="sm"
-                      onClick={() => handleAddKeyValue(bodyParams, setBodyParams)}
+                      onClick={() => handleAddKeyValue(bodyParams, setBodyParams, "bodyParams")}
                     >
                       <Plus className="h-4 w-4 mr-1" />
                       Adicionar
@@ -715,7 +725,8 @@ export const HttpRequestConfig = ({
                             "name",
                             e.target.value,
                             bodyParams,
-                            setBodyParams
+                            setBodyParams,
+                            "bodyParams"
                           )
                         }
                         placeholder="Nome"
@@ -729,7 +740,8 @@ export const HttpRequestConfig = ({
                             "value",
                             e.target.value,
                             bodyParams,
-                            setBodyParams
+                            setBodyParams,
+                            "bodyParams"
                           )
                         }
                         placeholder="Valor"
@@ -740,7 +752,7 @@ export const HttpRequestConfig = ({
                         variant="ghost"
                         size="icon"
                         onClick={() =>
-                          handleRemoveKeyValue(index, bodyParams, setBodyParams)
+                          handleRemoveKeyValue(index, bodyParams, setBodyParams, "bodyParams")
                         }
                       >
                         <Trash2 className="h-4 w-4 text-destructive" />

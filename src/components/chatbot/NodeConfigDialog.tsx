@@ -30,13 +30,15 @@ export const NodeConfigDialog = ({ node, open, onClose, onSave, containers = [] 
   }, [node]);
 
   const handleSave = () => {
-    onSave(config);
+    console.log("[NodeConfigDialog] Saving config to parent:", config);
+    onSave(JSON.parse(JSON.stringify(config)));
     onClose();
   };
 
   if (!node) return null;
 
   const normalizedNodeType = String(node.type).toLowerCase() === "await" ? "wait" : String(node.type).toLowerCase();
+  console.log("[NodeConfigDialog] Rendering component for type:", normalizedNodeType, "Config:", config);
   const ConfigComponent = nodeConfigComponents[normalizedNodeType] || nodeConfigComponents[node.type];
 
   // Complex nodes need larger dialog
