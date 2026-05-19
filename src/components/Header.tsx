@@ -8,8 +8,8 @@ import { configsRoute, perfilRoute, workspaceRoot } from "../lib/workspaceRoutes
 export default function Header() {
   const navigate = useNavigate();
   const { flags } = useEmbed();
-  const { user, profile, signOut } = useAuth();
-  const slug = profile?.slug;
+  const { user, profile, signOut, currentWorkspace } = useAuth();
+  const slug = currentWorkspace?.slug || profile?.slug;
 
   async function handleLogout() {
     await signOut();
