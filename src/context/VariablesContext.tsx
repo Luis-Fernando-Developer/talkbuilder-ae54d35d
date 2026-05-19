@@ -45,6 +45,13 @@ export function VariablesProvider({
     );
   }, []);
 
+  const removeVariable = useCallback((name: string) => {
+    setVariables((prev) => {
+      const { [name]: _, ...rest } = prev;
+      return rest;
+    });
+  }, []);
+
   const setVariable = useCallback((name: string, value: any) => {
     setVariables((prev) => ({ ...prev, [name]: value }));
   }, []);
@@ -70,6 +77,7 @@ export function VariablesProvider({
         setVariables,
         getAllVariableNames,
         addVariable,
+        removeVariable,
         setVariable,
         replaceVariablesInText,
       }}
