@@ -47,57 +47,51 @@ export function InviteMemberDialog() {
       const supabase = getSupabase();
       if (!supabase) throw new Error("Supabase não configurado");
 
-      // LOG PARA DEBUG: Verificar as credenciais atuais do Supabase
-      console.log("Supabase Client URL:", (supabase as any).supabaseUrl);
+      // LOG PARA DEBUG: Verificar a URL do Supabase para saber qual banco está sendo usado
+      const supabaseUrl = (supabase as any).supabaseUrl;
+      console.log("Supabase Client URL:", supabaseUrl);
 
-      // Garantir que temos um workspace_id sem consultar workspace_members.
-      // Essa tabela é justamente a que está com política RLS recursiva no Supabase do usuário.
       let workspaceId = currentWorkspace?.id;
       
       if (!workspaceId) {
         const hash = window.location.hash;
         const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
         const pathParts = cleanHash.split("/").filter(Boolean);
-        
-        console.log("Debug Invite - Path Parts:", pathParts);
-
-        // No talkbuilder.lovable.app/#/teste03/workspace/configs
-        // teste03 é o primeiro elemento
         const slugFromUrl = pathParts[0];
-        console.log("Debug Invite - Extracted Slug:", slugFromUrl);
 
         if (!slugFromUrl || slugFromUrl === 'workspace' || slugFromUrl === 'invite') {
           throw new Error("Slug do workspace não identificado na URL.");
         }
 
-        // Tentar buscar por slug exato (usando eq() de forma sensível a maiúsculas/minúsculas)
+        // TENTATIVA 1: Buscar diretamente pelo slug
         const { data: workspaceData, error: workspaceError } = await supabase
           .from("workspaces")
-          .select("id, slug")
-          .or(`slug.eq.${slugFromUrl},slug.ilike.${slugFromUrl}`)
+          .select("id")
+          .eq("slug", slugFromUrl)
           .maybeSingle();
-          
-        if (workspaceError) {
-          console.error("Erro ao buscar workspace:", workspaceError);
-          throw workspaceError;
-        }
 
         if (workspaceData) {
           workspaceId = workspaceData.id;
         } else {
-          // Fallback: listar tudo o que este usuário PODE ver na tabela workspaces
-          // Se a RLS permitir select, isso deve funcionar.
-          const { data: allWorkspaces } = await supabase
-            .from("workspaces")
-            .select("id, slug");
-            
-          console.log("Workspaces visíveis para este usuário:", allWorkspaces);
+          // TENTATIVA 2: Se não encontrou, pode ser que o usuário não tenha permissão de ler a tabela 'workspaces'
+          // Vamos tentar verificar se ele tem algum membro em 'workspace_members' para esse slug
+          console.log("Slug não encontrado em 'workspaces', tentando via 'workspace_members'...");
+          const { data: memberData, error: memberError } = await supabase
+            .from("workspace_members")
+            .select("workspace_id, workspaces(slug)")
+            .limit(10);
           
-          const found = allWorkspaces?.find(w => w.slug.toLowerCase() === slugFromUrl.toLowerCase());
-          if (found) {
-            workspaceId = found.id;
+          console.log("Dados de membros encontrados:", memberData);
+          
+          const foundMember = memberData?.find((m: any) => m.workspaces?.slug === slugFromUrl);
+          if (foundMember) {
+            workspaceId = foundMember.workspace_id;
           } else {
-            throw new Error(`Workspace '${slugFromUrl}' não encontrado ou você não tem acesso a ele neste banco. (Visíveis: ${allWorkspaces?.map(w => w.slug).join(", ") || 'nenhum'})`);
+            // TENTATIVA 3: Último recurso - buscar qualquer workspace para ver se o banco está vazio ou inacessível
+            const { data: allW } = await supabase.from("workspaces").select("slug").limit(5);
+            const visibleSlugs = allW?.map(w => w.slug).join(", ") || "nenhum";
+            
+            throw new Error(`Workspace '${slugFromUrl}' não encontrado no banco ${supabaseUrl}. Slugs visíveis: ${visibleSlugs}. Verifique se você está no ambiente correto.`);
           }
         }
       }
