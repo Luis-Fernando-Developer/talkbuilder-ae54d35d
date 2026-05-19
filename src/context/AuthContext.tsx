@@ -114,7 +114,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		setLoading(true);
 		console.log("[Auth] Carregando workspaces para:", userId);
 		const supabase = getSupabase();
-		if (!supabase) return;
+		if (!supabase) {
+			setLoading(false);
+			return;
+		}
 		let { data, error } = await supabase
 			.rpc("get_my_workspaces");
 
@@ -132,6 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			console.error("[Auth] Erro ao carregar workspaces:", error);
 			setWorkspaces([]);
 			setCurrentWorkspace(null);
+			setLoading(false);
 			return;
 		}
 
@@ -149,6 +153,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		
 		const found = mapped.find((w: any) => w.slug === pathSlug);
 		setCurrentWorkspace(found || mapped[0] || null);
+		setLoading(false);
 	}
 
 	function switchWorkspace(slug: string) {
