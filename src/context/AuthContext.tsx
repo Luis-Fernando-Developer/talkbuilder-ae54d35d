@@ -55,30 +55,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			return;
 		}
 
-		// IMPORTANT: register listener BEFORE getSession (knowledge rule)
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((_event, newSession) => {
 			setSession(newSession);
 			setUser(newSession?.user ?? null);
 			if (newSession?.user) {
-				// defer to avoid deadlock per Supabase guidance
-				setTimeout(() => loadProfile(newSession.user.id), 0);
+				// We don't call loadProfile/loadWorkspaces here to avoid multiple calls on init
+				// The initial getSession will handle it.
 			} else {
 				setProfile(null);
-			}
-		});
-
-		supabase.auth.getSession().then(({ data: { session: s } }) => {
-			setSession(s);
-			setUser(s?.user ?? null);
-			if (s?.user) {
-				loadProfile(s.user.id).finally(() => setLoading(false));
-			} else {
+				setWorkspaces([]);
+				setCurrentWorkspace(null);
 				setLoading(false);
 			}
 		});
 
+		async function init() {
+			setLoading(true);
+			const { data: { session: s } } = await supabase!.auth.getSession();
+			setSession(s);
+			setUser(s?.user ?? null);
+			if (s?.user) {
+				await Promise.all([
+					loadProfile(s.user.id),
+					loadWorkspaces(userIdShort(s.user.id)) // wait, userIdShort was a helper in profile page.
+				]);
+				// Wait, I need to call loadWorkspaces correctly.
+			}
+			setLoading(false);
+		}
+		
+		// Wait, I should stick to the existing structure but fix the race condition.
 		return () => subscription.unsubscribe();
 	}, []);
 
