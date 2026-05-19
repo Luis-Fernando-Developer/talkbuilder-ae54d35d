@@ -11,7 +11,9 @@ import { Input } from "../../../components/ui/input";
 import { Label } from "../../../components/ui/label";
 import { browserHrefForRoute } from "../../../lib/workspaceRoutes";
 
+// v1.0.6
 export default function InvitePage() {
+  console.log("[InvitePage] Renderizado v1.0.6");
   const { token } = useParams<{ token: string }>();
   const { user, loading: authLoading, refreshProfile } = useAuth();
   const [loading, setLoading] = useState(true);
@@ -164,25 +166,51 @@ export default function InvitePage() {
       };
 
       // Create the account
-      const { data, error } = await supabase.auth.signUp({
+      let { data, error } = await supabase.auth.signUp({
         email: inviteData.email,
         password,
         options: signupOptions
       });
 
-      if (error) throw error;
+      let currentSession = data.session;
 
-      // Handle successful signup
-      if (data.session) {
-        toast({ title: "Conta criada!", description: "Aceitando o convite..." });
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          toast({ title: "Conta já existe", description: "Tentando entrar na sua conta..." });
+          // Se já existe, tenta fazer o login silenciosamente
+          const loginRes = await supabase.auth.signInWithPassword({
+            email: inviteData.email,
+            password: password
+          });
+          if (loginRes.error) throw loginRes.error;
+          currentSession = loginRes.data.session;
+        } else {
+          throw error;
+        }
+      }
+
+      // Handle successful signup or login
+      if (currentSession) {
+        toast({ title: "Autenticado!", description: "Aceitando o convite..." });
         
         // Forçar um pequeno delay para garantir que a sessão esteja estabilizada
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Chamar o RPC diretamente
-        const { data: rpcData, error: rpcError } = await supabase.rpc("accept_invitation", {
+        // Tenta processar o convite
+        console.log("[InvitePage] Chamando RPC accept_invitation...");
+        let rpcResult = await supabase.rpc("accept_invitation", {
           invitation_token: token
         });
+
+        // Se falhar com PGRST202, tenta o nome alternativo que criamos
+        if (rpcResult.error && rpcResult.error.code === 'PGRST202') {
+          console.warn("[InvitePage] accept_invitation não encontrada, tentando process_invite_token...");
+          rpcResult = await supabase.rpc("process_invite_token", {
+            token_value: token
+          });
+        }
+
+        const { data: rpcData, error: rpcError } = rpcResult;
 
         if (rpcError) throw rpcError;
 
@@ -202,7 +230,7 @@ export default function InvitePage() {
         setTimeout(() => {
           navigate(`/${rpcData.workspace_slug}/workspace`);
         }, 1500);
-      } else if (data.user) {
+      } else if (data && data.user) {
         // User created but needs email verification
         toast({ 
           title: "Confira seu email", 
@@ -242,10 +270,19 @@ export default function InvitePage() {
         // Pequeno delay para estabilidade
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Chamar o RPC diretamente
-        const { data: rpcData, error: rpcError } = await supabase.rpc("accept_invitation", {
+        // Tenta processar o convite
+        let rpcResult = await supabase.rpc("accept_invitation", {
           invitation_token: token
         });
+
+        // Fallback para o nome alternativo
+        if (rpcResult.error && rpcResult.error.code === 'PGRST202') {
+          rpcResult = await supabase.rpc("process_invite_token", {
+            token_value: token
+          });
+        }
+
+        const { data: rpcData, error: rpcError } = rpcResult;
 
         if (rpcError) throw rpcError;
 
