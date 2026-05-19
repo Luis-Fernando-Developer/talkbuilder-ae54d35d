@@ -64,25 +64,28 @@ export function InviteMemberDialog() {
         .from("workspaces")
         .select(`
           id,
-          workspace_members!inner(role)
+          workspace_members (
+            role,
+            user_id
+          )
         `)
         .eq("slug", pathSlug)
-        .eq("workspace_members.user_id", user.id)
         .single();
 
       if (wsError || !wsData) {
-        console.error("Erro ao validar workspace ou permissões:", wsError);
-        throw new Error(`Workspace ou permissões não localizados para o usuário ${user.email}. Por favor, verifique se a migração de banco de dados foi aplicada.`);
+        console.error("Erro ao localizar workspace:", wsError);
+        throw new Error(`Workspace "${pathSlug}" não encontrado ou erro de conexão.`);
       }
 
-      // Supabase pode retornar array ou objeto dependendo do join
-      const members = wsData.workspace_members as any;
-      const userRole = Array.isArray(members) ? members[0]?.role : members?.role;
+      // Filtrar manualmente as permissões do usuário logado
+      const members = wsData.workspace_members as any[];
+      const myMembership = members?.find(m => m.user_id === user.id);
+      const userRole = myMembership?.role;
       
-      console.log("Cargo detectado:", userRole);
+      console.log("Minha relação com o workspace:", { myMembership, userRole });
 
-      if (userRole !== 'owner' && userRole !== 'admin') {
-        throw new Error(`Apenas proprietários ou administradores podem convidar novos membros. Seu cargo atual é: ${userRole || 'nenhum'}`);
+      if (!userRole || (userRole !== 'owner' && userRole !== 'admin')) {
+        throw new Error(`Permissões insuficientes. Para convidar membros, você precisa ser Owner ou Admin. Seu cargo atual: ${userRole || 'Visitante'}.`);
       }
 
       // 3. Gerar o convite no banco de dados
