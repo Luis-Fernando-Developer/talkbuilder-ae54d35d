@@ -116,18 +116,27 @@ export default function BotPage() {
       setEdges(local.edges);
 
       const supabase = getSupabase();
-      if (!supabase || !bot) {
+      // Esperamos o currentWorkspace.id estar presente para garantir que o flow 
+      // seja criado/carregado com o workspace_id correto para permissões RLS.
+      if (!supabase || !bot || !currentWorkspace?.id) {
+        if (!currentWorkspace?.id && bot) {
+           console.log("[BotPage] Aguardando currentWorkspace.id...");
+        }
         setHydrated(true);
         return;
       }
+
       try {
-        const row = await ensureFlow(botId, bot.title || "Novo bot", currentWorkspace?.id);
+        console.log("[BotPage] Carregando flow para bot:", botId, "Workspace:", currentWorkspace.id);
+        const row = await ensureFlow(botId, bot.title || "Novo bot", currentWorkspace.id);
         if (cancelled) return;
         setFlow(row);
-        // Se o servidor tem dados mais recentes, prefere ele
-        if (row.draft_containers?.length || row.draft_edges?.length) {
-          setContainers(row.draft_containers);
-          setEdges(row.draft_edges);
+        
+        // Se o servidor tem dados, e eles parecem ser mais novos ou o local está vazio, prefere o servidor
+        const hasServerData = row.draft_containers?.length || row.draft_edges?.length;
+        if (hasServerData) {
+          setContainers(row.draft_containers || []);
+          setEdges(row.draft_edges || []);
         }
       } catch (err) {
         console.error("Erro carregando flow:", err);
@@ -139,7 +148,7 @@ export default function BotPage() {
     return () => {
       cancelled = true;
     };
-  }, [botId, bot]);
+  }, [botId, bot, currentWorkspace?.id]); // Adicionado currentWorkspace?.id como dependência
 
   // Persiste cache local em toda alteração e gerencia histórico
   useEffect(() => {
@@ -281,27 +290,35 @@ export default function BotPage() {
     if (!flow) {
       // sem Supabase — só salva local
       saveLocal(botId, { containers, edges });
-      toast.success("Fluxo salvo localmente");
+      toast.success("Fluxo salvo localmente (aguardando conexão)");
       return;
     }
+    
     setIsSaving(true);
     try {
-      const updated = await saveDraft(flow.id, containers, edges);
+      // Criamos uma cópia profunda para garantir consistência no que é enviado
+      const containersToSave = JSON.parse(JSON.stringify(containers));
+      const edgesToSave = JSON.parse(JSON.stringify(edges));
+      
+      console.log("[BotPage] Iniciando salvamento no Supabase...", {
+        flowId: flow.id,
+        nodesCount: containersToSave.length,
+        edgesCount: edgesToSave.length
+      });
+
+      const updated = await saveDraft(flow.id, containersToSave, edgesToSave);
+      
       setFlow(updated);
       lastSavedAtRef.current = Date.now();
       
       // Limpa o histórico após salvar com sucesso para economizar memória
-      const currentState = { 
-        containers: JSON.parse(JSON.stringify(containers)), 
-        edges: JSON.parse(JSON.stringify(edges)) 
-      };
-      setHistory([currentState]);
+      setHistory([{ containers: containersToSave, edges: edgesToSave }]);
       setHistoryIndex(0);
       
-      toast.success("Fluxo salvo!");
+      toast.success("Fluxo salvo com sucesso!");
     } catch (err: any) {
-      console.error(err);
-      toast.error("Erro ao salvar: " + (err.message ?? "tente novamente"));
+      console.error("[BotPage] Erro ao salvar:", err);
+      toast.error("Erro ao salvar no servidor: " + (err.message ?? "tente novamente"));
     } finally {
       setIsSaving(false);
     }
@@ -367,19 +384,17 @@ export default function BotPage() {
     try {
       saveLocal(botId, { containers, edges });
       if (flow) {
-        void saveDraft(flow.id, containers, edges).catch((err) =>
-          console.warn("[BotPage] saveDraft on back failed:", err),
-        );
+        // Usamos await aqui para garantir que o save complete antes do reload/navegação
+        await saveDraft(flow.id, containers, edges);
       }
     } catch (err) {
-      console.warn("[BotPage] flush on back failed:", err);
+      console.warn("[BotPage] Save on back failed:", err);
     }
 
     // 2) Determina o destino (pasta pai ou workspace main).
     const parentId = bot?.parentId;
     const remembered = rememberedBotBackRoute(botId);
     
-    // Prioridade: Rota lembrada > Pasta Pai > Workspace Root
     let target = remembered;
     if (!target) {
       if (parentId) {
@@ -389,10 +404,6 @@ export default function BotPage() {
       }
     }
 
-    console.log("[BotPage] Back clicked. Target:", target, "Remembered:", remembered, "ParentId:", parentId);
-
-    // 3) Troca a rota e recarrega a SPA. Só mudar o hash/URL não estava desmontando
-    // o overlay fixed do editor no site publicado.
     if (typeof window !== "undefined") {
       hardReloadToRoute(target);
     } else {
