@@ -21,6 +21,8 @@ import {
   Webhook,
   Send,
   Hourglass,
+  ExternalLink,
+  Redo2,
 } from "lucide-react";
 import { NodeType } from "@/types/chatbot";
 import { Button } from "@/components/ui/button";
@@ -37,6 +39,8 @@ const nodeTypes: {
 }[] = [
   // Flow
   { type: "start", label: "Start", icon: <Play className="h-5 w-5" />, category: "flow" },
+  { type: "redirect", label: "Redirect", icon: <ExternalLink className="h-5 w-5" />, category: "flow" },
+  { type: "go-to", label: "Go To", icon: <Redo2 className="h-5 w-5" />, category: "flow" },
   // Bubbles
   { type: "bubble-text", label: "Texto", icon: <MessageSquare className="h-5 w-5" />, category: "bubbles" },
   { type: "bubble-number", label: "Número", icon: <Hash className="h-5 w-5" />, category: "bubbles" },
