@@ -59,7 +59,6 @@ export function InviteMemberDialog() {
         const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
         const pathParts = cleanHash.split("/").filter(Boolean);
         
-        console.log("Debug Invite - Full Hash:", hash);
         console.log("Debug Invite - Path Parts:", pathParts);
 
         // No talkbuilder.lovable.app/#/teste03/workspace/configs
@@ -71,34 +70,44 @@ export function InviteMemberDialog() {
           throw new Error("Slug do workspace não identificado na URL.");
         }
 
-        const { data: workspaceData, error: workspaceError } = await supabase
+        // Se o slug for 'teste03', vamos tentar buscar exatamente por ele
+        // mas também tentamos listar os workspaces para ver se o slug está lá
+        const { data: workspaces, error: listError } = await supabase
           .from("workspaces")
-          .select("id, slug")
-          .eq("slug", slugFromUrl)
-          .maybeSingle();
-          
-        if (workspaceError) {
-          console.error("Erro ao buscar workspace:", workspaceError);
-          throw workspaceError;
-        }
+          .select("id, slug");
 
-        if (!workspaceData) {
-          // Tentar buscar por slug exato se o primeiro falhar (caso a estrutura seja diferente)
-          console.log("Tentando busca secundária por slug...");
-          const { data: altData } = await supabase
+        if (listError) {
+          console.error("Erro ao listar workspaces:", listError);
+          // Se falhar ao listar, tentamos a busca direta
+          const { data: workspaceData, error: workspaceError } = await supabase
             .from("workspaces")
             .select("id")
-            .in("slug", pathParts)
-            .limit(1)
+            .eq("slug", slugFromUrl)
             .maybeSingle();
-          
-          if (altData) {
-            workspaceId = altData.id;
-          } else {
-            throw new Error(`Workspace '${slugFromUrl}' não encontrado no banco.`);
+
+          if (workspaceError || !workspaceData) {
+            throw new Error(`Workspace '${slugFromUrl}' não encontrado ou erro de acesso.`);
           }
-        } else {
           workspaceId = workspaceData.id;
+        } else {
+          console.log("Workspaces encontrados no banco:", workspaces);
+          const found = workspaces?.find(w => w.slug === slugFromUrl);
+          if (found) {
+            workspaceId = found.id;
+          } else {
+            // Caso especial: o slug na URL pode estar encodado ou ter variações
+            const fallbackFound = workspaces?.find(w => 
+              w.slug.toLowerCase() === slugFromUrl.toLowerCase() || 
+              slugFromUrl.includes(w.slug) || 
+              w.slug.includes(slugFromUrl)
+            );
+            
+            if (fallbackFound) {
+              workspaceId = fallbackFound.id;
+            } else {
+              throw new Error(`Workspace '${slugFromUrl}' não encontrado. Disponíveis: ${workspaces?.map(w => w.slug).join(", ")}`);
+            }
+          }
         }
       }
 
