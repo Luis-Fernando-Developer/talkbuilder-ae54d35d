@@ -356,6 +356,18 @@ BEGIN
   WHERE NOT EXISTS (
     SELECT 1 FROM public.workspace_members wm WHERE wm.workspace_id = w.id AND wm.user_id = u.id
   );
+
+  -- Safety net for older projects that already had one workspace (for example "teste03")
+  -- but no member rows yet: attach users with no membership to the oldest existing workspace.
+  INSERT INTO public.workspace_members (workspace_id, user_id, role)
+  SELECT w.id, u.id, 'owner'
+  FROM auth.users u
+  CROSS JOIN LATERAL (
+    SELECT id FROM public.workspaces ORDER BY created_at ASC LIMIT 1
+  ) w
+  WHERE NOT EXISTS (
+    SELECT 1 FROM public.workspace_members wm WHERE wm.user_id = u.id
+  );
 END $$;
 
 GRANT EXECUTE ON FUNCTION public.get_my_workspaces() TO authenticated;
