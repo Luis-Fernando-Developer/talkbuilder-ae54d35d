@@ -570,10 +570,20 @@ export const TestPanel = ({
                 });
                 if (res.ok) {
                   const data = await res.json();
-                  aiReply = data.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || null;
+                  const firstCandidate = data.candidates?.[0];
+                  if (firstCandidate?.content?.parts) {
+                    aiReply = firstCandidate.content.parts.map((p: any) => p.text).join("");
+                  } else if (firstCandidate?.finishReason) {
+                    aiReply = `⚠️ O Gemini não gerou uma resposta. Motivo: ${firstCandidate.finishReason}`;
+                  } else {
+                    aiReply = "O Gemini retornou uma resposta vazia ou em formato inesperado.";
+                  }
                 } else {
                   const errorData = await res.json().catch(() => ({}));
                   console.error("[TestPanel] Gemini error", res.status, errorData);
+                  if (res.status === 400 && errorData.error?.message?.includes("API key")) {
+                    aiReply = "❌ Chave de API do Gemini inválida ou não autorizada.";
+                  }
                 }
               } else if (selectedProvider === "anthropic") {
                 const res = await fetch("https://api.anthropic.com/v1/messages", {
