@@ -560,9 +560,10 @@ export const TestPanel = ({
                 }
               } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
                 let model = cfg.model || "gemini-1.5-flash";
-                // Mapeamento rigoroso para evitar sufixos como -latest que a v1beta pode rejeitar
-                if (model.includes("gemini-1.5-pro")) model = "gemini-1.5-pro";
-                else if (model.includes("gemini-1.5-flash")) model = "gemini-1.5-flash";
+                // Mapeamento rigoroso: A API v1beta as vezes exige -latest para o 1.5-pro, ou nomes específicos dependendo da região
+                // Vamos tentar o gemini-1.5-pro-latest que é o mais comum para v1beta
+                if (model.includes("gemini-1.5-pro")) model = "gemini-1.5-pro-latest";
+                else if (model.includes("gemini-1.5-flash")) model = "gemini-1.5-flash-latest";
                 else if (model.includes("gemini-pro")) model = "gemini-pro";
                 
                 console.log("[TestPanel] Using Gemini model:", model);
