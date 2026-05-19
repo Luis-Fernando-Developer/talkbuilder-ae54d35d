@@ -170,7 +170,20 @@ export default function InvitePage() {
         options: signupOptions
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes("User already registered")) {
+          toast({ title: "Conta já existe", description: "Tentando entrar na sua conta..." });
+          // Se já existe, tenta fazer o login silenciosamente
+          const loginRes = await supabase.auth.signInWithPassword({
+            email: inviteData.email,
+            password: password
+          });
+          if (loginRes.error) throw loginRes.error;
+          data.session = loginRes.data.session;
+        } else {
+          throw error;
+        }
+      }
 
       // Handle successful signup
       if (data.session) {
@@ -179,10 +192,19 @@ export default function InvitePage() {
         // Forçar um pequeno delay para garantir que a sessão esteja estabilizada
         await new Promise(resolve => setTimeout(resolve, 500));
         
-        // Chamar o novo RPC para processar o convite
-        const { data: rpcData, error: rpcError } = await supabase.rpc("process_invite_token", {
-          token_value: token
+        // Tenta processar o convite
+        let rpcResult = await supabase.rpc("accept_invitation", {
+          invitation_token: token
         });
+
+        // Se falhar com PGRST202, tenta o nome alternativo que criamos
+        if (rpcResult.error && rpcResult.error.code === 'PGRST202') {
+          rpcResult = await supabase.rpc("process_invite_token", {
+            token_value: token
+          });
+        }
+
+        const { data: rpcData, error: rpcError } = rpcResult;
 
         if (rpcError) throw rpcError;
 
@@ -242,10 +264,19 @@ export default function InvitePage() {
         // Pequeno delay para estabilidade
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Chamar o novo RPC
-        const { data: rpcData, error: rpcError } = await supabase.rpc("process_invite_token", {
-          token_value: token
+        // Tenta processar o convite
+        let rpcResult = await supabase.rpc("accept_invitation", {
+          invitation_token: token
         });
+
+        // Fallback para o nome alternativo
+        if (rpcResult.error && rpcResult.error.code === 'PGRST202') {
+          rpcResult = await supabase.rpc("process_invite_token", {
+            token_value: token
+          });
+        }
+
+        const { data: rpcData, error: rpcError } = rpcResult;
 
         if (rpcError) throw rpcError;
 
