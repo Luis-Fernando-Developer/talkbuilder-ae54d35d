@@ -182,6 +182,9 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
   const hasWaitPreview = effectiveType === "wait" && node.config.waitTime;
   const hasRedirectPreview = node.type === "redirect" && node.config.targetFlow;
   const hasGoToPreview = node.type === "go-to" && node.config.targetContainerId;
+  const hasAIPreview = node.type === "ai-node" && node.config.provider;
+  const hasSheetsPreview = node.type === "google-sheets" && node.config.spreadsheetId;
+  const hasHandoffPreview = node.type === "human-handoff";
 
   return (
     <div
@@ -292,6 +295,36 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               <p className="text-xs font-semibold text-green-700">
                 Pular para bloco ID: {node.config.targetContainerId.slice(-4)}
               </p>
+            </div>
+            </div>
+          ) : hasAIPreview ? (
+            <div className="mt-2 p-2 bg-cyan-50 rounded border border-cyan-200 max-h-[150px] overflow-y-auto">
+              <p className="text-xs font-semibold text-cyan-700">
+                AI: {node.config.provider} ({node.config.model || "padrão"})
+              </p>
+              <p className="text-[10px] text-cyan-600 truncate mt-1">
+                {node.config.systemPrompt?.substring(0, 40)}...
+              </p>
+            </div>
+          ) : hasSheetsPreview ? (
+            <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200 max-h-[150px] overflow-y-auto">
+              <p className="text-xs font-semibold text-orange-700">
+                Sheets: {node.config.action === 'insert' ? 'Inserir' : node.config.action === 'update' ? 'Atualizar' : 'Obter'}
+              </p>
+              <p className="text-[10px] text-orange-600 truncate mt-1">
+                Tab: {node.config.tabName || "(não definida)"}
+              </p>
+            </div>
+          ) : hasHandoffPreview ? (
+            <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200 max-h-[150px] overflow-y-auto">
+              <p className="text-xs font-semibold text-orange-700">
+                Transferir para Humano
+              </p>
+              {node.config.department && (
+                <p className="text-[10px] text-orange-600 truncate mt-1">
+                  Depto: {node.config.department}
+                </p>
+              )}
             </div>
           ) : (
             messageValue && (
