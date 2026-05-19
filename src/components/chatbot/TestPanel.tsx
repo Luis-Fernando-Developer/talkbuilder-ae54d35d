@@ -692,15 +692,87 @@ export const TestPanel = ({
               });
             }
           } else {
-            nextMessages.push({ 
-              id: crypto.randomUUID(), 
-              type: "bot", 
-              content: `✨ [AGENTE ATIVO - ${selectedProvider.toUpperCase()}]\nChave configurada com sucesso. Pode mandar uma mensagem para conversar comigo.\n\nObjetivo: ${objective}${skillsText}`, 
-            });
+            const startMode = cfg.startMode || "automatic";
+            const welcomeMsg = cfg.welcomeMessage;
+
+            if (startMode === "manual") {
+              waitingFor = "input-text";
+              waitingForCfg = { placeholder: "Inicie a conversa com o agente..." };
+            } else if (welcomeMsg) {
+              nextMessages.push({ 
+                id: crypto.randomUUID(), 
+                type: "bot", 
+                content: welcomeMsg, 
+              });
+              waitingFor = "input-text";
+              waitingForCfg = { placeholder: "Converse com o agente..." };
+            } else {
+              const systemPrompt = `Objetivo: ${objective}${instructions ? `\nInstruções: ${instructions}` : ""}\n\nPor favor, envie uma saudação inicial amigável e profissional ao usuário.`;
+              let aiReply: string | null = null;
+              
+              try {
+                if (selectedProvider === "openai") {
+                  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      model: cfg.model || "gpt-4o-mini",
+                      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: "Olá!" }],
+                    }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    aiReply = data.choices?.[0]?.message?.content || null;
+                  }
+                } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
+                   const model = (cfg.model || "gemini-2.5-flash").trim();
+                   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
+                     method: "POST",
+                     headers: { "Content-Type": "application/json" },
+                     body: JSON.stringify({
+                       contents: [
+                         { role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nOlá!` }] }
+                       ],
+                     }),
+                   });
+                   if (res.ok) {
+                     const data = await res.json();
+                     aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                   }
+                } else if (selectedProvider === "anthropic") {
+                  const res = await fetch("https://api.anthropic.com/v1/messages", {
+                    method: "POST",
+                    headers: {
+                      "x-api-key": activeKey,
+                      "anthropic-version": "2023-06-01",
+                      "anthropic-dangerous-direct-browser-access": "true",
+                      "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                      model: cfg.model || "claude-3-5-sonnet-latest",
+                      max_tokens: 1024,
+                      system: systemPrompt,
+                      messages: [{ role: "user", content: "Olá!" }],
+                    }),
+                  });
+                  if (res.ok) {
+                    const data = await res.json();
+                    aiReply = data.content?.[0]?.text || null;
+                  }
+                }
+              } catch (e) {
+                console.error("[TestPanel] Greeting AI Call failed", e);
+              }
+
+              nextMessages.push({ 
+                id: crypto.randomUUID(), 
+                type: "bot", 
+                content: aiReply || `✨ [AGENTE ATIVO - ${selectedProvider.toUpperCase()}]\nOlá! Como posso ajudar hoje?`, 
+              });
+              waitingFor = "input-text";
+              waitingForCfg = { placeholder: "Converse com seu agente..." };
+            }
           }
-          
-          waitingFor = "input-text";
-          waitingForCfg = { placeholder: "Converse com seu agente real..." };
         }
       } else if (nodeType === "set-variable" && cfg.variableName) {
         variables[cfg.variableName] = evaluateSetVariableValue(cfg, variables);
