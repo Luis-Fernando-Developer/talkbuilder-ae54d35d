@@ -61,6 +61,7 @@ export default function SignupPage() {
 
 	// debounce slug check
 	useEffect(() => {
+		if (isInviteSignup) return;
 		if (!slug) {
 			setSlugStatus("idle");
 			return;
@@ -84,7 +85,7 @@ export default function SignupPage() {
 			setSlugStatus(data ? "available" : "taken");
 		}, 400);
 		return () => clearTimeout(t);
-	}, [slug]);
+	}, [slug, isInviteSignup]);
 
 	if (isInviteSignup) {
 		return <Navigate to={redirectUrl} replace />;
