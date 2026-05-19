@@ -119,6 +119,12 @@ ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workspace_invites ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Users can view workspaces they are members of" ON public.workspaces;
+DROP POLICY IF EXISTS "Members can view other members in same workspace" ON public.workspace_members;
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can manage invitations" ON public.workspace_invites;
+
 -- Workspaces: access if member
 CREATE POLICY "Users can view workspaces they are members of" ON public.workspaces
     FOR SELECT USING (
