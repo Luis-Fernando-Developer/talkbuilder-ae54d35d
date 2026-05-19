@@ -71,13 +71,18 @@ export function InviteMemberDialog() {
         .single();
 
       if (wsError || !wsData) {
-        console.error("Erro ao validar workspace:", wsError);
-        throw new Error("Workspace não encontrado ou você não tem permissão para convidar membros.");
+        console.error("Erro ao validar workspace ou permissões:", wsError);
+        throw new Error(`Workspace ou permissões não localizados para o usuário ${user.email}. Por favor, verifique se a migração de banco de dados foi aplicada.`);
       }
 
-      const userRole = (wsData.workspace_members as any)[0]?.role;
+      // Supabase pode retornar array ou objeto dependendo do join
+      const members = wsData.workspace_members as any;
+      const userRole = Array.isArray(members) ? members[0]?.role : members?.role;
+      
+      console.log("Cargo detectado:", userRole);
+
       if (userRole !== 'owner' && userRole !== 'admin') {
-        throw new Error("Apenas proprietários ou administradores podem convidar novos membros.");
+        throw new Error(`Apenas proprietários ou administradores podem convidar novos membros. Seu cargo atual é: ${userRole || 'nenhum'}`);
       }
 
       // 3. Gerar o convite no banco de dados
