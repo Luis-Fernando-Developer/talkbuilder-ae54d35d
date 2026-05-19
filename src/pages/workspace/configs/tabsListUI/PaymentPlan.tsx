@@ -88,10 +88,10 @@ export default function PaymentPlan() {
   // Simula a detecção da integração com flow-appoint
   const [managedByAppoint] = useState(false)
   const { currentPlan, setCurrentPlan, botsUsed, limits } = usePlan()
-  const { profile } = useAuth()
+  const { profile, currentWorkspace } = useAuth()
 
-  // ===== Cenário: Usuário convidado (Guest) =====
-  if (profile?.is_guest) {
+  // ===== Cenário: Usuário convidado ou sem permissão de proprietário =====
+  if (currentWorkspace?.role && currentWorkspace.role !== 'owner') {
     return (
       <Card className="p-4">
         <CardHeader>
@@ -102,7 +102,7 @@ export default function PaymentPlan() {
             <div>
               <CardTitle className="text-2xl text-left">Plano do Workspace</CardTitle>
               <CardDescription className="text-left">
-                Você está acessando este workspace como convidado.
+                Você está acessando este workspace como {currentWorkspace?.role}.
               </CardDescription>
             </div>
           </div>
