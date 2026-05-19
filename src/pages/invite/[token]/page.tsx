@@ -95,6 +95,15 @@ export default function InvitePage() {
 
       if (error) {
         console.error("Erro RPC accept_invitation:", error);
+        // Se o erro for PGRST202, a função não existe no cache do schema
+        if (error.code === 'PGRST202') {
+           toast({ 
+             title: "Erro de Configuração", 
+             description: "A função de aceitar convite ainda não foi sincronizada no banco de dados. Por favor, tente novamente em alguns instantes ou contate o suporte.", 
+             variant: "destructive" 
+           });
+           return;
+        }
         throw error;
       }
       
@@ -106,7 +115,6 @@ export default function InvitePage() {
       }
 
       if (!data || !data.workspace_slug) {
-        // Fallback caso a função retorne sucesso mas sem dados esperados
         console.warn("RPC retornou sem workspace_slug, tentando redirecionar para home");
         setAccepted(true);
         setTimeout(() => navigate('/'), 2000);
@@ -119,7 +127,6 @@ export default function InvitePage() {
         description: `Agora você é membro de ${data.workspace_name}` 
       });
 
-      // Forçar atualização do perfil e workspaces no context
       await refreshProfile();
 
       setTimeout(() => {
