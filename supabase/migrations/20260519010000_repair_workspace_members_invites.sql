@@ -94,7 +94,6 @@ DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Admins can manage invitations" ON public.workspace_invites;
 DROP POLICY IF EXISTS "Users can view member workspaces" ON public.workspaces;
 DROP POLICY IF EXISTS "Users can view memberships in their workspaces" ON public.workspace_members;
-DROP POLICY IF EXISTS "Users can insert own accepted memberships" ON public.workspace_members;
 DROP POLICY IF EXISTS "Users can view own profile" ON public.profiles;
 DROP POLICY IF EXISTS "Managers can create invitations" ON public.workspace_invites;
 DROP POLICY IF EXISTS "Managers can view invitations" ON public.workspace_invites;
@@ -112,11 +111,6 @@ FOR SELECT
 TO authenticated
 USING (public.is_workspace_member(workspace_id, auth.uid()));
 
-CREATE POLICY "Users can insert own accepted memberships"
-ON public.workspace_members
-FOR INSERT
-TO authenticated
-WITH CHECK (user_id = auth.uid());
 
 CREATE POLICY "Users can view own profile"
 ON public.profiles
@@ -368,3 +362,37 @@ GRANT EXECUTE ON FUNCTION public.get_my_workspaces() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_workspace_members(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.create_workspace_invite(text, text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.accept_invitation(text) TO authenticated;
+
+
+CREATE OR REPLACE FUNCTION public.get_invitation_by_token(invitation_token text)
+RETURNS TABLE (
+  token TEXT,
+  email TEXT,
+  role TEXT,
+  status TEXT,
+  accepted_at TIMESTAMPTZ,
+  expires_at TIMESTAMPTZ,
+  workspace_name TEXT,
+  workspace_slug TEXT
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT
+    wi.token,
+    wi.email,
+    wi.role,
+    wi.status,
+    wi.accepted_at,
+    wi.expires_at,
+    w.name AS workspace_name,
+    w.slug AS workspace_slug
+  FROM public.workspace_invites wi
+  JOIN public.workspaces w ON w.id = wi.workspace_id
+  WHERE wi.token = invitation_token
+  LIMIT 1;
+$$;
+
+GRANT EXECUTE ON FUNCTION public.get_invitation_by_token(text) TO anon, authenticated;

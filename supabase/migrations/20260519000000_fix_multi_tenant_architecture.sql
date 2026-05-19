@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS public.workspace_invites (
 
 -- Trigger function to handle new user registration
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS 7625
+RETURNS TRIGGER AS $$
 DECLARE
     new_workspace_id UUID;
     v_slug TEXT;
@@ -83,7 +83,7 @@ BEGIN
 
     RETURN new;
 END;
-7625 LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Re-bind trigger to auth.users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -98,7 +98,7 @@ RETURNS TABLE (
     name TEXT,
     slug TEXT,
     role TEXT
-) AS 7625
+) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -110,7 +110,7 @@ BEGIN
     JOIN public.workspace_members wm ON w.id = wm.workspace_id
     WHERE wm.user_id = auth.uid();
 END;
-7625 LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. RLS (Row Level Security)
 
