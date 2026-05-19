@@ -621,11 +621,9 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
                 }
               }
             } else if (provider === "google" || provider === "gemini") {
-              let model = cfg.model || "gemini-1.5-flash";
-              // Mapeamento rigoroso para evitar sufixos como -latest que a v1beta pode rejeitar
-              if (model.includes("gemini-1.5-pro")) model = "gemini-1.5-pro";
-              else if (model.includes("gemini-1.5-flash")) model = "gemini-1.5-flash";
-              else if (model.includes("gemini-pro")) model = "gemini-pro";
+              let model = cfg.model || "gemini-2.5-flash";
+              if (model.includes("gemini-1.5") || model.includes("gemini-1.0") || model === "gemini-pro") model = "gemini-2.5-flash";
+              model = model.replace(/^models\//, "");
 
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`, {
                 method: "POST",
