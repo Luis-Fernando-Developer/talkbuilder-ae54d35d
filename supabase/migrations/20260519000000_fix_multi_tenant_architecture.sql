@@ -46,11 +46,16 @@ CREATE TABLE IF NOT EXISTS public.workspace_invites (
     expires_at TIMESTAMPTZ DEFAULT (now() + interval '7 days')
 );
 
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS display_name TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS avatar_url TEXT;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'starter';
+
 -- 2. Functions & Triggers
 
 -- Trigger function to handle new user registration
 CREATE OR REPLACE FUNCTION public.handle_new_user()
-RETURNS TRIGGER AS 7625
+RETURNS TRIGGER AS $$
 DECLARE
     new_workspace_id UUID;
     v_slug TEXT;
@@ -83,7 +88,7 @@ BEGIN
 
     RETURN new;
 END;
-7625 LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Re-bind trigger to auth.users
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -98,7 +103,7 @@ RETURNS TABLE (
     name TEXT,
     slug TEXT,
     role TEXT
-) AS 7625
+) AS $$
 BEGIN
     RETURN QUERY
     SELECT 
@@ -110,7 +115,7 @@ BEGIN
     JOIN public.workspace_members wm ON w.id = wm.workspace_id
     WHERE wm.user_id = auth.uid();
 END;
-7625 LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- 3. RLS (Row Level Security)
 
@@ -118,6 +123,12 @@ ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.workspace_invites ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Users can view workspaces they are members of" ON public.workspaces;
+DROP POLICY IF EXISTS "Members can view other members in same workspace" ON public.workspace_members;
+DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON public.profiles;
+DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
+DROP POLICY IF EXISTS "Admins can manage invitations" ON public.workspace_invites;
 
 -- Workspaces: access if member
 CREATE POLICY "Users can view workspaces they are members of" ON public.workspaces
