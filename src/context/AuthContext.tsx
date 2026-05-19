@@ -55,25 +55,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			return;
 		}
 
-		// IMPORTANT: register listener BEFORE getSession (knowledge rule)
 		const {
 			data: { subscription },
 		} = supabase.auth.onAuthStateChange((_event, newSession) => {
 			setSession(newSession);
-			setUser(newSession?.user ?? null);
-			if (newSession?.user) {
-				// defer to avoid deadlock per Supabase guidance
-				setTimeout(() => loadProfile(newSession.user.id), 0);
+			const newUser = newSession?.user ?? null;
+			setUser(newUser);
+			
+			if (newUser) {
+				// Avoid refresh loop by checking if we already have the profile/workspaces for this user
+				// But for simplicity, we just trigger the load
+				loadAll(newUser.id);
 			} else {
 				setProfile(null);
+				setWorkspaces([]);
+				setCurrentWorkspace(null);
+				setLoading(false);
 			}
 		});
+
+		async function loadAll(userId: string) {
+			setLoading(true);
+			await Promise.all([
+				loadProfile(userId),
+				loadWorkspaces(userId)
+			]);
+			setLoading(false);
+		}
 
 		supabase.auth.getSession().then(({ data: { session: s } }) => {
 			setSession(s);
 			setUser(s?.user ?? null);
 			if (s?.user) {
-				loadProfile(s.user.id).finally(() => setLoading(false));
+				loadAll(s.user.id);
 			} else {
 				setLoading(false);
 			}
@@ -114,6 +128,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		console.log("[Auth] Carregando workspaces para:", userId);
 		const supabase = getSupabase();
 		if (!supabase) return;
+		
 		let { data, error } = await supabase
 			.rpc("get_my_workspaces");
 
@@ -155,14 +170,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		if (found) setCurrentWorkspace(found);
 	}
 
-	useEffect(() => {
-		if (user) {
-			loadWorkspaces(user.id);
-		} else {
-			setWorkspaces([]);
-			setCurrentWorkspace(null);
-		}
-	}, [user]);
 
 	return (
 		<AuthContext.Provider
