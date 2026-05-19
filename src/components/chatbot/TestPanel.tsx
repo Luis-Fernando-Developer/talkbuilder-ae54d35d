@@ -609,8 +609,9 @@ export const TestPanel = ({
                   console.error("[TestPanel] Anthropic error", res.status, errorData);
                 }
               }
-            } catch (e) {
+            } catch (e: any) {
               console.error("[TestPanel] AI Call failed", e);
+              aiReply = `❌ Erro de conexão ou CORS: ${e.message || "Não foi possível conectar ao provedor"}. Verifique se seu navegador está bloqueando a requisição direta para a API.`;
             }
 
             if (aiReply) {
