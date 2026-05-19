@@ -59,25 +59,47 @@ export function InviteMemberDialog() {
         const cleanHash = hash.startsWith('#') ? hash.substring(1) : hash;
         const pathParts = cleanHash.split("/").filter(Boolean);
         
-        // No talkbuilder.lovable.app/#/teste03/workspace/configs, 
-        // teste03 é o primeiro elemento do array filtrado.
+        console.log("Debug Invite - Full Hash:", hash);
+        console.log("Debug Invite - Path Parts:", pathParts);
+
+        // No talkbuilder.lovable.app/#/teste03/workspace/configs
+        // teste03 é o primeiro elemento
         const slugFromUrl = pathParts[0];
-        if (!slugFromUrl) {
-          throw new Error("Workspace não carregado. Abra a página pelo slug do workspace e tente novamente.");
+        console.log("Debug Invite - Extracted Slug:", slugFromUrl);
+
+        if (!slugFromUrl || slugFromUrl === 'workspace' || slugFromUrl === 'invite') {
+          throw new Error("Slug do workspace não identificado na URL.");
         }
 
         const { data: workspaceData, error: workspaceError } = await supabase
           .from("workspaces")
-          .select("id")
+          .select("id, slug")
           .eq("slug", slugFromUrl)
           .maybeSingle();
           
         if (workspaceError) {
-          console.error("Erro ao buscar workspace pelo slug:", workspaceError);
+          console.error("Erro ao buscar workspace:", workspaceError);
           throw workspaceError;
         }
-        if (!workspaceData?.id) throw new Error("Workspace não encontrado para gerar o convite.");
-        workspaceId = workspaceData.id;
+
+        if (!workspaceData) {
+          // Tentar buscar por slug exato se o primeiro falhar (caso a estrutura seja diferente)
+          console.log("Tentando busca secundária por slug...");
+          const { data: altData } = await supabase
+            .from("workspaces")
+            .select("id")
+            .in("slug", pathParts)
+            .limit(1)
+            .maybeSingle();
+          
+          if (altData) {
+            workspaceId = altData.id;
+          } else {
+            throw new Error(`Workspace '${slugFromUrl}' não encontrado no banco.`);
+          }
+        } else {
+          workspaceId = workspaceData.id;
+        }
       }
 
       const { data, error } = await supabase
