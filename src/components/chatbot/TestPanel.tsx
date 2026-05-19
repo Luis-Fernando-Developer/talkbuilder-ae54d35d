@@ -493,17 +493,22 @@ export const TestPanel = ({
         // Verifica se existem chaves de API configuradas no settings ou no próprio nó
         const nodeKey = (cfg.apiKey || "").trim();
         const nodeProvider = (cfg.provider || "openai").toLowerCase();
+        const isGoogle = nodeProvider === "google" || nodeProvider === "gemini";
+        
         const globalKeys = settings?.aiKeys || {};
         const openaiKey = (globalKeys.openaiKey || "").trim() || (nodeProvider === "openai" ? nodeKey : "");
         const anthropicKey = (globalKeys.anthropicKey || "").trim() || (nodeProvider === "anthropic" ? nodeKey : "");
-        const googleKey = (globalKeys.googleKey || "").trim() || (nodeProvider === "google" ? nodeKey : "");
-        // Fallback final: se o usuário colocou uma chave no nó mas não selecionou provider, usa pelo provider do nó (default openai)
+        const googleKey = (globalKeys.googleKey || "").trim() || (isGoogle ? nodeKey : "");
+        
+        // Fallback final: se o usuário colocou uma chave no nó mas não selecionou provider, usa pelo provider do nó
         const fallbackKey = nodeKey && !openaiKey && !anthropicKey && !googleKey ? nodeKey : "";
-        const selectedProvider: "openai" | "anthropic" | "google" =
-          openaiKey ? "openai" :
-          anthropicKey ? "anthropic" :
-          googleKey ? "google" :
-          fallbackKey ? (nodeProvider as any) : "openai";
+        
+        let selectedProvider: "openai" | "anthropic" | "google" = "openai";
+        if (openaiKey) selectedProvider = "openai";
+        else if (anthropicKey) selectedProvider = "anthropic";
+        else if (googleKey || (isGoogle && fallbackKey)) selectedProvider = "google";
+        else if (fallbackKey) selectedProvider = nodeProvider as any;
+
         const activeKey = openaiKey || anthropicKey || googleKey || fallbackKey;
         const hasAnyKey = !!activeKey;
 
