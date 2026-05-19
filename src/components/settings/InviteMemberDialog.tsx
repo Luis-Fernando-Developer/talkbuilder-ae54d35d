@@ -67,7 +67,8 @@ export function InviteMemberDialog() {
         throw error;
       }
 
-      const inviteToken = Array.isArray(data) ? data[0]?.token : data?.token;
+      const inviteResult = data as any;
+      const inviteToken = Array.isArray(inviteResult) ? inviteResult[0]?.token : inviteResult?.token;
       if (!inviteToken) throw new Error("Convite criado, mas o token não foi retornado pelo banco.");
 
       const link = `${window.location.origin}/#/invite/${inviteToken}`;
