@@ -357,12 +357,14 @@ export const TestPanel = ({
         "google/gemini-1.5-pro": "gemini-1.5-pro",
         "google/gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
         "gemini-1.5-flash": "gemini-1.5-flash",
-        "gemini-1.5-pro": "gemini-1.5-pro"
+        "gemini-1.5-pro": "gemini-1.5-pro",
+        "gemini-1.5-flash-latest": "gemini-1.5-flash-latest",
+        "gemini-1.5-pro-latest": "gemini-1.5-pro-latest"
       };
 
       const cleanModel = modelMap[model] || (model.startsWith("google/") ? model.replace("google/", "") : model);
 
-      const tryFetch = async (apiVersion: string) => {
+      const tryFetch = async (apiVersion: string, useSystemInstruction: boolean) => {
         const formattedMessages: any[] = [];
         let lastRole: string | null = null;
 
@@ -385,56 +387,73 @@ export const TestPanel = ({
         };
 
         if (system) {
-          if (apiVersion === "v1beta") {
+          if (useSystemInstruction) {
             body.system_instruction = {
               parts: [{ text: system }]
             };
           } else {
-            // Em v1 a system_instruction pode não ser suportada em alguns modelos/endpoints
-            // ou deve ser passada no início do array de conteúdos conforme documentação legada
-            formattedMessages.unshift({
-              role: "user",
-              parts: [{ text: `INSTRUÇÕES DO SISTEMA: ${system}\n\nPor favor, siga estas instruções estritamente.` }]
-            });
+            // Fallback: injetar no início das mensagens se system_instruction não for suportado
+            if (formattedMessages.length > 0 && formattedMessages[0].role === "user") {
+              formattedMessages[0].parts[0].text = `INSTRUÇÕES DO SISTEMA:\n${system}\n\n---\n\nUSUÁRIO: ${formattedMessages[0].parts[0].text}`;
+            } else {
+              formattedMessages.unshift({
+                role: "user",
+                parts: [{ text: `INSTRUÇÕES DO SISTEMA: ${system}` }]
+              });
+            }
           }
         }
 
-        return await fetch(
-          `https://generativelanguage.googleapis.com/${apiVersion}/models/${cleanModel}:generateContent?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(body),
-          }
-        );
+        const url = `https://generativelanguage.googleapis.com/${apiVersion}/models/${cleanModel}:generateContent?key=${apiKey}`;
+        
+        return await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
       };
 
       try {
-        console.log(`[EXTERNAL-API] Iniciando chamada direta ao Gemini (${cleanModel})`);
-        // Tenta v1beta primeiro para suporte nativo a system_instruction
-        let response = await tryFetch("v1beta");
+        console.log(`[EXTERNAL-API] Chamada direta ao Gemini: ${cleanModel}`);
+        
+        // Tenta v1beta com system_instruction primeiro (padrão moderno)
+        let response = await tryFetch("v1beta", true);
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           const errorMsg = errorData.error?.message || "";
+          const errorCode = errorData.error?.status || "";
           
-          if (response.status === 404 || errorMsg.includes("not found") || errorMsg.includes("system_instruction")) {
-            console.log(`[EXTERNAL-API] v1beta falhou ou não suporta system_instruction para este modelo, tentando v1...`);
-            response = await tryFetch("v1");
-          } else {
-            throw new Error(errorMsg || `Erro HTTP ${response.status}`);
+          console.log(`[EXTERNAL-API] Erro na tentativa 1 (v1beta + system_instruction): ${errorMsg} (${errorCode})`);
+
+          // Se o erro for sobre o campo system_instruction ou o modelo não for encontrado, tenta v1beta sem o campo
+          if (errorMsg.includes("system_instruction") || errorMsg.includes("Unknown name") || errorCode === "INVALID_ARGUMENT") {
+            console.log(`[EXTERNAL-API] Retentando v1beta sem o campo system_instruction...`);
+            response = await tryFetch("v1beta", false);
+          } 
+          // Se ainda der erro de "not found" ou similar, tenta v1 como último recurso
+          else if (response.status === 404 || errorMsg.includes("not found")) {
+            console.log(`[EXTERNAL-API] Modelo não encontrado em v1beta, tentando v1...`);
+            response = await tryFetch("v1", false);
+          }
+          
+          if (!response.ok) {
+            const finalErrorData = await response.json().catch(() => ({}));
+            throw new Error(finalErrorData.error?.message || `Erro HTTP ${response.status}`);
           }
         }
 
-        if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.error?.message || `Erro HTTP ${response.status}`);
-        }
-
         const data = await response.json();
-        return data.candidates?.[0]?.content?.parts?.[0]?.text || "Sem resposta da IA.";
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!text) {
+          console.error("[EXTERNAL-API] Resposta sem conteúdo:", data);
+          return "O Gemini não retornou nenhum texto. Verifique se o modelo suporta esta requisição.";
+        }
+        
+        return text;
       } catch (error: any) {
-        console.error("Erro na chamada direta ao Gemini:", error);
+        console.error("[EXTERNAL-API] Erro final na chamada:", error);
         throw error;
       }
     };
