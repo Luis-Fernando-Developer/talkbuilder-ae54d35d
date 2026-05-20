@@ -356,9 +356,14 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       
       if (varName && value !== undefined) variables[varName] = value;
       
-      if (nodeType === "ai-agent" || nodeType === "ai-node") {
+      if (nodeType === "ai-agent") {
+        // AGENT: persiste no mesmo node (loop conversacional)
         variables.__last_agent_user_message = value ?? "";
-        // Don't advance, stay in the agent node
+        console.log("[Runtime] Mantendo modo AGENTE no node:", info.node.id);
+      } else if (nodeType === "ai-node") {
+        // AI pontual: usa input para gerar resposta e DEPOIS avança
+        variables.__last_agent_user_message = value ?? "";
+        console.log("[Runtime] AI pontual recebeu input no node:", info.node.id);
       } else if (!execution.is_waiting_time) {
         if (execution.waiting_for_input) {
           currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
@@ -549,10 +554,13 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       }
       case "ai-agent":
       case "ai-node": {
+        const isAgent = nodeType === "ai-agent";
         const lastMsg = variables.__last_agent_user_message;
         const objective = cfg.objective || cfg.systemPrompt || "agente de teste";
         const instructions = cfg.instructions || cfg.prompt || cfg.message || "";
         const userMessage = String(lastMsg || "").trim();
+
+        console.log(`[Node:${nodeType}] Executando:`, node.id, { isAgent, hasInput: !!userMessage });
 
         // Check for keys
         const nodeKey = cfg.apiKey;
@@ -561,20 +569,40 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         
         const openaiKey = globalKeys.openaiKey || (provider === "openai" ? nodeKey : null);
         const anthropicKey = globalKeys.anthropicKey || (provider === "anthropic" ? nodeKey : null);
-        const googleKey = globalKeys.googleKey || (provider === "google" ? nodeKey : null);
+        const googleKey = globalKeys.googleKey || (provider === "google" || provider === "gemini" ? nodeKey : null);
         
         const activeKey = provider === "openai" ? openaiKey : provider === "anthropic" ? anthropicKey : googleKey;
+        const hasAnyKey = !!openaiKey || !!anthropicKey || !!googleKey;
+
+        // AI pontual SEM input ainda: aguarda usuário primeiro
+        if (!isAgent && !userMessage) {
+          console.log("[Runtime] AI pontual aguardando input do usuário");
+          waiting_for = "input-text";
+          break;
+        }
+
+        // AGENT sem input: envia welcome e aguarda
+        if (isAgent && !userMessage) {
+          const startMode = cfg.startMode || "automatic";
+          if (startMode === "automatic") {
+            const welcome = cfg.welcomeMessage || (hasAnyKey
+              ? `Olá! Como posso ajudar?`
+              : `🤖 [SIMULAÇÃO]\n${objective}\n(Sem chave de API)`);
+            messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
+          }
+          console.log("[Runtime] AGENTE aguardando input inicial");
+          waiting_for = "input-text";
+          break;
+        }
+
+        let aiReply: string | null = null;
 
         if (activeKey && userMessage) {
           try {
-            // Real AI Call attempt (OpenAI as example)
             if (provider === "openai") {
               const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${activeKey}`,
-                  "Content-Type": "application/json",
-                },
+                headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                   model: cfg.model || "gpt-3.5-turbo",
                   messages: [
@@ -583,25 +611,14 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
                   ],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
-                const aiReply = data.choices?.[0]?.message?.content;
-                if (aiReply) {
-                  messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-                  variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
-                }
+                aiReply = data.choices?.[0]?.message?.content ?? null;
               }
             } else if (provider === "anthropic") {
               const res = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
-                headers: {
-                  "x-api-key": activeKey,
-                  "anthropic-version": "2023-06-01",
-                  "Content-Type": "application/json",
-                },
+                headers: { "x-api-key": activeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
                 body: JSON.stringify({
                   model: cfg.model || "claude-3-haiku-20240307",
                   max_tokens: 1024,
@@ -609,66 +626,51 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
                   messages: [{ role: "user", content: userMessage }],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
-                const aiReply = data.content?.[0]?.text;
-                if (aiReply) {
-                  messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-                  variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
-                }
+                aiReply = data.content?.[0]?.text ?? null;
               }
             } else if (provider === "google" || provider === "gemini") {
               let model = cfg.model || "gemini-2.5-flash";
               if (model.includes("gemini-1.5") || model.includes("gemini-1.0") || model === "gemini-pro") model = "gemini-2.5-flash";
               model = model.replace(/^models\//, "");
-
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  contents: [{ 
-                    parts: [{ text: `System Instruction: Objetivo: ${objective}\nInstruções: ${instructions}\n\nUser Message: ${userMessage}` }] 
-                  }],
+                  contents: [{ parts: [{ text: `System: ${objective}\n${instructions}\n\nUser: ${userMessage}` }] }],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
-                const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
-                if (aiReply) {
-                  messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-                  variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
-                }
+                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
               }
             }
           } catch (e) {
-            console.error("[ai-agent] AI Call failed", e);
+            console.error(`[${nodeType}] AI Call failed`, e);
           }
         }
 
-        // Default response if no key or no message or AI call failed
-        const hasAnyKey = !!openaiKey || !!anthropicKey || !!googleKey;
-        
-        if (!userMessage) {
-           const welcome = hasAnyKey 
-             ? `✨ [AGENTE ATIVO - ${provider}]\nOlá! Estou pronto para ajudar. Objetivo: ${objective}`
-             : `🤖 [SIMULAÇÃO DE AGENTE]\nObjetivo: ${objective}\n\n(Chave de API não configurada)`;
-           messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
-        } else {
-           const reply = hasAnyKey
-             ? `🤖 [AGENTE - ${provider}]\nRecebi sua mensagem: "${userMessage}".\n\n(Processando com o motor de IA...)`
-             : `🤖 [SIMULAÇÃO DE AGENTE]\nObjetivo: ${objective}\n\nRecebi: "${userMessage}"\n\n(Configure uma chave de API para resposta real)`;
-           messages.push({ id: crypto.randomUUID(), type: "bot", content: reply });
+        if (!aiReply) {
+          aiReply = hasAnyKey
+            ? `🤖 [${isAgent ? "AGENTE" : "AI"} - ${provider}]\nRecebi: "${userMessage}"`
+            : `🤖 [SIMULAÇÃO]\nObjetivo: ${objective}\nRecebi: "${userMessage}"\n(Configure API key)`;
         }
-        
-        variables.__last_agent_user_message = ""; 
-        waiting_for = "input-text";
-        break;
+
+        messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+        variables.__last_agent_user_message = "";
+
+        if (isAgent) {
+          // AGENT: continua aguardando próxima mensagem no mesmo node
+          console.log("[Runtime] AGENTE respondeu, mantendo loop");
+          waiting_for = "input-text";
+          break;
+        } else {
+          // AI pontual: respondeu, avança para o próximo node
+          console.log("[Runtime] AI pontual respondeu, avançando fluxo");
+          // currentNodeId será atualizado pelo nextFromNode no fim do loop
+          break;
+        }
       }
     }
 
