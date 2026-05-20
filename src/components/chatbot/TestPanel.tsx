@@ -775,8 +775,12 @@ export const TestPanel = ({
               // Tenta modelos em ordem de preferência se o primeiro falhar com 404
               // Isso resolve o problema de contas novas que não têm acesso ao 1.5 e precisam do 2.0 ou aliases "latest"
               const modelsToTry = [cleanModel];
-              if (cleanModel === "gemini-1.5-flash") modelsToTry.push("gemini-1.5-flash-latest", "gemini-flash-latest", "gemini-2.0-flash");
-              else if (cleanModel === "gemini-1.5-pro") modelsToTry.push("gemini-1.5-pro-latest", "gemini-pro-latest", "gemini-2.0-flash");
+              // Adicionamos os modelos gemini-2.0-flash e gemini-2.0-flash-lite que são os mais estáveis atualmente
+              if (cleanModel.includes("gemini-1.5")) {
+                modelsToTry.push("gemini-2.0-flash", "gemini-2.0-flash-lite-preview-02-05", "gemini-1.5-flash");
+              } else {
+                modelsToTry.push("gemini-2.0-flash", "gemini-1.5-flash");
+              }
               
               let lastError = "";
               let success = false;
