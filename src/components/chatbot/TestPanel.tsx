@@ -16,7 +16,7 @@ import { ScrollArea } from "../../components/ui/scroll-area";
 import { renderTextSegments } from "@/lib/textParser";
 import { richHtmlFor, richToPlainText } from "@/lib/richText";
 
-import { type Message as RuntimeMessage, type RuntimeState, type RuntimeMode, type PersistentMemory } from "../../types/runtime";
+import { type Message as RuntimeMessage, type RuntimeState, type RuntimeMode, type PersistentMemory, type NodeExecutionStatus } from "../../types/runtime";
 import { conversationService } from "../../services/conversationService";
 import { buildAgentContext } from "../../services/aiContextBuilder";
 
