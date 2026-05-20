@@ -635,8 +635,13 @@ export const TestPanel = ({
               }
             } catch (e: any) { aiReply = `❌ Erro: ${e.message}`; }
             if (aiReply) nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-            waitingFor = "input-text";
-            waitingForCfg = { placeholder: "Digite sua mensagem..." };
+            if (hasNextNode) {
+              console.log("[AI Node] Resposta gerada, avançando para o próximo nó conectado.");
+            } else {
+              console.log("[AI Node] Sem próximo nó conectado — aguardando nova mensagem do usuário.");
+              waitingFor = "input-text";
+              waitingForCfg = { placeholder: "Digite sua mensagem..." };
+            }
           }
         }
         if (waitingFor) break;
