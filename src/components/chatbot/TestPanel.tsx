@@ -327,6 +327,9 @@ export const TestPanel = ({
           currentNodeId = current.node.id;
           // Forçamos a limpeza de waiting_for_input no estado para que o loop processe o nó novamente
           if (state) state.waiting_for_input = false;
+          // Impede o avanço automático para o próximo nó antes de processar a IA
+          steps = 0; 
+          waitingFor = null;
         } else {
           currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
         }
@@ -909,7 +912,7 @@ export const TestPanel = ({
         {waitingForInput && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
             {!waitingForButton && (
-              <>
+              <div className="flex flex-1 gap-2 items-end">
                 {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
                   <Input 
                     value={currentInput} 
@@ -949,7 +952,7 @@ export const TestPanel = ({
                 >
                   <Send className="h-4 w-4" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
         )}
