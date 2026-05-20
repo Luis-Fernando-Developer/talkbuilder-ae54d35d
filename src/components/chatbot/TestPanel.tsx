@@ -417,34 +417,46 @@ export const TestPanel = ({
       try {
         console.log(`[EXTERNAL-API] Chamada direta ao Gemini: ${cleanModel}`);
         
-        // Tentativa 1: v1 (mais estável para modelos 1.5)
-        let response = await tryFetch("v1", false);
+        // Tentativa 1: v1beta com system_instruction (O Google recomenda v1beta para modelos 1.5 e 2.0)
+        let response = await tryFetch("v1beta", true);
         
         if (!response.ok) {
           const firstErrorData = await response.json().catch(() => ({}));
           const firstMsg = firstErrorData.error?.message || "";
-          console.log(`[EXTERNAL-API] Erro na tentativa 1 (v1): ${firstMsg}`);
+          console.log(`[EXTERNAL-API] Erro na tentativa 1 (v1beta + system): ${firstMsg}`);
 
-          // Tentativa 2: v1beta com system_instruction
-          console.log(`[EXTERNAL-API] Tentando v1beta com system_instruction...`);
-          response = await tryFetch("v1beta", true);
-
-          if (!response.ok) {
-            const secondErrorData = await response.json().catch(() => ({}));
-            const secondMsg = secondErrorData.error?.message || "";
-            console.log(`[EXTERNAL-API] Erro na tentativa 2 (v1beta + system): ${secondMsg}`);
-
-            // Tentativa 3: v1beta sem system_instruction
-            if (secondMsg.includes("system_instruction") || secondMsg.includes("Unknown name")) {
-              console.log(`[EXTERNAL-API] Tentando v1beta sem system_instruction...`);
-              response = await tryFetch("v1beta", false);
-            }
+          // Tentativa 2: v1beta sem system_instruction (fallback de segurança)
+          if (firstMsg.includes("system_instruction") || firstMsg.includes("Unknown name")) {
+            console.log(`[EXTERNAL-API] Tentando v1beta sem system_instruction...`);
+            response = await tryFetch("v1beta", false);
+          } else {
+            // Tentativa 3: v1 (fallback para modelos mais antigos ou estáveis)
+            console.log(`[EXTERNAL-API] Tentando v1...`);
+            response = await tryFetch("v1", false);
           }
         }
 
         if (!response.ok) {
           const finalErrorData = await response.json().catch(() => ({}));
-          throw new Error(finalErrorData.error?.message || `Erro HTTP ${response.status}`);
+          const finalMsg = finalErrorData.error?.message || `Erro HTTP ${response.status}`;
+          
+          // Se ainda falhar, tenta um último recurso: gemini-1.5-flash-latest na v1beta
+          if (cleanModel === "gemini-1.5-flash") {
+            console.log("[EXTERNAL-API] Tentativa final com gemini-1.5-flash-latest...");
+            const lastUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
+            const lastBody = {
+              contents: [{ role: "user", parts: [{ text: contextMessages[contextMessages.length - 1].content }] }]
+            };
+            response = await fetch(lastUrl, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(lastBody),
+            });
+          }
+
+          if (!response.ok) {
+            throw new Error(finalMsg);
+          }
         }
 
         const data = await response.json();
