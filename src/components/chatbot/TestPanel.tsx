@@ -907,7 +907,7 @@ export const TestPanel = ({
             </div>
           </div>
         )}
-        {waitingForInput && !waitingForButton && (
+        {waitingForInput && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
             {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
               <Input 
