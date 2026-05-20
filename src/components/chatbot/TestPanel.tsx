@@ -771,30 +771,60 @@ export const TestPanel = ({
             } else if (selectedProvider === "google") {
               const modelName = (cfg.model || "gemini-1.5-flash").trim();
               const cleanModel = modelName.startsWith("models/") ? modelName.substring(7) : modelName;
+              
+              // Tenta modelos em ordem de preferência se o primeiro falhar com 404
+              // Isso resolve o problema de contas novas que não têm acesso ao 1.5 e precisam do 2.0 ou aliases "latest"
+              const modelsToTry = [cleanModel];
+              if (cleanModel === "gemini-1.5-flash") modelsToTry.push("gemini-1.5-flash-latest", "gemini-flash-latest", "gemini-2.0-flash");
+              else if (cleanModel === "gemini-1.5-pro") modelsToTry.push("gemini-1.5-pro-latest", "gemini-pro-latest", "gemini-2.0-flash");
+              
+              let lastError = "";
+              let success = false;
 
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${activeKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [
-                    {
-                      role: "user",
-                      parts: [{ text: `System Instruction: ${system}\n\nUser: ${userMsgContent || "Olá!"}` }]
-                    },
-                    ...(contextMessages.length > 0 ? contextMessages.map(m => ({
-                      role: m.role === "assistant" ? "model" : "user",
-                      parts: [{ text: String(m.content || "") }]
-                    })) : [])
-                  ]
-                }),
-              });
+              for (const modelToTry of modelsToTry) {
+                try {
+                  const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelToTry}:generateContent?key=${activeKey}`;
+                  const response = await fetch(url, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      system_instruction: {
+                        parts: [{ text: `Objetivo: ${objective}\nInstruções: ${instructions}` }]
+                      },
+                      contents: [
+                        {
+                          role: "user",
+                          parts: [{ text: userMsgContent || "Olá!" }]
+                        },
+                        ...(contextMessages.length > 0 ? contextMessages.map(m => ({
+                          role: m.role === "assistant" ? "model" : "user",
+                          parts: [{ text: String(m.content || "") }]
+                        })) : [])
+                      ]
+                    }),
+                  });
 
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-              } else {
-                const error = await res.json();
-                aiReply = `❌ Erro Gemini: ${error.error?.message || res.statusText}`;
+                  if (response.ok) {
+                    const data = await response.json();
+                    aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                    success = true;
+                    console.log(`[Gemini] Sucesso com o modelo: ${modelToTry}`);
+                    break;
+                  } else {
+                    const errorData = await response.json();
+                    lastError = errorData.error?.message || response.statusText;
+                    console.warn(`[Gemini] Falha no modelo ${modelToTry}: ${lastError}`);
+                    // Se não for 404 (Not Found), provavelmente é erro de chave ou cota, não adianta tentar outro modelo
+                    if (response.status !== 404) break;
+                  }
+                } catch (err: any) {
+                  lastError = err.message;
+                  break;
+                }
+              }
+
+              if (!success) {
+                aiReply = `❌ Erro Gemini: ${lastError}`;
               }
             }
           } catch (e: any) { 
