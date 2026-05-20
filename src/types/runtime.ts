@@ -1,5 +1,18 @@
 export type RuntimeMode = "flow" | "agent";
 
+export type NodeExecutionStatus = 
+  | "completed"
+  | "waiting_input"
+  | "running"
+  | "paused"
+  | "error";
+
+export interface NodeExecutionResult {
+  status: NodeExecutionStatus;
+  output?: any;
+  node_id?: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
@@ -47,4 +60,5 @@ export interface RuntimeState {
   waiting_for_config?: any;
   next_buttons?: any[];
   wait_ms?: number;
+  last_execution_status?: NodeExecutionStatus;
 }
