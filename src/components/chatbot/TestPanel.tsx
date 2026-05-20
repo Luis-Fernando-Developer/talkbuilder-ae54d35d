@@ -586,7 +586,7 @@ export const TestPanel = ({
       };
     };
 
-  };
+
 
   useEffect(() => {
     if (!isOpen || !flowId) {
