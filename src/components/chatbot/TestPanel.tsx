@@ -808,11 +808,22 @@ export const TestPanel = ({
           break; // Agent pausa o fluxo e assume
         } else {
           // AI Node pontual: avança para o próximo node após a resposta
-          const nextId = nextFromNode(node.id, container.id);
-          console.log("[Runtime] AI Node concluído. Avançando para o próximo nó:", nextId);
-          currentNodeId = nextId;
-          continue;
+          // IMPORTANTE: Pausamos aqui se acabamos de responder a uma mensagem, 
+          // para evitar que o próximo nó (ex: Agente) execute imediatamente sem o usuário ver a resposta.
+          if (userMsgContent) {
+            currentNodeId = nextFromNode(node.id, container.id);
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: "Digite sua resposta..." };
+            console.log("[Runtime] AI Node respondeu ao usuário, pausando fluxo no próximo nó:", currentNodeId);
+            break;
+          } else {
+            const nextId = nextFromNode(node.id, container.id);
+            console.log("[Runtime] AI Node concluído (sem input). Avançando para:", nextId);
+            currentNodeId = nextId;
+            continue;
+          }
         }
+
 
 
       } else if (nodeType === "set-variable" && cfg.variableName) {
