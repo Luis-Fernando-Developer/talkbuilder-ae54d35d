@@ -388,7 +388,8 @@ export const TestPanel = ({
 
           console.log("[node:ai_generating] AI Node", node.id);
           const objective = cfg.objective || cfg.systemPrompt || "assistente";
-          const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário.";
+          const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message, cfg.userMessage) || "Ajude o usuário.";
+
           
           const nodeKey = (cfg.apiKey || "").trim();
           const nodeProvider = (cfg.provider || "openai").toLowerCase();
