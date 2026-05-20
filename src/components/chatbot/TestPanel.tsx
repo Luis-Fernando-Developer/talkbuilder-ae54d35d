@@ -316,7 +316,11 @@ export const TestPanel = ({
       if (current) {
         const varName = current.node.config?.variableName || current.node.config?.saveVariable;
         const value = input.message ?? input.button_id;
-        if (varName && value !== undefined) variables[varName] = value;
+        if (value !== undefined) {
+          variables["last_message"] = value;
+          if (varName) variables[varName] = value;
+        }
+        
         const currentType = String(current.node.type || "").toLowerCase();
         if (currentType === "ai-agent" || currentType === "ai-node") {
           variables.__last_agent_user_message = value ?? "";
@@ -492,230 +496,44 @@ export const TestPanel = ({
         const objective = cfg.objective || cfg.systemPrompt || "agente de teste";
         const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message);
         const hasTools = allContainers.some(c => c.nodes.some(n => n.config?.isSkill));
-        const userMessage = String(variables.__last_agent_user_message || "").trim();
         
-        // Verifica se existem chaves de API configuradas no settings ou no próprio nó
+        let userMessage = String(variables.__last_agent_user_message || "").trim();
+        if (!userMessage && nodeType === "ai-node" && cfg.userMessage) {
+          userMessage = replaceVars(cfg.userMessage);
+          if (userMessage === "{{last_message}}") userMessage = "";
+        }
+
         const nodeKey = (cfg.apiKey || "").trim();
         const nodeProvider = (cfg.provider || "openai").toLowerCase();
-        const isGoogle = nodeProvider === "google" || nodeProvider === "gemini";
-        
         const globalKeys = settings?.aiKeys || {};
-        const openaiKey = (globalKeys.openaiKey || "").trim() || (nodeProvider === "openai" ? nodeKey : "");
-        const anthropicKey = (globalKeys.anthropicKey || "").trim() || (nodeProvider === "anthropic" ? nodeKey : "");
-        const googleKey = (globalKeys.googleKey || "").trim() || (isGoogle ? nodeKey : "");
-        
-        // Fallback final: se o usuário colocou uma chave no nó mas não selecionou provider, usa pelo provider do nó
-        const fallbackKey = nodeKey && !openaiKey && !anthropicKey && !googleKey ? nodeKey : "";
-        
-        let selectedProvider: "openai" | "anthropic" | "google" | "gemini" = "openai";
-        if (openaiKey) selectedProvider = "openai";
-        else if (anthropicKey) selectedProvider = "anthropic";
-        else if (googleKey || (isGoogle && fallbackKey)) {
-          selectedProvider = (nodeProvider === "gemini" || nodeProvider === "google") ? nodeProvider as any : "google";
-        }
-        else if (fallbackKey) selectedProvider = nodeProvider as any;
+        const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
+        const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
 
-        const activeKey = openaiKey || anthropicKey || googleKey || fallbackKey;
-        const hasAnyKey = !!activeKey;
-
-        // Limpa a mensagem processada para evitar repetições
         variables.__last_agent_user_message = "";
 
-        if (!hasAnyKey) {
+        if (!activeKey) {
           nextMessages.push({ 
             id: crypto.randomUUID(), 
             type: "bot", 
-            content: userMessage
-              ? `🤖 [SIMULAÇÃO DE AGENTE]\nRecebi: "${userMessage}"\n\nAinda não encontrei uma chave de API configurada para responder de verdade. Objetivo atual: ${objective}\n\n${hasTools ? "Também identifiquei Skills disponíveis no fluxo." : "Dica: marque blocos como Skill para o agente poder usá-los."}`
-              : `🤖 [SIMULAÇÃO DE AGENTE]\nObjetivo: ${objective}\n\nO sistema de IA está configurado, mas para funcionar de verdade, você precisará configurar uma chave de API nas configurações do bot ou no próprio nó.\n\n${hasTools ? "Identifiquei que você já tem blocos configurados como Skills!" : "Dica: Você ainda não marcou nenhum bloco como 'Skill' para este agente usar."}`, 
+            content: `🤖 [SIMULAÇÃO]\n${userMessage ? `Recebi: "${userMessage}"\n\n` : ""}Configure uma chave de API para o provedor ${nodeProvider.toUpperCase()} para ativar a IA real.`,
           });
-          
           waitingFor = "input-text";
-          waitingForCfg = { placeholder: "Simule uma conversa com o agente..." };
+          waitingForCfg = { placeholder: "Simule uma conversa..." };
         } else {
-          const skillsText = hasTools ? "\n\nPercebi que existem Skills disponíveis neste fluxo; quando o motor real estiver conectado, eu poderei decidir quando acioná-las." : "";
-          
-          if (userMessage) {
-            const kbFiles: Array<{ name: string; content?: string; truncated?: boolean }> = Array.isArray(cfg.kbFiles) ? cfg.kbFiles : [];
-            const kbLinks: Array<{ url: string }> = Array.isArray(cfg.kbLinks) ? cfg.kbLinks : [];
-            const kbFilesEnabled = cfg.kbFilesEnabled && kbFiles.length > 0;
-            const kbLinksEnabled = cfg.kbLinksEnabled && kbLinks.length > 0;
-            let kbBlock = "";
-            if (kbFilesEnabled || kbLinksEnabled) {
-              const parts: string[] = [`\n\n=== BASE DE CONHECIMENTO${cfg.kbName ? ` (${cfg.kbName})` : ""} ===`];
-              parts.push("Use EXCLUSIVAMENTE as informações abaixo como sua fonte de verdade. Se a resposta não estiver aqui, diga que não encontrou na base.");
-              if (kbFilesEnabled) {
-                kbFiles.forEach((f, i) => {
-                  const content = (f.content || "").trim();
-                  console.log(`[TestPanel] Injecting file ${i+1}: ${f.name}, content length: ${content.length}`);
-                  parts.push(`\n--- Arquivo ${i + 1}: ${f.name} ---\n${content || "[arquivo sem conteúdo legível]"}${f.truncated ? "\n[...conteúdo truncado...]" : ""}`);
-                });
-              }
-              if (kbLinksEnabled) {
-                parts.push(`\n--- Links de referência ---`);
-                kbLinks.forEach((l, i) => parts.push(`${i + 1}. ${l.url}`));
-              }
-              parts.push("\n=== FIM DA BASE DE CONHECIMENTO ===");
-              kbBlock = parts.join("\n");
-            }
-            const systemPrompt = `Objetivo: ${objective}${instructions ? `\nInstruções: ${instructions}` : ""}${kbBlock}`;
-            let aiReply: string | null = null;
-            try {
-              if (selectedProvider === "openai") {
-                const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                  method: "POST",
-                  headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: cfg.model || "gpt-4o-mini",
-                    messages: [
-                      { role: "system", content: systemPrompt },
-                      { role: "user", content: userMessage }
-                    ],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  aiReply = data.choices?.[0]?.message?.content || null;
-                } else {
-                  const errorData = await res.json().catch(() => ({}));
-                  if (res.status === 429 && errorData.error?.code === "insufficient_quota") {
-                    aiReply = "❌ Sua chave da OpenAI está sem créditos ou atingiu o limite de uso (Quota Exceeded). Verifique seu plano e faturamento no painel da OpenAI.";
-                  } else {
-                    console.error("[TestPanel] OpenAI error", res.status, errorData);
-                  }
-                }
-              } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
-                const modelInput = (cfg.model || "gemini-2.5-flash").trim();
-                const normalizeGeminiModel = (model: string) => {
-                  if (model.includes("gemini-1.5") || model === "gemini-pro" || model.includes("gemini-1.0")) return "gemini-2.5-flash";
-                  return model.replace(/^models\//, "");
-                };
-                const modelsToTry = [...new Set([
-                  normalizeGeminiModel(modelInput),
-                  "gemini-2.5-flash",
-                  "gemini-2.5-pro",
-                  "gemini-2.0-flash",
-                ].filter(Boolean))];
+          const startMode = cfg.startMode || "automatic";
+          const welcomeMsg = cfg.welcomeMessage;
 
-                let lastError = null;
-                let success = false;
-
-                for (const model of modelsToTry) {
-                  try {
-                    console.log(`[TestPanel] Trying Gemini model: ${model}`);
-                    const versions = ["v1beta", "v1"];
-                    
-                    for (const version of versions) {
-                      const res = await fetch(`https://generativelanguage.googleapis.com/${version}/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            contents: [
-                              ...(systemPrompt ? [{ role: "user", parts: [{ text: `System Instruction: ${systemPrompt}` }] }] : []),
-                              { role: "user", parts: [{ text: userMessage }] }
-                            ],
-                          }),
-                      });
-
-                      if (res.ok) {
-                        const data = await res.json();
-                        const firstCandidate = data.candidates?.[0];
-                        if (firstCandidate?.content?.parts) {
-                          aiReply = firstCandidate.content.parts.map((p: any) => p.text).join("");
-                          success = true;
-                          break;
-                        } else if (firstCandidate?.finishReason) {
-                          aiReply = `⚠️ O Gemini não gerou uma resposta. Motivo: ${firstCandidate.finishReason}`;
-                          success = true;
-                          break;
-                        }
-                      } else {
-                        lastError = await res.json().catch(() => ({}));
-                        console.warn(`[TestPanel] Gemini model ${model} (${version}) failed:`, lastError);
-                        
-                        // If it's an API key error, stop trying everything
-                        if (res.status === 400 && lastError.error?.message?.toLowerCase().includes("api key")) break;
-                        // If it's a model error but not a 404, we might want to try other models but maybe not other versions
-                      }
-                    }
-                    if (success) break;
-                    if (lastError?.error?.message?.toLowerCase().includes("api key")) break;
-                  } catch (err) {
-                    console.error(`[TestPanel] Error calling Gemini model ${model}:`, err);
-                    lastError = err;
-                  }
-                }
-
-                if (!success) {
-                  console.error("[TestPanel] All Gemini models/versions failed", lastError);
-                  if (lastError?.error?.message?.includes("API key")) {
-                    aiReply = "❌ Chave de API do Gemini inválida ou não autorizada.";
-                  } else {
-                    aiReply = `❌ Erro no Gemini: ${lastError?.error?.message || "Não foi possível obter resposta."}`;
-                  }
-                }
-              } else if (selectedProvider === "anthropic") {
-                const res = await fetch("https://api.anthropic.com/v1/messages", {
-                  method: "POST",
-                  headers: {
-                    "x-api-key": activeKey,
-                    "anthropic-version": "2023-06-01",
-                    "anthropic-dangerous-direct-browser-access": "true",
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify({
-                    model: cfg.model || "claude-3-5-sonnet-latest",
-                    max_tokens: 1024,
-                    system: systemPrompt,
-                    messages: [{ role: "user", content: userMessage }],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  aiReply = data.content?.[0]?.text || null;
-                } else {
-                  const errorData = await res.json().catch(() => ({}));
-                  console.error("[TestPanel] Anthropic error", res.status, errorData);
-                }
-              }
-            } catch (e: any) {
-              console.error("[TestPanel] AI Call failed", e);
-              aiReply = `❌ Erro de conexão ou CORS: ${e.message || "Não foi possível conectar ao provedor"}. Verifique se seu navegador está bloqueando a requisição direta para a API.`;
-            }
-
-            if (aiReply) {
-              nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-            } else {
-              nextMessages.push({
-                id: crypto.randomUUID(),
-                type: "bot",
-                content: `⚠️ Não consegui obter resposta do provedor ${selectedProvider.toUpperCase()}. Verifique se a chave de API é válida e se o modelo "${cfg.model || "(padrão)"}" está disponível. Veja o console do navegador para detalhes.`,
-              });
-            }
-
-            // Reabre o input e para a execução aqui, forçando o loop a esperar a próxima interação
+          if (!userMessage && startMode === "manual") {
             waitingFor = "input-text";
-            waitingForCfg = { placeholder: "Converse com seu agente..." };
-            break; // Garante que não continue para o próximo nó automaticamente
-          } else {
-            const startMode = cfg.startMode || "automatic";
-            const welcomeMsg = cfg.welcomeMessage;
-
-            if (startMode === "manual") {
-              waitingFor = "input-text";
-              waitingForCfg = { placeholder: "Inicie a conversa com o agente..." };
-            } else if (welcomeMsg) {
-              nextMessages.push({ 
-                id: crypto.randomUUID(), 
-                type: "bot", 
-                content: welcomeMsg, 
-              });
+            waitingForCfg = { placeholder: "Inicie a conversa..." };
+          } else if (!userMessage && (welcomeMsg || startMode === "automatic")) {
+            if (welcomeMsg) {
+              nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: welcomeMsg });
               waitingFor = "input-text";
               waitingForCfg = { placeholder: "Converse com o agente..." };
             } else {
-              const systemPrompt = `Objetivo: ${objective}${instructions ? `\nInstruções: ${instructions}` : ""}\n\nPor favor, envie uma saudação inicial amigável e profissional ao usuário.`;
+              const systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}\n\nEnvie uma saudação inicial amigável.`;
               let aiReply: string | null = null;
-              
               try {
                 if (selectedProvider === "openai") {
                   const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -730,56 +548,78 @@ export const TestPanel = ({
                     const data = await res.json();
                     aiReply = data.choices?.[0]?.message?.content || null;
                   }
-                } else if (selectedProvider === "google" || (selectedProvider as string) === "gemini") {
-                   const model = (cfg.model || "gemini-2.5-flash").trim();
-                   const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                     method: "POST",
-                     headers: { "Content-Type": "application/json" },
-                     body: JSON.stringify({
-                       contents: [
-                         { role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nOlá!` }] }
-                       ],
-                     }),
-                   });
-                   if (res.ok) {
-                     const data = await res.json();
-                     aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-                   }
-                } else if (selectedProvider === "anthropic") {
-                  const res = await fetch("https://api.anthropic.com/v1/messages", {
+                } else if (selectedProvider === "google") {
+                  const model = (cfg.model || "gemini-2.0-flash").trim();
+                  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
                     method: "POST",
-                    headers: {
-                      "x-api-key": activeKey,
-                      "anthropic-version": "2023-06-01",
-                      "anthropic-dangerous-direct-browser-access": "true",
-                      "Content-Type": "application/json",
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                      model: cfg.model || "claude-3-5-sonnet-latest",
-                      max_tokens: 1024,
-                      system: systemPrompt,
-                      messages: [{ role: "user", content: "Olá!" }],
+                      contents: [{ role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nUser: Olá!` }] }],
                     }),
                   });
                   if (res.ok) {
                     const data = await res.json();
-                    aiReply = data.content?.[0]?.text || null;
+                    aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
                   }
                 }
-              } catch (e) {
-                console.error("[TestPanel] Greeting AI Call failed", e);
-              }
-
-              nextMessages.push({ 
-                id: crypto.randomUUID(), 
-                type: "bot", 
-                content: aiReply || `✨ [AGENTE ATIVO - ${selectedProvider.toUpperCase()}]\nOlá! Como posso ajudar hoje?`, 
-              });
+              } catch (e) { console.error(e); }
+              nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply || "Olá! Como posso ajudar?" });
               waitingFor = "input-text";
               waitingForCfg = { placeholder: "Converse com seu agente..." };
             }
+          } else if (userMessage) {
+            const systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}`;
+            let aiReply: string | null = null;
+            try {
+              if (selectedProvider === "openai") {
+                const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: cfg.model || "gpt-4o-mini",
+                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  aiReply = data.choices?.[0]?.message?.content || null;
+                }
+              } else if (selectedProvider === "google") {
+                const model = (cfg.model || "gemini-2.0-flash").trim();
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    contents: [{ role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nUser: ${userMessage}` }] }],
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                }
+              } else if (selectedProvider === "anthropic") {
+                const res = await fetch("https://api.anthropic.com/v1/messages", {
+                  method: "POST",
+                  headers: { "x-api-key": activeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true", "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: cfg.model || "claude-3-5-sonnet-latest",
+                    max_tokens: 1024,
+                    system: systemPrompt,
+                    messages: [{ role: "user", content: userMessage }],
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  aiReply = data.content?.[0]?.text || null;
+                }
+              }
+            } catch (e: any) { aiReply = `❌ Erro: ${e.message}`; }
+            if (aiReply) nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: "Digite sua mensagem..." };
           }
         }
+        if (waitingFor) break;
       } else if (nodeType === "set-variable" && cfg.variableName) {
         variables[cfg.variableName] = evaluateSetVariableValue(cfg, variables);
       } else if (nodeType === "condition") {
@@ -952,7 +792,10 @@ export const TestPanel = ({
     // Actually runLocalFlow is pure-ish relative to runtimeStateRef, it uses state and returns new state.
     applyRuntimeData(data);
 
-    if (!waitTimerRef.current) setIsLoading(false);
+    // Garante que o estado de carregamento seja removido se estivermos esperando input
+    if (data.waiting_for || !waitTimerRef.current) {
+      setIsLoading(false);
+    }
   };
 
   const handleButtonClick = (button: ButtonConfig) => sendMessage(undefined, button.id);

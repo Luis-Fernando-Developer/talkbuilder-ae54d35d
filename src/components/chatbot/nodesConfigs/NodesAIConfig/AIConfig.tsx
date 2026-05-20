@@ -12,7 +12,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useVariables } from "@/context/VariablesContext";
-import { Search, Plus, Brackets } from "lucide-react";
+import { Search, Plus, Brackets, Sparkles } from "lucide-react";
 import { useState, useMemo } from "react";
 import { VariableModal } from "../../VariableModal";
 import { KnowledgeBaseSection, ToggleRow } from "./KnowledgeBaseSection";
@@ -72,6 +72,40 @@ export const AIConfig = ({ config, setConfig }: AIConfigProps) => {
 
   return (
     <div className="p-4 space-y-6">
+      <div className="space-y-4 pb-4 border-b">
+        <Label className="text-sm font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" />
+          Comportamento de Início
+        </Label>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label>Modo de Início</Label>
+            <Select 
+              value={startMode} 
+              onValueChange={(v) => setConfig({ ...config, startMode: v })}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="automatic">Agente Inicia</SelectItem>
+                <SelectItem value="manual">Aguardar Usuário</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          {startMode === "automatic" && (
+            <div className="space-y-2">
+              <Label>Mensagem de Boas-vindas</Label>
+              <Input 
+                placeholder="Ex: Olá! Como posso ajudar?"
+                value={welcomeMessage}
+                onChange={(e) => setConfig({ ...config, welcomeMessage: e.target.value })}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label>Provedor de IA</Label>
@@ -129,37 +163,6 @@ export const AIConfig = ({ config, setConfig }: AIConfigProps) => {
           />
         </div>
       )}
-
-      <div className="space-y-4 pt-4 border-t">
-        <Label className="text-sm font-semibold">Comportamento de Início</Label>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label>Modo de Início</Label>
-            <Select 
-              value={startMode} 
-              onValueChange={(v) => setConfig({ ...config, startMode: v })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="automatic">Agente Inicia</SelectItem>
-                <SelectItem value="manual">Aguardar Usuário</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          {startMode === "automatic" && (
-            <div className="space-y-2">
-              <Label>Mensagem de Boas-vindas</Label>
-              <Input 
-                placeholder="Deixe vazio para saudação da IA"
-                value={welcomeMessage}
-                onChange={(e) => setConfig({ ...config, welcomeMessage: e.target.value })}
-              />
-            </div>
-          )}
-        </div>
-      </div>
 
       <div className="space-y-2 relative">
         <Label>System Prompt (Contexto do Agente)</Label>
