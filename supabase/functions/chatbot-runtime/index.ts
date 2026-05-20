@@ -237,6 +237,43 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
     return c?.nodes?.[0]?.id ?? null;
   };
 
+  const firstRunnableNodeOfContainer = (container: any): string | null => {
+    if (!container?.nodes?.length) return null;
+    const explicitStart = container.nodes.find((node: any) => node.type === "start");
+    return explicitStart?.id ?? container.nodes[0].id;
+  };
+
+  const resolveGraphStartNode = (): string | null => {
+    const explicitStart = containers.flatMap((container: any) => container.nodes || []).find((node: any) => node.type === "start");
+    if (explicitStart) return explicitStart.id;
+
+    const containerById = new Map(containers.map((container: any) => [container.id, container]));
+    const incomingContainerIds = new Set<string>();
+
+    for (const edge of edges || []) {
+      if (!edge?.target) continue;
+      if (containerById.has(edge.target)) {
+        incomingContainerIds.add(edge.target);
+        continue;
+      }
+      const targetNode = findNode(edge.target);
+      if (targetNode) incomingContainerIds.add(targetNode.container.id);
+    }
+
+    const byCanvasPosition = (a: any, b: any) => {
+      const ax = Number(a?.position?.x ?? 0);
+      const bx = Number(b?.position?.x ?? 0);
+      if (ax !== bx) return ax - bx;
+      return Number(a?.position?.y ?? 0) - Number(b?.position?.y ?? 0);
+    };
+
+    const rootContainers = containers
+      .filter((container: any) => (container.nodes || []).length > 0 && !incomingContainerIds.has(container.id))
+      .sort(byCanvasPosition);
+    const startContainer = rootContainers[0] ?? containers.filter((container: any) => (container.nodes || []).length > 0).sort(byCanvasPosition)[0];
+    return firstRunnableNodeOfContainer(startContainer);
+  };
+
   const normalizeHandle = (value?: string | null) => {
     if (!value) return "";
     const raw = String(value);
@@ -372,19 +409,10 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
     }
   }
 
-  // No current node => find start
+  // No current node => find the real graph start, not merely containers[0].
   if (!currentNodeId) {
-    for (const c of containers) {
-      const startNode = (c.nodes || []).find((n: any) => n.type === "start");
-      if (startNode) {
-        currentNodeId = startNode.id;
-        break;
-      }
-    }
-    // If no explicit start node, use first node of first container
-    if (!currentNodeId && containers[0]?.nodes?.[0]) {
-      currentNodeId = containers[0].nodes[0].id;
-    }
+    currentNodeId = resolveGraphStartNode();
+    console.log("[Runtime] Start resolvido pelo grafo:", { currentNodeId });
   }
 
   while (currentNodeId && steps < 100) {
