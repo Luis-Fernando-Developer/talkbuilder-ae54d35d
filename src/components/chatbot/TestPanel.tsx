@@ -385,9 +385,18 @@ export const TestPanel = ({
         };
 
         if (system) {
-          body.system_instruction = {
-            parts: [{ text: system }]
-          };
+          if (apiVersion === "v1beta") {
+            body.system_instruction = {
+              parts: [{ text: system }]
+            };
+          } else {
+            // Em v1 a system_instruction pode não ser suportada em alguns modelos/endpoints
+            // ou deve ser passada no início do array de conteúdos conforme documentação legada
+            formattedMessages.unshift({
+              role: "user",
+              parts: [{ text: `INSTRUÇÕES DO SISTEMA: ${system}\n\nPor favor, siga estas instruções estritamente.` }]
+            });
+          }
         }
 
         return await fetch(
@@ -402,11 +411,19 @@ export const TestPanel = ({
 
       try {
         console.log(`[EXTERNAL-API] Iniciando chamada direta ao Gemini (${cleanModel})`);
+        // Tenta v1beta primeiro para suporte nativo a system_instruction
         let response = await tryFetch("v1beta");
         
-        if (!response.ok && response.status === 404) {
-          console.log(`[EXTERNAL-API] Modelo ${cleanModel} não encontrado em v1beta, tentando v1...`);
-          response = await tryFetch("v1");
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          const errorMsg = errorData.error?.message || "";
+          
+          if (response.status === 404 || errorMsg.includes("not found") || errorMsg.includes("system_instruction")) {
+            console.log(`[EXTERNAL-API] v1beta falhou ou não suporta system_instruction para este modelo, tentando v1...`);
+            response = await tryFetch("v1");
+          } else {
+            throw new Error(errorMsg || `Erro HTTP ${response.status}`);
+          }
         }
 
         if (!response.ok) {
