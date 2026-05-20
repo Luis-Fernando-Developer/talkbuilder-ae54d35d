@@ -383,13 +383,8 @@ export const TestPanel = ({
 
         // AI Node (One-off execution)
         if (nodeType === "ai-node") {
-          if (cfg.waitForInput && (!input || (input.message === undefined && input.button_id === undefined))) {
-            console.log("[node:waiting_input] AI Node", node.id);
-            waitingFor = "input-text";
-            waitingForCfg = { placeholder: "Digite aqui..." };
-            status = "waiting_input";
-            break;
-          }
+          console.log("[node:start] AI Node processing", node.id);
+
 
           console.log("[node:ai_generating] AI Node", node.id);
           const objective = cfg.objective || cfg.systemPrompt || "assistente";
