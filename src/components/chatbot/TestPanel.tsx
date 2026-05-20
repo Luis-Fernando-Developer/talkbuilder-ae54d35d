@@ -500,6 +500,7 @@ export const TestPanel = ({
         const objective = cfg.objective || cfg.systemPrompt || "assistente virtual";
         const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário da melhor forma possível.";
         const hasTools = allContainers.some(c => c.nodes.some(n => n.config?.isSkill));
+        const hasNextNode = !!nextFromNode(node.id, container.id);
         
         let userMessage = String(variables.__last_agent_user_message || "").trim();
         if (!userMessage && nodeType === "ai-node" && cfg.userMessage) {
@@ -512,6 +513,19 @@ export const TestPanel = ({
         const globalKeys = settings?.aiKeys || {};
         const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
         const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
+
+        console.log("[AI Node] Processando:", {
+          nodeId: node.id,
+          nodeType,
+          provider: nodeProvider,
+          model: cfg.model,
+          hasApiKey: !!activeKey,
+          hasNextNode,
+          startMode: cfg.startMode,
+          userMessage,
+          objective,
+          instructions: instructions?.slice(0, 100),
+        });
 
         variables.__last_agent_user_message = "";
 
