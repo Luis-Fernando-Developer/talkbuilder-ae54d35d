@@ -578,6 +578,42 @@ export const TestPanel = ({
         }
       } else if (nodeType === "ai-node" || nodeType === "ai-agent") {
         const isAgent = nodeType === "ai-agent";
+        const startMode = cfg.startMode || "automatic";
+        const welcomeMessage = cfg.welcomeMessage || "";
+        
+        const isResumingThisNode = !!input && state?.waiting_for_input && state?.current_node_id === node.id;
+        const isAgentResuming = !!input && mode === "agent" && activeAgentNodeId === node.id;
+        
+        // Se estamos chegando no nó (não é uma retomada de espera deste nó específico)
+        // E o nó está configurado para esperar ou mostrar boas-vindas
+        if (!isResumingThisNode && !isAgentResuming) {
+          if (startMode === "manual") {
+            console.log(`[Runtime] AI ${isAgent ? "Agent" : "Node"} aguardando usuário (modo manual)`);
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: isAgent ? "Converse com o agente..." : "Digite aqui..." };
+            break;
+          }
+          
+          if (startMode === "automatic" && welcomeMessage) {
+            console.log(`[Runtime] AI ${isAgent ? "Agent" : "Node"} enviando mensagem de boas-vindas`);
+            const html = richHtmlFor(welcomeMessage, { variables });
+            nextMessages.push({
+              id: crypto.randomUUID(),
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot",
+              content: html,
+              isHtml: true,
+              created_at: new Date().toISOString()
+            });
+            
+            // Após mostrar as boas-vindas, precisamos esperar a resposta do usuário
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: isAgent ? "Converse com o agente..." : "Digite aqui..." };
+            break;
+          }
+        }
+
         const objective = cfg.objective || cfg.systemPrompt || "assistente virtual";
         const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário da melhor forma possível.";
         
