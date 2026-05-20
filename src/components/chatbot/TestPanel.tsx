@@ -324,8 +324,9 @@ export const TestPanel = ({
         const currentType = String(current.node.type || "").toLowerCase();
         if (currentType === "ai-agent" || currentType === "ai-node") {
           variables.__last_agent_user_message = value ?? "";
-          // Re-executa o próprio nó de IA com a nova mensagem
           currentNodeId = current.node.id;
+          // Forçamos a limpeza de waiting_for_input no estado para que o loop processe o nó novamente
+          if (state) state.waiting_for_input = false;
         } else {
           currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
         }
@@ -907,45 +908,49 @@ export const TestPanel = ({
         )}
         {waitingForInput && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
-            {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
-              <Input 
-                value={currentInput} 
-                onChange={(e) => setCurrentInput(e.target.value)} 
-                onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} 
-                placeholder={waitingForConfig?.resPonseUserNumber || waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui"}
-                type={waitingForType === "input-number" ? (typeof waitingForConfig?.min === 'number' || typeof waitingForConfig?.max === 'number' ? "number" : "text") : waitingForType === "input-mail" ? "email" : "url"}
-                min={waitingForType === "input-number" ? waitingForConfig?.min : undefined}
-                max={waitingForType === "input-number" ? waitingForConfig?.max : undefined}
-                step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
-                className="flex-1 min-w-0"
-                style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
-                disabled={isLoading}
-              />
-            ) : (
-              <Textarea
-                value={currentInput}
-                onChange={(e) => setCurrentInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }
-                }}
-                placeholder={waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui (Shift+Enter para quebrar linha)"}
-                rows={1}
-                className="flex-1 min-w-0 resize-none min-h-[40px] max-h-[160px]"
-                style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
-                disabled={isLoading}
-              />
+            {!waitingForButton && (
+              <>
+                {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
+                  <Input 
+                    value={currentInput} 
+                    onChange={(e) => setCurrentInput(e.target.value)} 
+                    onKeyPress={(e) => e.key === "Enter" && handleSendMessage()} 
+                    placeholder={waitingForConfig?.resPonseUserNumber || waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui"}
+                    type={waitingForType === "input-number" ? (typeof waitingForConfig?.min === 'number' || typeof waitingForConfig?.max === 'number' ? "number" : "text") : waitingForType === "input-mail" ? "email" : "url"}
+                    min={waitingForType === "input-number" ? waitingForConfig?.min : undefined}
+                    max={waitingForType === "input-number" ? waitingForConfig?.max : undefined}
+                    step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
+                    className="flex-1 min-w-0"
+                    style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
+                    disabled={isLoading}
+                  />
+                ) : (
+                  <Textarea
+                    value={currentInput}
+                    onChange={(e) => setCurrentInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage();
+                      }
+                    }}
+                    placeholder={waitingForConfig?.responseUserTextInput || waitingForConfig?.placeholder || "Digite aqui (Shift+Enter para quebrar linha)"}
+                    rows={1}
+                    className="flex-1 min-w-0 resize-none min-h-[40px] max-h-[160px]"
+                    style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
+                    disabled={isLoading}
+                  />
+                )}
+                <Button 
+                  size="icon" 
+                  onClick={handleSendMessage} 
+                  disabled={isLoading || !currentInput.trim()}
+                  style={{ background: theme?.primaryColor, color: "#ffffff" }}
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              </>
             )}
-            <Button 
-              size="icon" 
-              onClick={handleSendMessage} 
-              disabled={isLoading || !currentInput.trim()}
-              style={{ background: theme?.primaryColor, color: "#ffffff" }}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
           </div>
         )}
       </div>
