@@ -599,25 +599,26 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
         const activeKey = provider === "openai" ? openaiKey : provider === "anthropic" ? anthropicKey : googleKey;
         const hasAnyKey = !!openaiKey || !!anthropicKey || !!googleKey;
 
-        // AI pontual SEM input ainda: aguarda usuário primeiro
-        if (!isAgent && !userMessage) {
-          console.log("[Runtime] AI pontual aguardando input do usuário");
-          waiting_for = "input-text";
-          break;
-        }
-
-        // AGENT sem input: envia welcome e aguarda
-        if (isAgent && !userMessage) {
+        // 1. Handle START sequence (when userMessage is empty)
+        if (!userMessage) {
           const startMode = cfg.startMode || "automatic";
-          if (startMode === "automatic") {
-            const welcome = cfg.welcomeMessage || (hasAnyKey
-              ? `Olá! Como posso ajudar?`
-              : `🤖 [SIMULAÇÃO]\n${objective}\n(Sem chave de API)`);
-            messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
+          const welcome = cfg.welcomeMessage || "";
+
+          // If there is a welcome message to send first
+          if (welcome && startMode === "automatic") {
+             messages.push({ id: crypto.randomUUID(), type: "bot", content: replaceVars(welcome) });
+             console.log(`[Runtime] [Node:${nodeType}] Enviou welcome message:`, welcome);
+             // After sending welcome, we MUST wait for the user to reply before processing the AI prompt
+             waiting_for = "input-text";
+             break;
           }
-          console.log("[Runtime] AGENTE aguardando input inicial");
-          waiting_for = "input-text";
-          break;
+
+          // If manual mode or no welcome, just wait
+          if (startMode === "manual" || !welcome) {
+            console.log(`[Runtime] [Node:${nodeType}] Aguardando input inicial (manual ou sem welcome)`);
+            waiting_for = "input-text";
+            break;
+          }
         }
 
         let aiReply: string | null = null;
