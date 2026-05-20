@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
       execution = { ...execution, ...normalizeClientState(clientState), id: execution.id };
     }
 
-    const result = runFlow(execution, containers, edges, payload);
+    const result = await runFlow(execution, containers, edges, payload, flow?.settings || {});
 
     // Persist new state
     if (execution.id) {
@@ -213,7 +213,7 @@ function writeMemoryState(key: string, state: any) {
   runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
 }
 
-function runFlow(execution: any, containers: any[], edges: any[], input: any) {
+async function runFlow(execution: any, containers: any[], edges: any[], input: any, settings: any = {}) {
   let currentNodeId: string | null = execution.current_node_id;
   const variables: Record<string, any> = { ...(execution.variables || {}) };
   const messages: any[] = [];
