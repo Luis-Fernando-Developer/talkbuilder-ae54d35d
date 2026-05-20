@@ -42,17 +42,17 @@ export const buildAgentContext = ({
   let kbStr = "";
   if (knowledgeBase) {
     const files = (knowledgeBase.kbFiles || [])
-      .filter((f: any) => (knowledgeBase.kbFilesEnabled !== false) && f.content)
-      .map((f: any) => `### Arquivo: ${f.name}\n${f.content}`)
+      .filter((f: any) => f.content && f.content.length > 0)
+      .map((f: any) => `### DOCUMENTO: ${f.name}\nCONTEÚDO:\n${f.content}`)
       .join("\n\n");
     
     const links = (knowledgeBase.kbLinks || [])
-      .filter((l: any) => (knowledgeBase.kbLinksEnabled !== false) && l.url)
+      .filter((l: any) => l.url)
       .map((l: any) => `- Link: ${l.url}`)
       .join("\n");
 
     if (files || links) {
-      kbStr = `\n\n[BASE DE CONHECIMENTO]\nVocê deve priorizar as informações abaixo para responder ao usuário. Se a resposta não estiver aqui, use seu conhecimento geral, mas mencione que não encontrou nos documentos se for algo muito específico.\n\n${files}\n${links}`;
+      kbStr = `\n\n[INFORMAÇÕES DE SUPORTE - BASE DE CONHECIMENTO]\nVocê DEVE usar as informações abaixo como sua fonte principal de verdade. Se o usuário perguntar algo que está nestes documentos, responda EXATAMENTE o que está neles.\n\n${files}\n${links}`;
     }
   }
 
