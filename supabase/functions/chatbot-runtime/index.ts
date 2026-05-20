@@ -136,7 +136,7 @@ Deno.serve(async (req: Request) => {
       execution = { ...execution, ...normalizeClientState(clientState), id: execution.id };
     }
 
-    const result = runFlow(execution, containers, edges, payload);
+    const result = await runFlow(execution, containers, edges, payload, flow?.settings || {});
 
     // Persist new state
     if (execution.id) {
@@ -213,7 +213,7 @@ function writeMemoryState(key: string, state: any) {
   runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
 }
 
-function runFlow(execution: any, containers: any[], edges: any[], input: any) {
+async function runFlow(execution: any, containers: any[], edges: any[], input: any, settings: any = {}) {
   let currentNodeId: string | null = execution.current_node_id;
   const variables: Record<string, any> = { ...(execution.variables || {}) };
   const messages: any[] = [];
@@ -237,6 +237,43 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     return c?.nodes?.[0]?.id ?? null;
   };
 
+  const firstRunnableNodeOfContainer = (container: any): string | null => {
+    if (!container?.nodes?.length) return null;
+    const explicitStart = container.nodes.find((node: any) => node.type === "start");
+    return explicitStart?.id ?? container.nodes[0].id;
+  };
+
+  const resolveGraphStartNode = (): string | null => {
+    const explicitStart = containers.flatMap((container: any) => container.nodes || []).find((node: any) => node.type === "start");
+    if (explicitStart) return explicitStart.id;
+
+    const containerById = new Map(containers.map((container: any) => [container.id, container]));
+    const incomingContainerIds = new Set<string>();
+
+    for (const edge of edges || []) {
+      if (!edge?.target) continue;
+      if (containerById.has(edge.target)) {
+        incomingContainerIds.add(edge.target);
+        continue;
+      }
+      const targetNode = findNode(edge.target);
+      if (targetNode) incomingContainerIds.add(targetNode.container.id);
+    }
+
+    const byCanvasPosition = (a: any, b: any) => {
+      const ax = Number(a?.position?.x ?? 0);
+      const bx = Number(b?.position?.x ?? 0);
+      if (ax !== bx) return ax - bx;
+      return Number(a?.position?.y ?? 0) - Number(b?.position?.y ?? 0);
+    };
+
+    const rootContainers = containers
+      .filter((container: any) => (container.nodes || []).length > 0 && !incomingContainerIds.has(container.id))
+      .sort(byCanvasPosition);
+    const startContainer = rootContainers[0] ?? containers.filter((container: any) => (container.nodes || []).length > 0).sort(byCanvasPosition)[0];
+    return firstRunnableNodeOfContainer(startContainer);
+  };
+
   const normalizeHandle = (value?: string | null) => {
     if (!value) return "";
     const raw = String(value);
@@ -247,10 +284,16 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
   };
 
   const nextFromNode = (nodeId: string, container: any, handle?: string, strictHandle = false): string | null => {
+    const resolveTarget = (target: string): string | null => {
+      if (!target) return null;
+      if (findNode(target)) return target;
+      return firstNodeOfContainer(target);
+    };
     const isInnerNodeHandle = (value?: string | null) =>
       !!value && String(value).startsWith(`${nodeId}-`);
     const wantedHandle = normalizeHandle(handle);
-    const fromNode = edges.filter(
+    const validEdges = edges.filter((e: any) => resolveTarget(e.target) !== null);
+    const fromNode = validEdges.filter(
       (e: any) => e.source === nodeId || (e.source === container.id && isInnerNodeHandle(e.sourceHandle))
     );
     let edge = fromNode.find((e: any) => wantedHandle && normalizeHandle(e.sourceHandle) === wantedHandle);
@@ -258,19 +301,10 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     if (!edge && wantedHandle) edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === "default");
     if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
     if (!edge) edge = fromNode[0];
-    if (edge) {
-      // edge target may be a node id OR a container id
-      if (findNode(edge.target)) return edge.target;
-      const first = firstNodeOfContainer(edge.target);
-      if (first) return first;
-      return edge.target;
-    }
+    if (edge) return resolveTarget(edge.target);
     // fallback: container-level edge
-    const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
-    if (cEdge) {
-      if (findNode(cEdge.target)) return cEdge.target;
-      return firstNodeOfContainer(cEdge.target);
-    }
+    const cEdge = validEdges.find((e: any) => e.source === container.id && !e.sourceHandle);
+    if (cEdge) return resolveTarget(cEdge.target);
     return null;
   };
 
@@ -372,19 +406,10 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
     }
   }
 
-  // No current node => find start
+  // No current node => find the real graph start, not merely containers[0].
   if (!currentNodeId) {
-    for (const c of containers) {
-      const startNode = (c.nodes || []).find((n: any) => n.type === "start");
-      if (startNode) {
-        currentNodeId = startNode.id;
-        break;
-      }
-    }
-    // If no explicit start node, use first node of first container
-    if (!currentNodeId && containers[0]?.nodes?.[0]) {
-      currentNodeId = containers[0].nodes[0].id;
-    }
+    currentNodeId = resolveGraphStartNode();
+    console.log("[Runtime] Start resolvido pelo grafo:", { currentNodeId });
   }
 
   while (currentNodeId && steps < 100) {
