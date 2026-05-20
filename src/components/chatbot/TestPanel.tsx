@@ -737,12 +737,13 @@ export const TestPanel = ({
         const activeKey = (globalKeys[`${nodeProvider}Key`] || globalKeys.googleKey || "").trim() || nodeKey;
         const selectedProvider = (nodeProvider === "gemini" || nodeProvider === "google") ? "google" : nodeProvider as "openai" | "anthropic";
 
+        console.log("[TestPanel] Iniciando chamada de IA", { provider: selectedProvider, model: cfg.model, hasKey: !!activeKey });
 
         const { system, messages: contextMessages } = buildAgentContext({
           systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
           history: messageHistory,
-          persistentMemory,
-          variables
+          persistentMemory: persistentMemory || {},
+          variables: variables || {}
         });
 
         let aiReply: string | null = null;
