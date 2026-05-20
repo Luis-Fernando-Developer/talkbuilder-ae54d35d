@@ -363,24 +363,39 @@ export const TestPanel = ({
       const cleanModel = modelMap[model] || (model.startsWith("google/") ? model.replace("google/", "") : model);
 
       const tryFetch = async (apiVersion: string) => {
+        const formattedMessages: any[] = [];
+        let lastRole: string | null = null;
+
+        contextMessages.forEach(m => {
+          const role = m.role === "assistant" ? "model" : "user";
+          if (role === lastRole && formattedMessages.length > 0) {
+            formattedMessages[formattedMessages.length - 1].parts[0].text += "\n" + m.content;
+          } else {
+            formattedMessages.push({ role, parts: [{ text: m.content }] });
+            lastRole = role;
+          }
+        });
+
+        const body: any = {
+          contents: formattedMessages,
+          generationConfig: {
+            temperature: cfg.temperature ?? 0.7,
+            maxOutputTokens: cfg.maxTokens ?? 1000,
+          }
+        };
+
+        if (system) {
+          body.system_instruction = {
+            parts: [{ text: system }]
+          };
+        }
+
         return await fetch(
           `https://generativelanguage.googleapis.com/${apiVersion}/models/${cleanModel}:generateContent?key=${apiKey}`,
           {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              contents: [
-                { role: "user", parts: [{ text: system }] },
-                ...contextMessages.map(m => ({
-                  role: m.role === "assistant" ? "model" : "user",
-                  parts: [{ text: m.content }]
-                }))
-              ],
-              generationConfig: {
-                temperature: cfg.temperature ?? 0.7,
-                maxOutputTokens: cfg.maxTokens ?? 1000,
-              }
-            }),
+            body: JSON.stringify(body),
           }
         );
       };
