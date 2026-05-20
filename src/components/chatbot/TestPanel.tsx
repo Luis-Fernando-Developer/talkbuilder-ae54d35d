@@ -358,8 +358,9 @@ export const TestPanel = ({
         "google/gemini-2.0-flash-exp": "gemini-2.0-flash-exp",
         "gemini-1.5-flash": "gemini-1.5-flash",
         "gemini-1.5-pro": "gemini-1.5-pro",
-        "gemini-1.5-flash-latest": "gemini-1.5-flash", // Removido -latest pois alguns modelos específicos podem falhar na v1
-        "gemini-1.5-pro-latest": "gemini-1.5-pro"
+        "gemini-1.5-flash-latest": "gemini-1.5-flash",
+        "gemini-1.5-pro-latest": "gemini-1.5-pro",
+        "gemini-2.0-flash": "gemini-2.0-flash"
       };
 
       const cleanModel = modelMap[model] || (model.startsWith("google/") ? model.replace("google/", "") : model);
