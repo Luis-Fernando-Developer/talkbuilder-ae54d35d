@@ -789,7 +789,7 @@ export const TestPanel = ({
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                       system_instruction: {
-                        parts: [{ text: `Objetivo: ${objective}\nInstruções: ${instructions}` }]
+                        parts: [{ text: system }]
                       },
                       contents: [
                         {
