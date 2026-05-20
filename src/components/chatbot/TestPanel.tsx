@@ -401,12 +401,12 @@ export const TestPanel = ({
       };
 
       try {
-        console.log(`[TestPanel] Iniciando chamada direta ao Gemini (${cleanModel})`);
-        let response = await tryFetch("v1");
+        console.log(`[EXTERNAL-API] Iniciando chamada direta ao Gemini (${cleanModel})`);
+        let response = await tryFetch("v1beta");
         
         if (!response.ok && response.status === 404) {
-          console.log(`Modelo ${cleanModel} não encontrado em v1, tentando v1beta...`);
-          response = await tryFetch("v1beta");
+          console.log(`[EXTERNAL-API] Modelo ${cleanModel} não encontrado em v1beta, tentando v1...`);
+          response = await tryFetch("v1");
         }
 
         if (!response.ok) {
