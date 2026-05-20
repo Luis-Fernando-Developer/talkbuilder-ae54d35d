@@ -455,10 +455,14 @@ export const TestPanel = ({
             };
             messageHistory.push(botMsg);
             if (conversationId) conversationService.saveMessage(botMsg);
-            nextMessages.push({ ...botMsg, type: "bot", content: aiReply, isHtml: true } as Message);
             
-            if (cfg.saveVariable) variables[cfg.saveVariable] = aiReply;
+            if (cfg.saveVariable) {
+              variables[cfg.saveVariable] = aiReply;
+            } else {
+              nextMessages.push({ ...botMsg, type: "bot", content: aiReply, isHtml: true } as Message);
+            }
           }
+
 
           console.log("[node:ai_completed] AI Node", node.id);
           currentNodeId = nextFromNode(node.id, container.id);
