@@ -732,7 +732,7 @@ export const TestPanel = ({
         let aiReply: string | null = null;
         
         if (!activeKey) {
-          aiReply = `🤖 [SIMULAÇÃO]\nConfigure uma chave de API para o provedor ${nodeProvider.toUpperCase()}.\nRecebi: "${userMsgContent}"`;
+          aiReply = `🤖 [SIMULAÇÃO]\nConfigure uma chave de API para o provedor ${nodeProvider.toUpperCase()} nas configurações do bot.\nRecebi: "${userMsgContent}"`;
         } else {
           try {
             if (selectedProvider === "openai") {
@@ -747,6 +747,9 @@ export const TestPanel = ({
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.choices?.[0]?.message?.content || null;
+              } else {
+                const error = await res.json();
+                aiReply = `❌ Erro OpenAI: ${error.error?.message || res.statusText}`;
               }
             } else if (selectedProvider === "google") {
               const model = (cfg.model || "gemini-2.0-flash").trim();
@@ -763,6 +766,9 @@ export const TestPanel = ({
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+              } else {
+                const error = await res.json();
+                aiReply = `❌ Erro Gemini: ${error.error?.message || res.statusText}`;
               }
             }
           } catch (e: any) { 
@@ -770,6 +776,7 @@ export const TestPanel = ({
             aiReply = `❌ Erro na IA: ${e.message}`; 
           }
         }
+
 
         if (aiReply) {
           const botMsg: RuntimeMessage = {
