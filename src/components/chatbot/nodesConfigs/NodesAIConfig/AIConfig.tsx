@@ -12,7 +12,7 @@ import {
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { useVariables } from "@/context/VariablesContext";
-import { Search, Plus, Brackets } from "lucide-react";
+import { Search, Plus, Brackets, Sparkles } from "lucide-react";
 import { useState, useMemo } from "react";
 import { VariableModal } from "../../VariableModal";
 import { KnowledgeBaseSection, ToggleRow } from "./KnowledgeBaseSection";
