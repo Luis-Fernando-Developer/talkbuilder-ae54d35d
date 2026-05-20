@@ -943,7 +943,7 @@ export const TestPanel = ({
             <Button 
               size="icon" 
               onClick={handleSendMessage} 
-              disabled={(isLoading && !waitingForInput) || !currentInput.trim()}
+              disabled={isLoading || !currentInput.trim()}
               style={{ background: theme?.primaryColor, color: "#ffffff" }}
             >
               <Send className="h-4 w-4" />
