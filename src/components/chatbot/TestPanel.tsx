@@ -769,11 +769,10 @@ export const TestPanel = ({
                 aiReply = `❌ Erro OpenAI: ${error.error?.message || res.statusText}`;
               }
             } else if (selectedProvider === "google") {
-              let model = (cfg.model || "gemini-1.5-flash").trim().replace("gemini-2.5", "gemini-1.5");
-              const cleanModel = model.startsWith("models/") ? model.substring(7) : model;
-              const url = `https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${encodeURIComponent(activeKey)}`;
-              console.log("[TestPanel] Fetching Gemini:", url.replace(activeKey, "REDACTED"));
-              const res = await fetch(url, {
+              const modelName = (cfg.model || "gemini-1.5-flash").trim();
+              const cleanModel = modelName.startsWith("models/") ? modelName.substring(7) : modelName;
+
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${activeKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -789,17 +788,13 @@ export const TestPanel = ({
                   ]
                 }),
               });
-              
+
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
               } else {
-                let errorMsg = res.statusText;
-                try {
-                  const error = await res.json();
-                  errorMsg = error.error?.message || errorMsg;
-                } catch (jsonErr) {}
-                aiReply = `❌ Erro Gemini: ${errorMsg}`;
+                const error = await res.json();
+                aiReply = `❌ Erro Gemini: ${error.error?.message || res.statusText}`;
               }
             }
           } catch (e: any) { 
