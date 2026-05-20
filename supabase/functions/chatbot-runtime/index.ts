@@ -356,9 +356,14 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
       
       if (varName && value !== undefined) variables[varName] = value;
       
-      if (nodeType === "ai-agent" || nodeType === "ai-node") {
+      if (nodeType === "ai-agent") {
+        // AGENT: persiste no mesmo node (loop conversacional)
         variables.__last_agent_user_message = value ?? "";
-        // Don't advance, stay in the agent node
+        console.log("[Runtime] Mantendo modo AGENTE no node:", info.node.id);
+      } else if (nodeType === "ai-node") {
+        // AI pontual: usa input para gerar resposta e DEPOIS avança
+        variables.__last_agent_user_message = value ?? "";
+        console.log("[Runtime] AI pontual recebeu input no node:", info.node.id);
       } else if (!execution.is_waiting_time) {
         if (execution.waiting_for_input) {
           currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
