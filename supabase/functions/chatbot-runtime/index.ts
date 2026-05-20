@@ -22,6 +22,10 @@ Deno.serve(async (req: Request) => {
     const body = await req.json();
     const { action, flow_id: flowRef, contact_id, channel = "webchat", payload } = body || {};
 
+    if (action === "ai-completion") {
+      return await handleAiCompletion(payload || {});
+    }
+
     if (!action || !flowRef || !contact_id) {
       return json({ error: "missing required fields: action, flow_id, contact_id" }, 400);
     }
@@ -181,6 +185,55 @@ function json(data: any, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+async function handleAiCompletion(payload: any) {
+  try {
+    const content = await callLovableAI({
+      system: payload?.system,
+      messages: payload?.messages,
+    });
+    return json({ content });
+  } catch (e: any) {
+    const message = e?.message || "Erro ao chamar a IA.";
+    const status = e?.status || 500;
+    return json({ error: message }, status);
+  }
+}
+
+async function callLovableAI(payload: { system?: string; messages?: any[] }) {
+  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  if (!LOVABLE_API_KEY) throw Object.assign(new Error("Lovable AI não está configurado."), { status: 500 });
+
+  const system = String(payload?.system || "Você é um assistente útil. Responda de forma clara e objetiva.").slice(0, 20000);
+  const messages = Array.isArray(payload?.messages) ? payload.messages : [];
+  const safeMessages = messages
+    .filter((m: any) => (m?.role === "user" || m?.role === "assistant") && typeof m?.content === "string")
+    .slice(-20)
+    .map((m: any) => ({ role: m.role, content: m.content.slice(0, 20000) }));
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${LOVABLE_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [{ role: "system", content: system }, ...safeMessages],
+    }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 429) throw Object.assign(new Error("Limite de IA atingido. Tente novamente em instantes."), { status: 429 });
+    if (response.status === 402) throw Object.assign(new Error("Créditos de IA insuficientes. Adicione saldo em Cloud & AI balance."), { status: 402 });
+    const detail = await response.text().catch(() => "");
+    console.error("[lovable-ai] gateway error", response.status, detail);
+    throw Object.assign(new Error("Erro ao chamar a IA."), { status: 500 });
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || "";
 }
 
 function normalizeClientState(state: any) {
@@ -602,20 +655,6 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
 
         console.log(`[Node:${nodeType}] Executando:`, node.id, { isAgent, hasInput: !!userMessage, instructions_length: instructions.length });
 
-        // Check for keys
-        const nodeKey = (cfg.apiKey || "").trim();
-        const globalKeys = flow?.settings?.aiKeys || {};
-        const provider = (cfg.provider || "openai").toLowerCase();
-        
-        // Harmonize key naming
-        const openaiKey = (globalKeys.openaiKey || "").trim() || (provider === "openai" ? nodeKey : "");
-        const anthropicKey = (globalKeys.anthropicKey || "").trim() || (provider === "anthropic" ? nodeKey : "");
-        const googleKey = (globalKeys.googleKey || globalKeys.geminiKey || "").trim() || (provider === "google" || provider === "gemini" ? nodeKey : "");
-        
-        const activeKey = provider === "openai" ? openaiKey : provider === "anthropic" ? anthropicKey : googleKey;
-        const hasAnyKey = !!openaiKey || !!anthropicKey || !!googleKey;
-
-
         // 1. Handle START sequence (when userMessage is empty)
         if (!userMessage) {
           const startMode = cfg.startMode || "automatic";
@@ -640,83 +679,20 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
 
         let aiReply: string | null = null;
 
-        if (activeKey && userMessage) {
+        if (userMessage) {
           try {
-            if (provider === "openai") {
-              const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: cfg.model || "gpt-3.5-turbo",
-                  messages: [
-                    { role: "system", content: `Objetivo: ${objective}\nInstruções: ${instructions}` },
-                    { role: "user", content: userMessage }
-                  ],
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.choices?.[0]?.message?.content ?? null;
-              } else {
-                const error = await res.json();
-                aiReply = `❌ Erro OpenAI: ${error.error?.message || res.statusText}`;
-              }
-
-            } else if (provider === "anthropic") {
-              const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: { "x-api-key": activeKey, "anthropic-version": "2023-06-01", "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: cfg.model || "claude-3-haiku-20240307",
-                  max_tokens: 1024,
-                  system: `Objetivo: ${objective}\nInstruções: ${instructions}`,
-                  messages: [{ role: "user", content: userMessage }],
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.content?.[0]?.text ?? null;
-              } else {
-                const error = await res.json();
-                aiReply = `❌ Erro Anthropic: ${error.error?.message || res.statusText}`;
-              }
-
-            } else if (provider === "google" || provider === "gemini") {
-              const modelName = (cfg.model || "gemini-1.5-flash").trim().replace("gemini-2.5", "gemini-1.5");
-              const cleanModel = modelName.startsWith("models/") ? modelName.substring(7) : modelName;
-
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${activeKey}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{ 
-                    role: "user", 
-                    parts: [{ text: `System Instruction: Objetivo: ${objective}\n${instructions}\n\nUser: ${userMessage}` }] 
-                  }],
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
-              } else {
-                let errorMsg = res.statusText;
-                try {
-                  const error = await res.json();
-                  errorMsg = error.error?.message || errorMsg;
-                } catch (jsonErr) {}
-                aiReply = `❌ Erro Gemini: ${errorMsg}`;
-              }
-
-            }
+            aiReply = await callLovableAI({
+              system: `Objetivo: ${objective}\nInstruções: ${instructions}`,
+              messages: [{ role: "user", content: userMessage }],
+            });
           } catch (e) {
             console.error(`[${nodeType}] AI Call failed`, e);
+            aiReply = `❌ Erro na IA: ${e?.message || String(e)}`;
           }
         }
 
         if (!aiReply) {
-          aiReply = hasAnyKey
-            ? `🤖 [${isAgent ? "AGENTE" : "AI"} - ${provider}]\nRecebi: "${userMessage}"`
-            : `🤖 [SIMULAÇÃO]\nObjetivo: ${objective}\nRecebi: "${userMessage}"\n(Configure API key)`;
+          aiReply = `🤖 [SIMULAÇÃO]\nObjetivo: ${objective}\nRecebi: "${userMessage}"`;
         }
 
         messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
