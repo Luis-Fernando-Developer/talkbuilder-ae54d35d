@@ -792,10 +792,8 @@ export const TestPanel = ({
     // Actually runLocalFlow is pure-ish relative to runtimeStateRef, it uses state and returns new state.
     applyRuntimeData(data);
 
-    // Garante que o estado de carregamento seja removido se estivermos esperando input
-    if (data.waiting_for || !waitTimerRef.current) {
-      setIsLoading(false);
-    }
+    // Garante que o estado de carregamento seja removido
+    setIsLoading(false);
   };
 
   const handleButtonClick = (button: ButtonConfig) => sendMessage(undefined, button.id);
@@ -907,7 +905,7 @@ export const TestPanel = ({
             </div>
           </div>
         )}
-        {waitingForInput && !waitingForButton && (
+        {waitingForInput && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
             {waitingForType === "input-number" || waitingForType === "input-mail" || waitingForType === "input-webSite" ? (
               <Input 
@@ -921,7 +919,7 @@ export const TestPanel = ({
                 step={waitingForType === "input-number" ? waitingForConfig?.step : undefined}
                 className="flex-1 min-w-0"
                 style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
-                disabled={isLoading && !waitingForInput}
+                disabled={isLoading}
               />
             ) : (
               <Textarea
@@ -937,13 +935,13 @@ export const TestPanel = ({
                 rows={1}
                 className="flex-1 min-w-0 resize-none min-h-[40px] max-h-[160px]"
                 style={{ background: theme?.inputBackgroundColor ? "rgba(255,255,255,0.1)" : undefined, color: theme?.inputTextColor || "inherit", borderColor: theme?.inputTextColor ? `${theme.inputTextColor}40` : undefined }}
-                disabled={isLoading && !waitingForInput}
+                disabled={isLoading}
               />
             )}
             <Button 
               size="icon" 
               onClick={handleSendMessage} 
-              disabled={(isLoading && !waitingForInput) || !currentInput.trim()}
+              disabled={isLoading || !currentInput.trim()}
               style={{ background: theme?.primaryColor, color: "#ffffff" }}
             >
               <Send className="h-4 w-4" />
