@@ -343,21 +343,11 @@ export const TestPanel = ({
     const replaceVars = (text: string) => cleanText(text).replace(/{{(.*?)}}/g, (_, key) => variables[key.trim()] ?? `{{${key}}}`);
 
     const callLovableAI = async (system: string, contextMessages: Array<{ role: string; content: string }>) => {
-      const baseUrl = import.meta.env.VITE_SUPABASE_URL || "https://fwoescubnnagdvwasbjl.supabase.co";
-      const response = await fetch(`${baseUrl}/functions/v1/chatbot-runtime`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "ai-completion",
-          flow_id: flowId || "test-panel",
-          contact_id: contactIdRef.current,
-          payload: { system, messages: contextMessages },
-        }),
-      });
-
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.error) throw new Error(data.error || "Erro ao chamar a IA.");
-      return String(data.content || "");
+      // Revertido: Não usa mais a Edge Function do Lovable Cloud
+      // Agora você deve configurar sua própria lógica de chamada ao Supabase externo
+      // ou usar as chaves de API configuradas nos nós.
+      console.warn("Lovable Cloud desativado. Chamada de IA backend ignorada.");
+      throw new Error("Lovable Cloud desativado. Use seu provedor configurado nos nós com sua própria API Key.");
     };
 
     const parseWaitMs = (cfg: any) => {
