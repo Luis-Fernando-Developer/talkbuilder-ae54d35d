@@ -588,16 +588,18 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
         console.log(`[Node:${nodeType}] Executando:`, node.id, { isAgent, hasInput: !!userMessage });
 
         // Check for keys
-        const nodeKey = cfg.apiKey;
+        const nodeKey = (cfg.apiKey || "").trim();
         const globalKeys = flow?.settings?.aiKeys || {};
-        const provider = cfg.provider || "openai";
+        const provider = (cfg.provider || "openai").toLowerCase();
         
-        const openaiKey = globalKeys.openaiKey || (provider === "openai" ? nodeKey : null);
-        const anthropicKey = globalKeys.anthropicKey || (provider === "anthropic" ? nodeKey : null);
-        const googleKey = globalKeys.googleKey || (provider === "google" || provider === "gemini" ? nodeKey : null);
+        // Harmonize key naming
+        const openaiKey = (globalKeys.openaiKey || "").trim() || (provider === "openai" ? nodeKey : "");
+        const anthropicKey = (globalKeys.anthropicKey || "").trim() || (provider === "anthropic" ? nodeKey : "");
+        const googleKey = (globalKeys.googleKey || globalKeys.geminiKey || "").trim() || (provider === "google" || provider === "gemini" ? nodeKey : "");
         
         const activeKey = provider === "openai" ? openaiKey : provider === "anthropic" ? anthropicKey : googleKey;
         const hasAnyKey = !!openaiKey || !!anthropicKey || !!googleKey;
+
 
         // 1. Handle START sequence (when userMessage is empty)
         if (!userMessage) {
@@ -640,7 +642,11 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.choices?.[0]?.message?.content ?? null;
+              } else {
+                const error = await res.json();
+                aiReply = `❌ Erro OpenAI: ${error.error?.message || res.statusText}`;
               }
+
             } else if (provider === "anthropic") {
               const res = await fetch("https://api.anthropic.com/v1/messages", {
                 method: "POST",
@@ -655,7 +661,11 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.content?.[0]?.text ?? null;
+              } else {
+                const error = await res.json();
+                aiReply = `❌ Erro Anthropic: ${error.error?.message || res.statusText}`;
               }
+
             } else if (provider === "google" || provider === "gemini") {
               let model = cfg.model || "gemini-2.5-flash";
               if (model.includes("gemini-1.5") || model.includes("gemini-1.0") || model === "gemini-pro") model = "gemini-2.5-flash";
@@ -670,7 +680,11 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text ?? null;
+              } else {
+                const error = await res.json();
+                aiReply = `❌ Erro Gemini/Google: ${error.error?.message || res.statusText}`;
               }
+
             }
           } catch (e) {
             console.error(`[${nodeType}] AI Call failed`, e);
