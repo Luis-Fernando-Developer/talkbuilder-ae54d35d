@@ -808,6 +808,12 @@ export const TestPanel = ({
                     }),
                   });
 
+                  if (response.ok) {
+                    const data = await response.json();
+                    aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                    success = true;
+                    console.log(`[Gemini] Sucesso com o modelo: ${modelToTry}`);
+                    break;
                   } else {
                     const errorData = await response.json();
                     lastError = errorData.error?.message || response.statusText;
