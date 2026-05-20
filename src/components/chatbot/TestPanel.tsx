@@ -324,8 +324,9 @@ export const TestPanel = ({
         const currentType = String(current.node.type || "").toLowerCase();
         if (currentType === "ai-agent" || currentType === "ai-node") {
           variables.__last_agent_user_message = value ?? "";
-          // Re-executa o próprio nó de IA com a nova mensagem
           currentNodeId = current.node.id;
+          // Forçamos a limpeza de waiting_for_input no estado para que o loop processe o nó novamente
+          if (state) state.waiting_for_input = false;
         } else {
           currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
         }
