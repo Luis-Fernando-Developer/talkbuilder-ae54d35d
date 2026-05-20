@@ -722,7 +722,7 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
       }
     }
 
-    if (waiting_for) break;
+    if (waiting_for && !execution.is_waiting_time) break;
     currentNodeId = nextFromNode(node.id, container);
   }
 

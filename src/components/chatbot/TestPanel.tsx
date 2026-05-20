@@ -719,8 +719,9 @@ export const TestPanel = ({
         const nodeKey = (cfg.apiKey || "").trim();
         const nodeProvider = (cfg.provider || "openai").toLowerCase();
         const globalKeys = settings?.aiKeys || {};
-        const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
-        const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
+        const activeKey = (globalKeys[`${nodeProvider}Key`] || globalKeys.googleKey || "").trim() || nodeKey;
+        const selectedProvider = (nodeProvider === "gemini" || nodeProvider === "google") ? "google" : nodeProvider as "openai" | "anthropic";
+
 
         const { system, messages: contextMessages } = buildAgentContext({
           systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
