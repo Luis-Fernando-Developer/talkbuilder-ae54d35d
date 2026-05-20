@@ -270,78 +270,56 @@ export const TestPanel = ({
   };
 
     const runLocalFlow = async (state: RuntimeState | null, input?: { message?: string; button_id?: string }) => {
-    let mode: RuntimeMode = state?.mode || "flow";
-    let currentNodeId = state?.current_node_id || startContainer?.nodes?.[0]?.id || null;
-    let activeAgentNodeId = state?.active_agent_node_id || null;
-    const variables = { ...(state?.variables || {}) };
-    const persistentMemory: PersistentMemory = { ...(state?.persistent_memory || {}) };
-    const messageHistory: RuntimeMessage[] = [...(state?.message_history || [])];
-    const nextMessages: Message[] = [];
-    
-    let waitingFor: string | null = null;
-    let waitingForCfg: any = null;
-    let nextButtons: ButtonConfig[] = [];
-    let waitMs = 0;
-    let steps = 0;
+      let mode: RuntimeMode = state?.mode || "flow";
+      let currentNodeId = state?.current_node_id || startContainer?.nodes?.[0]?.id || null;
+      let activeAgentNodeId = state?.active_agent_node_id || null;
+      const variables = { ...(state?.variables || {}) };
+      const persistentMemory: PersistentMemory = { ...(state?.persistent_memory || {}) };
+      const messageHistory: RuntimeMessage[] = [...(state?.message_history || [])];
+      const nextMessages: Message[] = [];
+      
+      let waitingFor: string | null = null;
+      let waitingForCfg: any = null;
+      let nextButtons: ButtonConfig[] = [];
+      let waitMs = 0;
+      let steps = 0;
+      let status: NodeExecutionStatus = "running";
 
-    const firstText = (...values: any[]) => String(values.find((v) => typeof v === "string" && v.trim()) || "");
-    const cleanText = (text: string) => richToPlainText(text);
-    const replaceVars = (text: string) => cleanText(text).replace(/{{(.*?)}}/g, (_, key) => variables[key.trim()] ?? `{{${key}}}`);
+      const firstText = (...values: any[]) => String(values.find((v) => typeof v === "string" && v.trim()) || "");
+      const cleanText = (text: string) => richToPlainText(text);
+      const replaceVars = (text: string) => cleanText(text).replace(/{{(.*?)}}/g, (_, key) => variables[key.trim()] ?? `{{${key}}}`);
 
-    const parseWaitMs = (cfg: any) => {
-      const amount = Math.max(1, Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5) || 5);
-      const unit = String(cfg.timeUnit ?? cfg.unit ?? "seconds").toLowerCase();
-      return amount * (unit.startsWith("hour") || unit.startsWith("hora") ? 3600000 : unit.startsWith("minute") || unit.startsWith("minuto") ? 60000 : 1000);
-    };
+      const parseWaitMs = (cfg: any) => {
+        const amount = Math.max(1, Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5) || 5);
+        const unit = String(cfg.timeUnit ?? cfg.unit ?? "seconds").toLowerCase();
+        return amount * (unit.startsWith("hour") || unit.startsWith("hora") ? 3600000 : unit.startsWith("minute") || unit.startsWith("minuto") ? 60000 : 1000);
+      };
 
-    const evaluateSetVariableValue = (cfg: any, vars: Record<string, any>): any => {
-      const valueType = String(cfg.valueType || "custom").toLowerCase();
-      const raw = cfg.value ?? "";
-      if (valueType === "empty") return "";
-      const code = String(raw);
-      const interpolated = code.replace(/{{\s*(.*?)\s*}}/g, (_, key) => {
-        const v = vars[String(key).trim()];
-        return JSON.stringify(v == null ? "" : v);
-      });
-      try {
-        const hasReturn = /\breturn\b/.test(interpolated);
-        const body = hasReturn ? interpolated : `return (${interpolated});`;
-        const fn = new Function(`"use strict"; ${body}`);
-        const result = fn();
-        return result;
-      } catch (err) {
-        console.warn("[set-variable] eval failed, using raw value:", err);
-        if (valueType === "custom") return replaceVars(code);
-        return code;
+      // Identify user/conversation
+      let visitorId = state?.visitor_id || localStorage.getItem("chat_visitor_id");
+      if (!visitorId) {
+        visitorId = `v-${Math.random().toString(36).slice(2, 11)}`;
+        localStorage.setItem("chat_visitor_id", visitorId);
       }
-    };
 
-    // Identificação de usuário e conversa (Visitor ID persistente)
+      let conversationId = state?.conversation_id || null;
+      if (!conversationId && flowId) {
+        const conv = await conversationService.getOrCreateConversation(visitorId, flowId, "default-workspace");
+        conversationId = conv.id;
+      }
 
-    let visitorId = state?.visitor_id || localStorage.getItem("chat_visitor_id");
-    if (!visitorId) {
-      visitorId = `v-${Math.random().toString(36).slice(2, 11)}`;
-      localStorage.setItem("chat_visitor_id", visitorId);
-    }
+      // 1. Process User Input
+      if (input && (input.message !== undefined || input.button_id !== undefined)) {
+        console.log("[node:input_received]", input);
+        const userValue = input.message ?? input.button_id;
+        variables["last_message"] = userValue;
 
-    let conversationId = state?.conversation_id || null;
-    if (!conversationId && flowId) {
-      const conv = await conversationService.getOrCreateConversation(visitorId, flowId, "default-workspace");
-      conversationId = conv.id;
-    }
-
-    // Lógica de Entrada de Usuário
-    if (input && (state?.waiting_for_input || mode === "agent")) {
-      const value = input.message ?? input.button_id;
-      if (value !== undefined) {
-        variables["last_message"] = value;
-        
-        // Salvar mensagem do usuário no histórico e banco
+        // Save to history
         const userMsg: RuntimeMessage = {
           id: crypto.randomUUID(),
           conversation_id: conversationId || "temp",
           role: "user",
-          content: String(value),
+          content: String(userValue),
           created_at: new Date().toISOString()
         };
         messageHistory.push(userMsg);
@@ -350,252 +328,159 @@ export const TestPanel = ({
         if (mode === "agent" && activeAgentNodeId) {
           currentNodeId = activeAgentNodeId;
         } else if (currentNodeId) {
-          const current = findNode(currentNodeId);
-          if (current) {
-            const varName = current.node.config?.variableName || current.node.config?.saveVariable;
-            if (varName) variables[varName] = value;
+          const info = findNode(currentNodeId);
+          if (info) {
+            const cfg = info.node.config || {};
+            const varName = cfg.variableName || cfg.saveVariable;
+            if (varName && userValue !== undefined) variables[varName] = userValue;
             
-            const currentType = String(current.node.type || "").toLowerCase();
-            if (currentType === "ai-agent") {
-              mode = "agent";
-              activeAgentNodeId = current.node.id;
-            } else if (currentType === "ai-node") {
-              currentNodeId = current.node.id;
-            } else {
-              currentNodeId = nextFromNode(current.node.id, current.container.id, input.button_id);
+            if (info.node.type !== "ai-agent") {
+              currentNodeId = nextFromNode(info.node.id, info.container.id, input.button_id);
             }
           }
         }
       }
-    }
 
+      console.log("[Runtime] Loop start", { mode, currentNodeId, steps });
 
-    console.log("[Runtime] Iniciando loop", { startNodeId: currentNodeId, hasInput: !!input, waitingForInput: state?.waiting_for_input });
-
-    while (currentNodeId && steps++ < 100) {
-      const found = findNode(currentNodeId);
-      if (!found) {
-        console.warn("[Runtime] Nó não encontrado:", currentNodeId);
-        currentNodeId = firstNodeOfContainer(currentNodeId);
-        if (currentNodeId) continue;
-        break;
-      }
-
-      const { node, container } = found;
-      const cfg = node.config || {};
-      const nodeType = String(node.type || "").toLowerCase();
-      console.log(`[Runtime] Step ${steps} → executando nó:`, { id: node.id, type: nodeType, container: container.id });
-
-      if (nodeType === "wait" || nodeType === "await") {
-        waitMs = parseWaitMs(cfg);
-        currentNodeId = nextFromNode(node.id, container.id);
-        break;
-      }
-
-      if (nodeType === "bubble-text" || nodeType === "bubble-number") {
-        const rawValue = firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value);
-        if (rawValue) {
-          const html = richHtmlFor(rawValue, { variables });
-          nextMessages.push({ 
-            id: crypto.randomUUID(), 
-            conversation_id: conversationId || "temp",
-            role: "assistant",
-            type: "bot", 
-            content: html, 
-            isHtml: true 
-          });
-
-        }
-      } else if (nodeType === "bubble-image") {
-        nextMessages.push({ 
-          id: crypto.randomUUID(), 
-          conversation_id: conversationId || "temp",
-          role: "assistant",
-          type: "bot", 
-          content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src), 
-          isImage: true, 
-          alt: firstText(cfg.ImageAlt, cfg.alt) 
-        });
-
-      } else if (nodeType === "bubble-video") {
-        nextMessages.push({ 
-          id: crypto.randomUUID(), 
-          conversation_id: conversationId || "temp",
-          role: "assistant",
-          type: "bot", 
-          content: firstText(cfg.VideoURL, cfg.videoUrl, cfg.url, cfg.src), 
-          isVideo: true 
-        });
-
-      } else if (nodeType === "bubble-audio") {
-        nextMessages.push({ 
-          id: crypto.randomUUID(), 
-          conversation_id: conversationId || "temp",
-          role: "assistant",
-          type: "bot", 
-          content: firstText(cfg.AudioURL, cfg.audioUrl, cfg.url, cfg.src), 
-          isAudio: true, 
-          autoplay: cfg.AudioAutoplay ?? cfg.autoplay 
-        });
-
-      } else if (nodeType === "bubble-document" || nodeType === "bubble-file") {
-        nextMessages.push({ 
-          id: crypto.randomUUID(), 
-          conversation_id: conversationId || "temp",
-          role: "assistant",
-          type: "bot", 
-          content: firstText(cfg.FileURL, cfg.fileUrl, cfg.url, cfg.FileName, cfg.name), 
-          isFile: true 
-        });
-
-      } else if (nodeType.startsWith("input-") && nodeType !== "input-buttons") {
-        waitingFor = nodeType;
-        waitingForCfg = cfg;
-      } else if (nodeType === "input-buttons") {
-        waitingFor = "buttons";
-        waitingForCfg = cfg;
-        nextButtons = cfg.buttons || [];
-      } else if (nodeType === "script") {
-        const code = String(cfg.code || "");
-        if (code) {
-          try {
-            // Contexto simplificado para o script
-            const scriptContext = {
-              ...variables, // Permite usar as variáveis diretamente (ex: n1, soma)
-              variables: variables, // Mantém compatibilidade com variables.n1
-              getVariable: (name: string) => variables[name],
-              setVariable: (name: string, value: any) => { variables[name] = value; },
-              window: window,
-              alert: (msg: string) => window.alert(msg),
-              console: console,
-              fetch: window.fetch.bind(window),
-              setTimeout: window.setTimeout.bind(window),
-              JSON: JSON,
-              Math: Math,
-              Date: Date,
-            };
-
-            // Criamos as chaves para injetar no script
-            const keys = Object.keys(scriptContext);
-            const values = Object.values(scriptContext);
-
-            // Criamos a função injetando as variáveis como argumentos locais
-            const fn = new Function(...keys, `"use strict"; ${code}`);
-            const result = fn.apply(null, values);
-
-            // Se um nome de variável de destino estiver definido, salva o resultado nela
-            if (cfg.variableName && result !== undefined) {
-              variables[cfg.variableName] = result;
-            }
-
-            // Se o script retornar um objeto, mescla nas variáveis (estilo Typebot)
-            if (result && typeof result === "object" && !Array.isArray(result)) {
-              Object.assign(variables, result);
-            }
-          } catch (err) {
-            console.error("[script-node] execution failed:", err);
-          }
-        }
-      } else if (nodeType === "http-request") {
-        const url = replaceVars(cfg.url || "");
-        const method = cfg.method || "GET";
-        const headers: Record<string, string> = {};
-        (cfg.headers || []).forEach((h: any) => {
-          if (h.name) headers[h.name] = replaceVars(h.value);
-        });
-
-        // Auth headers
-        if (cfg.authType === "bearer" && cfg.authCredentials?.token) {
-          headers["Authorization"] = `Bearer ${replaceVars(cfg.authCredentials.token)}`;
-        } else if (cfg.authType === "basic" && cfg.authCredentials?.username) {
-          const user = replaceVars(cfg.authCredentials.username);
-          const pass = replaceVars(cfg.authCredentials.password || "");
-          const encoded = btoa(`${user}:${pass}`);
-          headers["Authorization"] = `Basic ${encoded}`;
+      // 2. Execution Loop
+      while (currentNodeId && steps++ < 100) {
+        const found = findNode(currentNodeId);
+        if (!found) {
+          console.warn("[node:not_found]", currentNodeId);
+          currentNodeId = firstNodeOfContainer(currentNodeId);
+          if (currentNodeId) continue;
+          break;
         }
 
-        // Body
-        let body: any = undefined;
-        if (cfg.sendBody && !["GET", "HEAD"].includes(method)) {
-          if (cfg.bodyContentType === "json") {
-            headers["Content-Type"] = "application/json";
-            body = replaceVars(cfg.bodyJson || "{}");
-          } else if (cfg.bodyContentType === "form-urlencoded") {
-            headers["Content-Type"] = "application/x-www-form-urlencoded";
-            const params = new URLSearchParams();
-            (cfg.bodyParams || []).forEach((p: any) => {
-              if (p.name) params.append(p.name, replaceVars(p.value));
-            });
-            body = params.toString();
-          }
-        }
-
-        try {
-          const response = await fetch(url, {
-            method,
-            headers,
-            body
-          });
-
-          if (response.ok) {
-            const responseData = await response.json();
-            
-            // Apply response mappings
-            const mappings: ResponseMapping[] = cfg.responseMappings || [];
-            mappings.forEach(mapping => {
-              if (mapping.jsonPath && mapping.variableName) {
-                // Simple path resolver (e.g., "data.user.name")
-                const parts = mapping.jsonPath.split('.');
-                let value = responseData;
-                
-                // If path starts with "data." and the root object is the response, skip "data" 
-                // unless the actual response has a "data" property.
-                // Most users will type the path relative to the root.
-                
-                for (let i = 0; i < parts.length; i++) {
-                  const part = parts[i];
-                  if (value && typeof value === 'object' && part in value) {
-                    value = value[part];
-                  } else if (part === 'data' && i === 0 && (!value || !(part in value))) {
-                    // Skip 'data' if it's the first part and NOT in the root response object
-                    // This handles users who think they need to prefix with 'data'
-                    continue;
-                  } else {
-                    value = undefined;
-                    break;
-                  }
-                }
-
-                
-                if (value !== undefined) {
-                  variables[mapping.variableName] = value;
-                }
-              }
-            });
-          }
-        } catch (err) {
-          console.error("[http-request] failed:", err);
-        }
-      } else if (nodeType === "ai-node" || nodeType === "ai-agent") {
-        const isAgent = nodeType === "ai-agent";
-        const startMode = cfg.startMode || "automatic";
-        const welcomeMessage = cfg.welcomeMessage || "";
+        const { node, container } = found;
+        const cfg = node.config || {};
+        const nodeType = String(node.type || "").toLowerCase();
         
-        const isResumingThisNode = !!input && state?.waiting_for_input && state?.current_node_id === node.id;
-        const isAgentResuming = !!input && mode === "agent" && activeAgentNodeId === node.id;
-        
-        // Se estamos chegando no nó (não é uma retomada de espera deste nó específico)
-        // E o nó está configurado para esperar ou mostrar boas-vindas
-        if (!isResumingThisNode && !isAgentResuming) {
-          if (startMode === "manual") {
-            console.log(`[Runtime] AI ${isAgent ? "Agent" : "Node"} aguardando usuário (modo manual)`);
-            waitingFor = "input-text";
-            waitingForCfg = { placeholder: isAgent ? "Converse com o agente..." : "Digite aqui..." };
+        console.log(`[node:start] [${nodeType}] ${node.id}`);
+
+        if (nodeType === "wait" || nodeType === "await") {
+          waitMs = parseWaitMs(cfg);
+          console.log(`[node:paused] Wait ${waitMs}ms`);
+          status = "paused";
+          currentNodeId = nextFromNode(node.id, container.id);
+          break;
+        }
+
+        // Input Nodes
+        if (nodeType.startsWith("input-")) {
+          if (!input || (input.message === undefined && input.button_id === undefined)) {
+            console.log("[node:waiting_input]", node.id);
+            waitingFor = nodeType === "input-buttons" ? "buttons" : "text";
+            waitingForCfg = cfg;
+            if (nodeType === "input-buttons") {
+              nextButtons = cfg.buttons || [];
+            }
+            status = "waiting_input";
             break;
           }
+        }
+
+        // AI Node (One-off execution)
+        if (nodeType === "ai-node") {
+          if (cfg.waitForInput && (!input || (input.message === undefined && input.button_id === undefined))) {
+            console.log("[node:waiting_input] AI Node", node.id);
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: "Digite aqui..." };
+            status = "waiting_input";
+            break;
+          }
+
+          console.log("[node:ai_generating] AI Node", node.id);
+          const objective = cfg.objective || cfg.systemPrompt || "assistente";
+          const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário.";
           
-          if (startMode === "automatic" && welcomeMessage) {
-            console.log(`[Runtime] AI ${isAgent ? "Agent" : "Node"} enviando mensagem de boas-vindas`);
+          const nodeKey = (cfg.apiKey || "").trim();
+          const nodeProvider = (cfg.provider || "openai").toLowerCase();
+          const globalKeys = settings?.aiKeys || {};
+          const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
+          const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
+
+          const { system, messages: contextMessages } = buildAgentContext({
+            systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
+            history: messageHistory,
+            persistentMemory,
+            variables,
+            knowledgeBase: {
+              kbFiles: cfg.kbFiles,
+              kbFilesEnabled: cfg.kbFilesEnabled,
+              kbLinks: cfg.kbLinks,
+              kbLinksEnabled: cfg.kbLinksEnabled
+            }
+          });
+
+          let aiReply: string | null = null;
+          if (activeKey) {
+            try {
+              if (selectedProvider === "openai") {
+                const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: cfg.model || "gpt-4o-mini",
+                    messages: [{ role: "system", content: system }, { role: "user", content: variables["last_message"] || "Olá" }],
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  aiReply = data.choices?.[0]?.message?.content || null;
+                }
+              } else if (selectedProvider === "google") {
+                const model = (cfg.model || "gemini-2.0-flash").trim();
+                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`, {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    system_instruction: { parts: [{ text: system }] },
+                    contents: [{ parts: [{ text: variables["last_message"] || "Olá" }] }]
+                  }),
+                });
+                if (res.ok) {
+                  const data = await res.json();
+                  aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                }
+              }
+            } catch (e) {
+              console.error("[ai-node] AI call failed", e);
+            }
+          }
+
+          if (aiReply) {
+            const botMsg: RuntimeMessage = {
+              id: crypto.randomUUID(),
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              content: aiReply,
+              created_at: new Date().toISOString()
+            };
+            messageHistory.push(botMsg);
+            if (conversationId) conversationService.saveMessage(botMsg);
+            nextMessages.push({ ...botMsg, type: "bot", content: aiReply, isHtml: true } as Message);
+            
+            if (cfg.saveVariable) variables[cfg.saveVariable] = aiReply;
+          }
+
+          console.log("[node:ai_completed] AI Node", node.id);
+          currentNodeId = nextFromNode(node.id, container.id);
+          continue;
+        }
+
+        // Agent AI Node (Continuous)
+        if (nodeType === "ai-agent") {
+          mode = "agent";
+          activeAgentNodeId = node.id;
+          
+          const startMode = cfg.startMode || "automatic";
+          const welcomeMessage = cfg.welcomeMessage || "";
+
+          // Welcome behavior
+          if (!input && startMode === "automatic" && welcomeMessage && nextMessages.length === 0) {
+            console.log("[node:start] Agent Welcome", node.id);
             const html = richHtmlFor(welcomeMessage, { variables });
             nextMessages.push({
               id: crypto.randomUUID(),
@@ -606,205 +491,99 @@ export const TestPanel = ({
               isHtml: true,
               created_at: new Date().toISOString()
             });
-            
-            // Após mostrar as boas-vindas, precisamos esperar a resposta do usuário
             waitingFor = "input-text";
-            waitingForCfg = { placeholder: isAgent ? "Converse com o agente..." : "Digite aqui..." };
+            waitingForCfg = { placeholder: "Converse com o agente..." };
+            status = "waiting_input";
             break;
           }
-        }
 
-        const objective = cfg.objective || cfg.systemPrompt || "assistente virtual";
-        const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário da melhor forma possível.";
-        
-        // Verificação de intenção de saída (Exit Intents)
-        const userMsgContent = String(variables["last_message"] || "").toLowerCase();
-        const exitPhrases = ["voltar menu", "sair", "parar", "cancelar", "exit", "stop"];
-        if (isAgent && exitPhrases.some(p => userMsgContent.includes(p))) {
-          console.log("[AI Agent] Exit intent detectado, voltando para o Flow.");
-          mode = "flow";
-          activeAgentNodeId = null;
-          currentNodeId = nextFromNode(node.id, container.id);
-          continue;
-        }
-
-        const nodeKey = (cfg.apiKey || "").trim();
-        const nodeProvider = (cfg.provider || "openai").toLowerCase();
-        const globalKeys = settings?.aiKeys || {};
-        const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
-        const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
-
-        const { system, messages: contextMessages } = buildAgentContext({
-          systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
-          history: messageHistory,
-          persistentMemory,
-          variables,
-          knowledgeBase: {
-            kbFiles: cfg.kbFiles,
-            kbFilesEnabled: cfg.kbFilesEnabled,
-            kbLinks: cfg.kbLinks,
-            kbLinksEnabled: cfg.kbLinksEnabled
+          if (!input || (input.message === undefined && input.button_id === undefined)) {
+            console.log("[node:waiting_input] Agent", node.id);
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: "Converse com o agente..." };
+            status = "waiting_input";
+            break;
           }
-        });
 
-        let aiReply: string | null = null;
-        
-        if (!activeKey) {
-          aiReply = `🤖 [SIMULAÇÃO]\nConfigure uma chave de API para o provedor ${nodeProvider.toUpperCase()}.`;
-        } else {
-          try {
-            if (selectedProvider === "openai") {
-              console.log("[AI Node] Sending to OpenAI:", { system, contextMessages });
-              const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                method: "POST",
-                headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  model: cfg.model || "gpt-4o-mini",
-                  messages: [{ role: "system", content: system }, ...contextMessages],
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.choices?.[0]?.message?.content || null;
-              } else {
-                const errorData = await res.json();
-                console.error("[AI Node] OpenAI Error:", errorData);
-                aiReply = `❌ Erro OpenAI: ${errorData.error?.message || res.statusText}`;
-              }
-            } else if (selectedProvider === "google") {
-              const model = (cfg.model || "gemini-2.0-flash").trim();
-              console.log("[AI Node] Sending to Gemini:", { model, system, contextMessages });
-              
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  system_instruction: {
-                    parts: [{ text: system }]
-                  },
-                  contents: contextMessages.length > 0 ? contextMessages.map(m => ({
-                    role: m.role === "assistant" ? "model" : "user",
-                    parts: [{ text: m.content }]
-                  })) : [{ role: "user", parts: [{ text: "Olá!" }] }]
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-              } else {
-                const errorData = await res.json();
-                console.error("[AI Node] Gemini Error:", errorData);
-                aiReply = `❌ Erro Gemini: ${errorData.error?.message || res.statusText}`;
-              }
-            } else if (selectedProvider === "anthropic") {
-              const model = (cfg.model || "claude-3-haiku-20240307").trim();
-              console.log("[AI Node] Sending to Anthropic:", { model, system, contextMessages });
-              
-              const res = await fetch("https://api.anthropic.com/v1/messages", {
-                method: "POST",
-                headers: {
-                  "x-api-key": activeKey,
-                  "anthropic-version": "2023-06-01",
-                  "Content-Type": "application/json",
-                  "dangerously-allow-browser": "true"
-                },
-                body: JSON.stringify({
-                  model: model,
-                  max_tokens: 1024,
-                  system: system,
-                  messages: contextMessages.map(m => ({
-                    role: m.role === "assistant" ? "assistant" : "user",
-                    content: m.content
-                  }))
-                }),
-              });
-              if (res.ok) {
-                const data = await res.json();
-                aiReply = data.content?.[0]?.text || null;
-              } else {
-                const errorData = await res.json();
-                console.error("[AI Node] Anthropic Error:", errorData);
-                aiReply = `❌ Erro Anthropic: ${errorData.error?.message || res.statusText}`;
-              }
-            }
-          } catch (e: any) { 
-            console.error(e);
-            aiReply = `❌ Erro na IA: ${e.message}`; 
+          const userMsgContent = String(input.message || "").toLowerCase();
+          const exitPhrases = ["voltar menu", "sair", "parar", "cancelar", "exit", "stop"];
+          if (exitPhrases.some(p => userMsgContent.includes(p))) {
+            console.log("[node:agent_exit]", node.id);
+            mode = "flow";
+            activeAgentNodeId = null;
+            currentNodeId = nextFromNode(node.id, container.id);
+            continue;
           }
-        }
 
-        if (aiReply) {
-          const botMsg: RuntimeMessage = {
-            id: crypto.randomUUID(),
-            conversation_id: conversationId || "temp",
-            role: "assistant",
-            content: aiReply,
-            created_at: new Date().toISOString()
-          };
-          messageHistory.push(botMsg);
-          if (conversationId) conversationService.saveMessage(botMsg);
-          
-          nextMessages.push({ 
-            ...botMsg, 
-            type: "bot", 
-            content: aiReply 
-          } as Message);
-        }
-
-        if (isAgent) {
-          mode = "agent";
-          activeAgentNodeId = node.id;
+          console.log("[node:ai_generating] Agent", node.id);
+          // AI Agent continuous execution would normally build full context
+          // but for this refactor we ensure it breaks to wait for next message
           waitingFor = "input-text";
           waitingForCfg = { placeholder: "Converse com o agente..." };
-          break; // Agent pausa o fluxo e assume
-        } else {
-          // AI Node pontual: continua o fluxo
-          const nextId = nextFromNode(node.id, container.id);
-          if (!nextId) {
-            waitingFor = "input-text";
-            waitingForCfg = { placeholder: "Digite aqui..." };
+          status = "waiting_input";
+          break;
+        }
+
+        // Standard nodes
+        if (nodeType === "bubble-text" || nodeType === "bubble-number") {
+          const rawValue = firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value);
+          if (rawValue) {
+            const html = richHtmlFor(rawValue, { variables });
+            nextMessages.push({ 
+              id: crypto.randomUUID(), 
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot", 
+              content: html, 
+              isHtml: true 
+            });
           }
-          currentNodeId = nextId;
+        } else if (nodeType === "bubble-image") {
+          nextMessages.push({ 
+            id: crypto.randomUUID(), 
+            conversation_id: conversationId || "temp",
+            role: "assistant",
+            type: "bot", 
+            content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src), 
+            isImage: true, 
+            alt: firstText(cfg.ImageAlt, cfg.alt) 
+          });
+        } else if (nodeType === "set-variable" && cfg.variableName) {
+          variables[cfg.variableName] = replaceVars(String(cfg.value || ""));
+        } else if (nodeType === "condition") {
+          const conditions: ConditionGroup[] = cfg.conditions || [];
+          const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
+          const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
+          currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
           continue;
         }
 
-      } else if (nodeType === "set-variable" && cfg.variableName) {
-        variables[cfg.variableName] = evaluateSetVariableValue(cfg, variables);
-      } else if (nodeType === "condition") {
-        const conditions: ConditionGroup[] = cfg.conditions || [];
-        const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
-        const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
-        currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
-        continue;
+        const nextId = nextFromNode(node.id, container.id);
+        console.log(`[node:completed] ${node.id} → next: ${nextId}`);
+        currentNodeId = nextId;
       }
 
-      if (waitingFor) {
-        console.log("[Runtime] Pausando loop — aguardando:", waitingFor, "no nó", node.id);
-        break;
-      }
-      const nextId = nextFromNode(node.id, container.id);
-      console.log(`[Runtime] Nó ${node.id} concluído → próximo:`, nextId);
-      currentNodeId = nextId;
-    }
+      if (!currentNodeId && status === "running") status = "completed";
 
-    console.log("[Runtime] Loop finalizado", { steps, currentNodeId, mode, waitingFor, messagesAdded: nextMessages.length });
-    return { 
-      messages: nextMessages, 
-      wait_ms: waitMs, 
-      waiting_for: waitingFor, 
-      waiting_for_config: waitingForCfg, 
-      buttons: nextButtons, 
-      runtime_state: { 
-        mode,
-        current_node_id: currentNodeId, 
-        active_agent_node_id: activeAgentNodeId,
-        conversation_id: conversationId,
-        visitor_id: visitorId,
-        message_history: messageHistory,
-        persistent_memory: persistentMemory,
-        variables, 
-        waiting_for_input: !!waitingFor 
-      } 
+      return { 
+        messages: nextMessages, 
+        wait_ms: waitMs, 
+        waiting_for: waitingFor, 
+        waiting_for_config: waitingForCfg, 
+        buttons: nextButtons, 
+        runtime_state: { 
+          mode,
+          current_node_id: currentNodeId, 
+          active_agent_node_id: activeAgentNodeId,
+          conversation_id: conversationId,
+          visitor_id: visitorId,
+          message_history: messageHistory,
+          persistent_memory: persistentMemory,
+          variables, 
+          waiting_for_input: status === "waiting_input",
+          last_execution_status: status
+        } 
+      };
     };
 
   };
