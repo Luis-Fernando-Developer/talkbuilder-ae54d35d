@@ -416,26 +416,31 @@ export const TestPanel = ({
       try {
         console.log(`[EXTERNAL-API] Chamada direta ao Gemini: ${cleanModel}`);
         
-        // Tenta v1beta com system_instruction primeiro (padrão moderno)
-        let response = await tryFetch("v1beta", true);
+        // Tenta v1 primeiro para o 1.5-flash (mais estável para modelos básicos)
+        let response = await tryFetch("v1", false);
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}));
-          const errorMsg = errorData.error?.message || "";
-          const errorCode = errorData.error?.status || "";
+          const firstErrorData = await response.json().catch(() => ({}));
+          const firstMsg = firstErrorData.error?.message || "";
           
-          console.log(`[EXTERNAL-API] Erro na tentativa 1 (v1beta + system_instruction): ${errorMsg} (${errorCode})`);
+          console.log(`[EXTERNAL-API] Erro na tentativa 1 (v1): ${firstMsg}`);
 
-          // Se o erro for sobre o campo system_instruction ou o modelo não for encontrado, tenta v1beta sem o campo
-          if (errorMsg.includes("system_instruction") || errorMsg.includes("Unknown name") || errorCode === "INVALID_ARGUMENT") {
-            console.log(`[EXTERNAL-API] Retentando v1beta sem o campo system_instruction...`);
-            response = await tryFetch("v1beta", false);
-          } 
-          // Se ainda der erro de "not found" ou similar, tenta v1 como último recurso
-          else if (response.status === 404 || errorMsg.includes("not found")) {
-            console.log(`[EXTERNAL-API] Modelo não encontrado em v1beta, tentando v1...`);
-            response = await tryFetch("v1", false);
+          // Tenta v1beta como fallback (bom para 2.0 ou novos modelos)
+          console.log(`[EXTERNAL-API] Tentando v1beta com system_instruction...`);
+          response = await tryFetch("v1beta", true);
+
+          if (!response.ok) {
+            const secondErrorData = await response.json().catch(() => ({}));
+            const secondMsg = secondErrorData.error?.message || "";
+            console.log(`[EXTERNAL-API] Erro na tentativa 2 (v1beta + system): ${secondMsg}`);
+
+            // Se for erro de campo, tenta v1beta sem o campo system
+            if (secondMsg.includes("system_instruction") || secondMsg.includes("Unknown name")) {
+              console.log(`[EXTERNAL-API] Tentando v1beta sem system_instruction...`);
+              response = await tryFetch("v1beta", false);
+            }
           }
+        }
           
           if (!response.ok) {
             const finalErrorData = await response.json().catch(() => ({}));
