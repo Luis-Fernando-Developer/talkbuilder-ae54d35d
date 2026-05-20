@@ -284,10 +284,16 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
   };
 
   const nextFromNode = (nodeId: string, container: any, handle?: string, strictHandle = false): string | null => {
+    const resolveTarget = (target: string): string | null => {
+      if (!target) return null;
+      if (findNode(target)) return target;
+      return firstNodeOfContainer(target);
+    };
     const isInnerNodeHandle = (value?: string | null) =>
       !!value && String(value).startsWith(`${nodeId}-`);
     const wantedHandle = normalizeHandle(handle);
-    const fromNode = edges.filter(
+    const validEdges = edges.filter((e: any) => resolveTarget(e.target) !== null);
+    const fromNode = validEdges.filter(
       (e: any) => e.source === nodeId || (e.source === container.id && isInnerNodeHandle(e.sourceHandle))
     );
     let edge = fromNode.find((e: any) => wantedHandle && normalizeHandle(e.sourceHandle) === wantedHandle);
@@ -295,19 +301,10 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
     if (!edge && wantedHandle) edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === "default");
     if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
     if (!edge) edge = fromNode[0];
-    if (edge) {
-      // edge target may be a node id OR a container id
-      if (findNode(edge.target)) return edge.target;
-      const first = firstNodeOfContainer(edge.target);
-      if (first) return first;
-      return edge.target;
-    }
+    if (edge) return resolveTarget(edge.target);
     // fallback: container-level edge
-    const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
-    if (cEdge) {
-      if (findNode(cEdge.target)) return cEdge.target;
-      return firstNodeOfContainer(cEdge.target);
-    }
+    const cEdge = validEdges.find((e: any) => e.source === container.id && !e.sourceHandle);
+    if (cEdge) return resolveTarget(cEdge.target);
     return null;
   };
 
