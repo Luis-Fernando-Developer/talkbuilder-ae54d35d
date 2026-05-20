@@ -655,9 +655,6 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
 
         console.log(`[Node:${nodeType}] Executando:`, node.id, { isAgent, hasInput: !!userMessage, instructions_length: instructions.length });
 
-        const provider = (cfg.provider || "lovable").toLowerCase();
-
-
         // 1. Handle START sequence (when userMessage is empty)
         if (!userMessage) {
           const startMode = cfg.startMode || "automatic";
