@@ -288,7 +288,36 @@ export const TestPanel = ({
     const cleanText = (text: string) => richToPlainText(text);
     const replaceVars = (text: string) => cleanText(text).replace(/{{(.*?)}}/g, (_, key) => variables[key.trim()] ?? `{{${key}}}`);
 
+    const parseWaitMs = (cfg: any) => {
+      const amount = Math.max(1, Number(cfg.waitTime ?? cfg.duration ?? cfg.seconds ?? 5) || 5);
+      const unit = String(cfg.timeUnit ?? cfg.unit ?? "seconds").toLowerCase();
+      return amount * (unit.startsWith("hour") || unit.startsWith("hora") ? 3600000 : unit.startsWith("minute") || unit.startsWith("minuto") ? 60000 : 1000);
+    };
+
+    const evaluateSetVariableValue = (cfg: any, vars: Record<string, any>): any => {
+      const valueType = String(cfg.valueType || "custom").toLowerCase();
+      const raw = cfg.value ?? "";
+      if (valueType === "empty") return "";
+      const code = String(raw);
+      const interpolated = code.replace(/{{\s*(.*?)\s*}}/g, (_, key) => {
+        const v = vars[String(key).trim()];
+        return JSON.stringify(v == null ? "" : v);
+      });
+      try {
+        const hasReturn = /\breturn\b/.test(interpolated);
+        const body = hasReturn ? interpolated : `return (${interpolated});`;
+        const fn = new Function(`"use strict"; ${body}`);
+        const result = fn();
+        return result;
+      } catch (err) {
+        console.warn("[set-variable] eval failed, using raw value:", err);
+        if (valueType === "custom") return replaceVars(code);
+        return code;
+      }
+    };
+
     // Identificação de usuário e conversa (Visitor ID persistente)
+
     let visitorId = state?.visitor_id || localStorage.getItem("chat_visitor_id");
     if (!visitorId) {
       visitorId = `v-${Math.random().toString(36).slice(2, 11)}`;
@@ -367,16 +396,58 @@ export const TestPanel = ({
         const rawValue = firstText(cfg.message, cfg.content, cfg.text, cfg.number, cfg.value);
         if (rawValue) {
           const html = richHtmlFor(rawValue, { variables });
-          nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: html, isHtml: true });
+          nextMessages.push({ 
+            id: crypto.randomUUID(), 
+            conversation_id: conversationId || "temp",
+            role: "assistant",
+            type: "bot", 
+            content: html, 
+            isHtml: true 
+          });
+
         }
       } else if (nodeType === "bubble-image") {
-        nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src), isImage: true, alt: firstText(cfg.ImageAlt, cfg.alt) });
+        nextMessages.push({ 
+          id: crypto.randomUUID(), 
+          conversation_id: conversationId || "temp",
+          role: "assistant",
+          type: "bot", 
+          content: firstText(cfg.ImageURL, cfg.imageUrl, cfg.url, cfg.src), 
+          isImage: true, 
+          alt: firstText(cfg.ImageAlt, cfg.alt) 
+        });
+
       } else if (nodeType === "bubble-video") {
-        nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.VideoURL, cfg.videoUrl, cfg.url, cfg.src), isVideo: true });
+        nextMessages.push({ 
+          id: crypto.randomUUID(), 
+          conversation_id: conversationId || "temp",
+          role: "assistant",
+          type: "bot", 
+          content: firstText(cfg.VideoURL, cfg.videoUrl, cfg.url, cfg.src), 
+          isVideo: true 
+        });
+
       } else if (nodeType === "bubble-audio") {
-        nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.AudioURL, cfg.audioUrl, cfg.url, cfg.src), isAudio: true, autoplay: cfg.AudioAutoplay ?? cfg.autoplay });
+        nextMessages.push({ 
+          id: crypto.randomUUID(), 
+          conversation_id: conversationId || "temp",
+          role: "assistant",
+          type: "bot", 
+          content: firstText(cfg.AudioURL, cfg.audioUrl, cfg.url, cfg.src), 
+          isAudio: true, 
+          autoplay: cfg.AudioAutoplay ?? cfg.autoplay 
+        });
+
       } else if (nodeType === "bubble-document" || nodeType === "bubble-file") {
-        nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: firstText(cfg.FileURL, cfg.fileUrl, cfg.url, cfg.FileName, cfg.name), isFile: true });
+        nextMessages.push({ 
+          id: crypto.randomUUID(), 
+          conversation_id: conversationId || "temp",
+          role: "assistant",
+          type: "bot", 
+          content: firstText(cfg.FileURL, cfg.fileUrl, cfg.url, cfg.FileName, cfg.name), 
+          isFile: true 
+        });
+
       } else if (nodeType.startsWith("input-") && nodeType !== "input-buttons") {
         waitingFor = nodeType;
         waitingForCfg = cfg;
@@ -506,15 +577,19 @@ export const TestPanel = ({
           console.error("[http-request] failed:", err);
         }
       } else if (nodeType === "ai-node" || nodeType === "ai-agent") {
+        const isAgent = nodeType === "ai-agent";
         const objective = cfg.objective || cfg.systemPrompt || "assistente virtual";
         const instructions = firstText(cfg.instructions, cfg.prompt, cfg.message) || "Ajude o usuário da melhor forma possível.";
-        const hasTools = allContainers.some(c => c.nodes.some(n => n.config?.isSkill));
-        const hasNextNode = !!nextFromNode(node.id, container.id);
         
-        let userMessage = String(variables.__last_agent_user_message || "").trim();
-        if (!userMessage && nodeType === "ai-node" && cfg.userMessage) {
-          userMessage = replaceVars(cfg.userMessage);
-          if (userMessage === "{{last_message}}") userMessage = "";
+        // Verificação de intenção de saída (Exit Intents)
+        const userMsgContent = String(variables["last_message"] || "").toLowerCase();
+        const exitPhrases = ["voltar menu", "sair", "parar", "cancelar", "exit", "stop"];
+        if (isAgent && exitPhrases.some(p => userMsgContent.includes(p))) {
+          console.log("[AI Agent] Exit intent detectado, voltando para o Flow.");
+          mode = "flow";
+          activeAgentNodeId = null;
+          currentNodeId = nextFromNode(node.id, container.id);
+          continue;
         }
 
         const nodeKey = (cfg.apiKey || "").trim();
@@ -523,137 +598,90 @@ export const TestPanel = ({
         const activeKey = (globalKeys[`${nodeProvider}Key`] || "").trim() || nodeKey;
         const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
 
-        console.log("[AI Node] Processando:", {
-          nodeId: node.id,
-          nodeType,
-          provider: nodeProvider,
-          model: cfg.model,
-          hasApiKey: !!activeKey,
-          hasNextNode,
-          startMode: cfg.startMode,
-          userMessage,
-          objective,
-          instructions: instructions?.slice(0, 100),
+        const { system, messages: contextMessages } = buildAgentContext({
+          systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
+          history: messageHistory,
+          persistentMemory,
+          variables
         });
 
-        variables.__last_agent_user_message = "";
-
+        let aiReply: string | null = null;
+        
         if (!activeKey) {
-          nextMessages.push({ 
-            id: crypto.randomUUID(), 
-            type: "bot", 
-            content: `🤖 [SIMULAÇÃO]\n${userMessage ? `Recebi: "${userMessage}"\n\n` : ""}Configure uma chave de API para o provedor ${nodeProvider.toUpperCase()} para ativar a IA real.`,
-          });
-          waitingFor = "input-text";
-          waitingForCfg = { placeholder: "Simule uma conversa..." };
+          aiReply = `🤖 [SIMULAÇÃO]\nConfigure uma chave de API para o provedor ${nodeProvider.toUpperCase()}.`;
         } else {
-          const startMode = cfg.startMode || "automatic";
-          const welcomeMsg = cfg.welcomeMessage;
-
-          if (!userMessage && startMode === "manual") {
-            waitingFor = "input-text";
-            waitingForCfg = { placeholder: "Inicie a conversa..." };
-          } else if (!userMessage && (welcomeMsg || startMode === "automatic")) {
-            if (welcomeMsg) {
-              nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: welcomeMsg });
-              waitingFor = "input-text";
-              waitingForCfg = { placeholder: "Converse com o agente..." };
-            } else {
-              const systemPrompt = welcomeMsg 
-                ? `Objetivo: ${objective}\nInstruções: ${instructions}`
-                : `Objetivo: ${objective}\nInstruções: ${instructions}\n\nEnvie uma saudação inicial amigável.`;
-              let aiReply: string | null = null;
-              try {
-                if (selectedProvider === "openai") {
-                  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                    method: "POST",
-                    headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      model: cfg.model || "gpt-4o-mini",
-                      messages: [{ role: "system", content: systemPrompt }, { role: "user", content: "Olá!" }],
-                    }),
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    aiReply = data.choices?.[0]?.message?.content || null;
-                  }
-                } else if (selectedProvider === "google") {
-                  const model = (cfg.model || "gemini-2.0-flash").trim();
-                  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      contents: [{ role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nUser: Olá!` }] }],
-                    }),
-                  });
-                  if (res.ok) {
-                    const data = await res.json();
-                    aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-                  }
-                }
-              } catch (e) { console.error(e); }
-              if (aiReply) nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-              waitingFor = "input-text";
-              waitingForCfg = { placeholder: "Converse com seu agente..." };
-            }
-          } else if (userMessage) {
-            const systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}`;
-            let aiReply: string | null = null;
-            try {
-              if (selectedProvider === "openai") {
-                const res = await fetch("https://api.openai.com/v1/chat/completions", {
-                  method: "POST",
-                  headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: cfg.model || "gpt-4o-mini",
-                    messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userMessage }],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  aiReply = data.choices?.[0]?.message?.content || null;
-                }
-              } else if (selectedProvider === "google") {
-                const model = (cfg.model || "gemini-2.0-flash").trim();
-                const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    contents: [{ role: "user", parts: [{ text: `System Instruction: ${systemPrompt}\n\nUser: ${userMessage}` }] }],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
-                }
-              } else if (selectedProvider === "anthropic") {
-                const res = await fetch("https://api.anthropic.com/v1/messages", {
-                  method: "POST",
-                  headers: { "x-api-key": activeKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true", "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    model: cfg.model || "claude-3-5-sonnet-latest",
-                    max_tokens: 1024,
-                    system: systemPrompt,
-                    messages: [{ role: "user", content: userMessage }],
-                  }),
-                });
-                if (res.ok) {
-                  const data = await res.json();
-                  aiReply = data.content?.[0]?.text || null;
-                }
+          try {
+            if (selectedProvider === "openai") {
+              const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                method: "POST",
+                headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  model: cfg.model || "gpt-4o-mini",
+                  messages: [{ role: "system", content: system }, ...contextMessages],
+                }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                aiReply = data.choices?.[0]?.message?.content || null;
               }
-            } catch (e: any) { aiReply = `❌ Erro: ${e.message}`; }
-            if (aiReply) nextMessages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-            if (hasNextNode) {
-              console.log("[AI Node] Resposta gerada, avançando para o próximo nó conectado.");
-            } else {
-              console.log("[AI Node] Sem próximo nó conectado — aguardando nova mensagem do usuário.");
-              waitingFor = "input-text";
-              waitingForCfg = { placeholder: "Digite sua mensagem..." };
+            } else if (selectedProvider === "google") {
+              const model = (cfg.model || "gemini-2.0-flash").trim();
+              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: contextMessages.length > 0 ? contextMessages.map(m => ({
+                    role: m.role === "assistant" ? "model" : "user",
+                    parts: [{ text: m.content }]
+                  })) : [{ role: "user", parts: [{ text: "Olá!" }] }]
+                }),
+              });
+              if (res.ok) {
+                const data = await res.json();
+                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+              }
             }
+          } catch (e: any) { 
+            console.error(e);
+            aiReply = `❌ Erro na IA: ${e.message}`; 
           }
         }
-        if (waitingFor) break;
+
+        if (aiReply) {
+          const botMsg: RuntimeMessage = {
+            id: crypto.randomUUID(),
+            conversation_id: conversationId || "temp",
+            role: "assistant",
+            content: aiReply,
+            created_at: new Date().toISOString()
+          };
+          messageHistory.push(botMsg);
+          if (conversationId) conversationService.saveMessage(botMsg);
+          
+          nextMessages.push({ 
+            ...botMsg, 
+            type: "bot", 
+            content: aiReply 
+          } as Message);
+        }
+
+        if (isAgent) {
+          mode = "agent";
+          activeAgentNodeId = node.id;
+          waitingFor = "input-text";
+          waitingForCfg = { placeholder: "Converse com o agente..." };
+          break; // Agent pausa o fluxo e assume
+        } else {
+          // AI Node pontual: continua o fluxo
+          const nextId = nextFromNode(node.id, container.id);
+          if (!nextId) {
+            waitingFor = "input-text";
+            waitingForCfg = { placeholder: "Digite aqui..." };
+          }
+          currentNodeId = nextId;
+          continue;
+        }
+
       } else if (nodeType === "set-variable" && cfg.variableName) {
         variables[cfg.variableName] = evaluateSetVariableValue(cfg, variables);
       } else if (nodeType === "condition") {
@@ -788,70 +816,76 @@ export const TestPanel = ({
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(msgToSend)) {
           const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um e-mail válido.";
-          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
-          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
+          const userMsg: Message = { 
+            id: `u-${Date.now()}`, 
+            conversation_id: runtimeStateRef.current?.conversation_id || "temp",
+            role: "user",
+            type: "user", 
+            content: msgToSend 
+          };
+          const errorMsg: Message = { 
+            id: `b-err-${Date.now()}`, 
+            conversation_id: runtimeStateRef.current?.conversation_id || "temp",
+            role: "assistant",
+            type: "bot", 
+            content: typeof errorContent === "string" ? errorContent : "Entrada inválida."
+          };
+          setMessages(prev => [...prev, userMsg, errorMsg]);
           setCurrentInput("");
           setIsLoading(false);
           return;
-        }
-      } else if (waitingForType === "input-webSite") {
-        try {
-          new URL(msgToSend.startsWith('http') ? msgToSend : `https://${msgToSend}`);
-        } catch (e) {
-          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um link válido.";
-          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
-          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
-          setCurrentInput("");
-          setIsLoading(false);
-          return;
-        }
-      } else if (waitingForType === "input-number") {
-        const num = Number(msgToSend);
-        if (isNaN(num)) {
-          const errorMsg = waitingForConfig?.invalidMessage || "Por favor, insira um número válido.";
-          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
-          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
-          setCurrentInput("");
-          setIsLoading(false);
-          return;
-        }
-        if (waitingForConfig?.min !== undefined && num < waitingForConfig.min) {
-          const errorMsg = waitingForConfig?.invalidMessage || `O valor mínimo é ${waitingForConfig.min}.`;
-          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
-          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
-          setCurrentInput("");
-          setIsLoading(false);
-          return;
-        }
-        if (waitingForConfig?.max !== undefined && num > waitingForConfig.max) {
-          const errorMsg = waitingForConfig?.invalidMessage || `O valor máximo é ${waitingForConfig.max}.`;
-          setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
-          setMessages(prev => [...prev, { id: `b-err-${Date.now()}`, type: "bot", content: errorMsg }]);
-          setCurrentInput("");
-          setIsLoading(false);
-          return;
+        };
+
+        if (waitingForType === "input-mail") {
+          const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+          if (!emailRegex.test(msgToSend)) {
+            handleError(waitingForConfig?.invalidMessage || "Por favor, insira um e-mail válido.");
+            return;
+          }
+        } else if (waitingForType === "input-webSite") {
+          try {
+            new URL(msgToSend.startsWith('http') ? msgToSend : `https://${msgToSend}`);
+          } catch (e) {
+            handleError(waitingForConfig?.invalidMessage || "Por favor, insira um link válido.");
+            return;
+          }
+        } else if (waitingForType === "input-number") {
+          const num = Number(msgToSend);
+          if (isNaN(num)) {
+            handleError(waitingForConfig?.invalidMessage || "Por favor, insira um número válido.");
+            return;
+          }
+          if (waitingForConfig?.min !== undefined && num < waitingForConfig.min) {
+            handleError(waitingForConfig?.invalidMessage || `O valor mínimo é ${waitingForConfig.min}.`);
+            return;
+          }
+          if (waitingForConfig?.max !== undefined && num > waitingForConfig.max) {
+            handleError(waitingForConfig?.invalidMessage || `O valor máximo é ${waitingForConfig.max}.`);
+            return;
+          }
         }
       }
     }
 
     if (msgToSend) {
-      setMessages(prev => [...prev, { id: `u-${Date.now()}`, type: "user", content: msgToSend }]);
+      setMessages(prev => [...prev, { 
+        id: `u-${Date.now()}`, 
+        conversation_id: runtimeStateRef.current?.conversation_id || "temp",
+        role: "user",
+        type: "user", 
+        content: msgToSend 
+      }]);
     }
 
     setIsLoading(true);
     setCurrentInput("");
 
-    // Use a temporary state for the call to avoid blocking the input if the AI takes too long
-    // But we need to make sure we're using the latest variables
     const currentState = runtimeStateRef.current;
     const data = await runLocalFlow(currentState, { message: msgToSend, button_id: buttonId });
     
-    // Check if the runtime state has changed while we were waiting (e.g., if user reset or sent multiple)
-    // Actually runLocalFlow is pure-ish relative to runtimeStateRef, it uses state and returns new state.
     applyRuntimeData(data);
-
-    // Garante que o estado de carregamento seja removido
     setIsLoading(false);
+
   };
 
   const handleButtonClick = (button: ButtonConfig) => sendMessage(undefined, button.id);
