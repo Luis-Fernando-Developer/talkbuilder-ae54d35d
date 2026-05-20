@@ -654,6 +654,7 @@ export const TestPanel = ({
         } else {
           try {
             if (selectedProvider === "openai") {
+              console.log("[AI Node] Sending to OpenAI:", { system, contextMessages });
               const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
                 headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
@@ -665,13 +666,22 @@ export const TestPanel = ({
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.choices?.[0]?.message?.content || null;
+              } else {
+                const errorData = await res.json();
+                console.error("[AI Node] OpenAI Error:", errorData);
+                aiReply = `❌ Erro OpenAI: ${errorData.error?.message || res.statusText}`;
               }
             } else if (selectedProvider === "google") {
               const model = (cfg.model || "gemini-2.0-flash").trim();
+              console.log("[AI Node] Sending to Gemini:", { model, system, contextMessages });
+              
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(activeKey)}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                  system_instruction: {
+                    parts: [{ text: system }]
+                  },
                   contents: contextMessages.length > 0 ? contextMessages.map(m => ({
                     role: m.role === "assistant" ? "model" : "user",
                     parts: [{ text: m.content }]
@@ -681,6 +691,10 @@ export const TestPanel = ({
               if (res.ok) {
                 const data = await res.json();
                 aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+              } else {
+                const errorData = await res.json();
+                console.error("[AI Node] Gemini Error:", errorData);
+                aiReply = `❌ Erro Gemini: ${errorData.error?.message || res.statusText}`;
               }
             }
           } catch (e: any) { 
