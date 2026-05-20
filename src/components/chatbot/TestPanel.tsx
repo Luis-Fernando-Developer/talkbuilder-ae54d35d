@@ -328,6 +328,15 @@ export const TestPanel = ({
     if (!conversationId && flowId) {
       const conv = await conversationService.getOrCreateConversation(visitorId, flowId, "default-workspace");
       conversationId = conv.id;
+      
+      // Se não temos um estado anterior (início de sessão), mas encontramos uma conversa no banco,
+      // retomamos o modo, o nó ativo e a memória persistente.
+      if (!state) {
+        mode = conv.runtime_mode || "flow";
+        currentNodeId = conv.active_node_id || currentNodeId;
+        Object.assign(persistentMemory, conv.memory || {});
+        console.log("[Runtime] Sessão retomada do banco:", { mode, currentNodeId, memory: persistentMemory });
+      }
     }
 
     // Lógica de Entrada de Usuário
