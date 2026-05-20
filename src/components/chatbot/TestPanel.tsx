@@ -908,7 +908,7 @@ export const TestPanel = ({
               ))}
             </div>
           </div>
-        </div>
+        )}
         {waitingForInput && (
           <div className="p-3 border-t border-border flex gap-2" style={{ background: theme?.inputBackgroundColor }}>
             {!waitingForButton && (
@@ -952,7 +952,7 @@ export const TestPanel = ({
                 >
                   <Send className="h-4 w-4" />
                 </Button>
-              </>
+              </div>
             )}
           </div>
         )}
