@@ -547,12 +547,34 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
         currentNodeId = nextFromNode(node.id, container, conditionHandle, true);
         continue;
       }
-      case "ai-agent":
       case "ai-node": {
         const lastMsg = variables.__last_agent_user_message;
-        const objective = cfg.objective || cfg.systemPrompt || "agente de teste";
+        const objective = cfg.objective || cfg.systemPrompt || "assistente";
         const instructions = cfg.instructions || cfg.prompt || cfg.message || "";
         const userMessage = String(lastMsg || "").trim();
+
+        // Knowledge Base context
+        let kbContext = "";
+        if (cfg.kbFilesEnabled !== false && cfg.kbFiles?.length) {
+          const filesContent = cfg.kbFiles
+            .filter((f: any) => f.content)
+            .map((f: any) => `### Arquivo: ${f.name}\n${f.content}`)
+            .join("\n\n");
+          if (filesContent) {
+            kbContext += `\n\n[BASE DE CONHECIMENTO]\nUse as informações abaixo para responder. Se não souber, diga que não encontrou nos documentos.\n\n${filesContent}`;
+          }
+        }
+        if (cfg.kbLinksEnabled !== false && cfg.kbLinks?.length) {
+          const linksContent = cfg.kbLinks
+            .filter((l: any) => l.url)
+            .map((l: any) => `- Link: ${l.url}`)
+            .join("\n");
+          if (linksContent) {
+            kbContext += `\n\n[LINKS DE REFERÊNCIA]\n${linksContent}`;
+          }
+        }
+
+        const systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}${kbContext}`;
 
         // Check for keys
         const nodeKey = cfg.apiKey;
@@ -567,31 +589,28 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
 
         if (activeKey && userMessage) {
           try {
-            // Real AI Call attempt (OpenAI as example)
             if (provider === "openai") {
               const res = await fetch("https://api.openai.com/v1/chat/completions", {
                 method: "POST",
-                headers: {
-                  "Authorization": `Bearer ${activeKey}`,
-                  "Content-Type": "application/json",
-                },
+                headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  model: cfg.model || "gpt-3.5-turbo",
+                  model: cfg.model || "gpt-4o-mini",
                   messages: [
-                    { role: "system", content: `Objetivo: ${objective}\nInstruções: ${instructions}` },
+                    { role: "system", content: systemPrompt },
                     { role: "user", content: userMessage }
                   ],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
                 const aiReply = data.choices?.[0]?.message?.content;
                 if (aiReply) {
                   messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
                   variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
+                  if (nodeType === "ai-agent") {
+                    waiting_for = "input-text";
+                    break;
+                  }
                 }
               }
             } else if (provider === "anthropic") {
@@ -605,44 +624,42 @@ function runFlow(execution: any, containers: any[], edges: any[], input: any) {
                 body: JSON.stringify({
                   model: cfg.model || "claude-3-haiku-20240307",
                   max_tokens: 1024,
-                  system: `Objetivo: ${objective}\nInstruções: ${instructions}`,
+                  system: systemPrompt,
                   messages: [{ role: "user", content: userMessage }],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
                 const aiReply = data.content?.[0]?.text;
                 if (aiReply) {
                   messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
                   variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
+                  if (nodeType === "ai-agent") {
+                    waiting_for = "input-text";
+                    break;
+                  }
                 }
               }
             } else if (provider === "google" || provider === "gemini") {
-              let model = cfg.model || "gemini-2.5-flash";
-              if (model.includes("gemini-1.5") || model.includes("gemini-1.0") || model === "gemini-pro") model = "gemini-2.5-flash";
-              model = model.replace(/^models\//, "");
-
+              const model = cfg.model || "gemini-2.0-flash";
               const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                  contents: [{ 
-                    parts: [{ text: `System Instruction: Objetivo: ${objective}\nInstruções: ${instructions}\n\nUser Message: ${userMessage}` }] 
-                  }],
+                  system_instruction: { parts: [{ text: systemPrompt }] },
+                  contents: [{ parts: [{ text: userMessage }] }],
                 }),
               });
-              
               if (res.ok) {
                 const data = await res.json();
                 const aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text;
                 if (aiReply) {
                   messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
                   variables.__last_agent_user_message = "";
-                  waiting_for = "input-text";
-                  break;
+                  if (nodeType === "ai-agent") {
+                    waiting_for = "input-text";
+                    break;
+                  }
                 }
               }
             }
