@@ -25,19 +25,26 @@ interface PublishedBot {
 }
 
 export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
-  const [targetFlow, setTargetFlow] = useState(config.targetFlow || "");
   const [publishedBots, setPublishedBots] = useState<PublishedBot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { currentWorkspace } = useAuth();
 
+  const targetFlow = config.targetFlow || "";
+
   useEffect(() => {
     async function fetchPublishedBots() {
-      console.log("[RedirectConfig] Iniciando busca de bots. Workspace ID:", currentWorkspace?.id);
-      
+      const { data: { user } } = await supabase.auth.getUser();
       const workspaceId = currentWorkspace?.id || localStorage.getItem("currentWorkspaceId");
+      
+      console.log("[RedirectConfig] Buscando bots. User:", user?.id, "WorkspaceId:", workspaceId);
 
+      
       try {
-        let query = (supabase as any).from("chatbot_flows").select("id, name");
+        setIsLoading(true);
+        // Usamos chatbot_flows que é onde ficam as definições dos bots/fluxos
+        // Usamos cast para any pois os tipos do Supabase podem estar desatualizados
+        let query = (supabase as any).from("chatbot_flows").select("id, name, workspace_id, is_published");
+
         
         if (workspaceId) {
           query = query.eq("workspace_id", workspaceId);
@@ -45,37 +52,52 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
         
         const { data, error } = await query.eq("is_published", true);
 
-        if (error) throw error;
+        if (error) {
+          console.error("[RedirectConfig] Erro na query principal:", error);
+          throw error;
+        }
 
-        if (data) {
-          console.log("[RedirectConfig] Bots publicados encontrados:", data.length, data);
+        if (data && data.length > 0) {
+          console.log("[RedirectConfig] Bots encontrados no workspace:", data);
           setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
           })));
         } else {
-          console.log("[RedirectConfig] Nenhum bot retornado do banco.");
+          console.log("[RedirectConfig] Nenhum bot encontrado no workspace atual. Tentando busca global para debug...");
+          const { data: globalData, error: globalError } = await (supabase as any)
+            .from("chatbot_flows")
+            .select("id, name, workspace_id, is_published")
+            .eq("is_published", true)
+            .limit(10);
+          
+          if (!globalError && globalData) {
+            console.log("[RedirectConfig] DEBUG - Bots publicados globais encontrados:", globalData);
+          }
+          setPublishedBots([]);
         }
+
       } catch (error) {
-        console.error("Erro ao buscar bots publicados:", error);
+        console.error("[RedirectConfig] Erro ao buscar bots:", error);
       } finally {
         setIsLoading(false);
       }
     }
 
     fetchPublishedBots();
-  }, []);
+  }, [currentWorkspace?.id]);
 
-  useEffect(() => {
-    setConfig({ ...config, targetFlow });
-  }, [targetFlow]);
+  const handleValueChange = (value: string) => {
+    console.log("[RedirectConfig] Alterando targetFlow para:", value);
+    setConfig({ ...config, targetFlow: value });
+  };
 
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
         <Label>Selecionar Fluxo de Destino</Label>
-        <Select value={targetFlow} onValueChange={setTargetFlow} disabled={isLoading}>
-          <SelectTrigger>
+        <Select value={targetFlow} onValueChange={handleValueChange} disabled={isLoading}>
+          <SelectTrigger className="w-full">
             <SelectValue placeholder={isLoading ? "Carregando fluxos..." : "Selecione um bot/fluxo"} />
           </SelectTrigger>
           <SelectContent>
@@ -86,11 +108,17 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
                 </SelectItem>
               ))
             ) : (
-              <div className="p-2 text-xs text-muted-foreground text-center">
+              <div className="p-4 text-center">
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mx-auto" />
+                  <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Buscando...
+                  </div>
                 ) : (
-                  "Nenhum bot publicado encontrado"
+                  <div className="text-sm text-muted-foreground">
+                    Nenhum bot publicado encontrado
+                    <p className="text-[10px] mt-1 opacity-70">Verifique se os bots estão publicados no workspace atual.</p>
+                  </div>
                 )}
               </div>
             )}
