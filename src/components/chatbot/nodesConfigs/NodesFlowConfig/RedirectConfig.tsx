@@ -53,17 +53,30 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
         const { data, error } = await query.eq("is_published", true);
 
         if (error) {
-          console.error("[RedirectConfig] Erro na query:", error);
+          console.error("[RedirectConfig] Erro na query principal:", error);
           throw error;
         }
 
-        if (data) {
-          console.log("[RedirectConfig] Bots encontrados:", data);
+        if (data && data.length > 0) {
+          console.log("[RedirectConfig] Bots encontrados no workspace:", data);
           setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
           })));
+        } else {
+          console.log("[RedirectConfig] Nenhum bot encontrado no workspace atual. Tentando busca global para debug...");
+          const { data: globalData, error: globalError } = await (supabase as any)
+            .from("chatbot_flows")
+            .select("id, name, workspace_id, is_published")
+            .eq("is_published", true)
+            .limit(10);
+          
+          if (!globalError && globalData) {
+            console.log("[RedirectConfig] DEBUG - Bots publicados globais encontrados:", globalData);
+          }
+          setPublishedBots([]);
         }
+
       } catch (error) {
         console.error("[RedirectConfig] Erro ao buscar bots:", error);
       } finally {
