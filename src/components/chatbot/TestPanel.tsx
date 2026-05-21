@@ -20,6 +20,7 @@ import { type Message as RuntimeMessage, type RuntimeState, type RuntimeMode, ty
 import { conversationService } from "../../services/conversationService";
 import { buildAgentContext } from "../../services/aiContextBuilder";
 import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/lib/supabaseClient";
 
 interface Message extends RuntimeMessage {
   // UI Specific extension
