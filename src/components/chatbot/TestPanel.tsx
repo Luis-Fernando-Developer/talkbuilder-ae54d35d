@@ -761,7 +761,7 @@ export const TestPanel = ({
             undefined,
             newContainers,
             newEdges,
-            visitedFlows
+            visitedRedirects
           );
 
           nextMessages.push(...(redirectResult.messages as Message[]));
