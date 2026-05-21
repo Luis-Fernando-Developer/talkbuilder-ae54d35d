@@ -7,7 +7,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { nodeConfigComponents } from "./nodesConfigs";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 interface NodeConfigDialogProps {
@@ -20,30 +20,28 @@ interface NodeConfigDialogProps {
 
 export const NodeConfigDialog = ({ node, open, onClose, onSave, containers = [] }: NodeConfigDialogProps) => {
   const [config, setConfig] = useState<NodeConfig>({});
-  const [lastNodeId, setLastNodeId] = useState<string | null>(null);
+  const nodeId = node?.id ?? null;
+  const normalizedNodeType = useMemo(
+    () => String(node?.type ?? "").toLowerCase() === "await" ? "wait" : String(node?.type ?? "").toLowerCase(),
+    [node?.type]
+  );
 
   useEffect(() => {
-    // Only update config when the dialog opens OR a different node is selected
-    if (open && node && node.id !== lastNodeId) {
-      console.log("[NodeConfigDialog] Initializing config for node:", node.id, node.type);
-      // Use a function to ensure we're not causing a re-render loop if config is same
-      const newConfig = JSON.parse(JSON.stringify(node.config || {}));
-      setConfig(newConfig);
-      setLastNodeId(node.id);
+    if (open && node) {
+      setConfig(JSON.parse(JSON.stringify(node.config || {})));
+    } else if (!open) {
+      setConfig({});
     }
-  }, [open, node?.id, lastNodeId]); // Reduced dependencies to avoid loops
+  }, [open, nodeId]);
 
 
   const handleSave = () => {
-    console.log("[NodeConfigDialog] Saving config to parent:", config);
     onSave(JSON.parse(JSON.stringify(config)));
     onClose();
   };
 
   if (!node) return null;
 
-  const normalizedNodeType = String(node.type).toLowerCase() === "await" ? "wait" : String(node.type).toLowerCase();
-  console.log("[NodeConfigDialog] Rendering component for type:", normalizedNodeType, "Config:", config);
   const ConfigComponent = nodeConfigComponents[normalizedNodeType] || nodeConfigComponents[node.type];
 
   // Complex nodes need larger dialog
