@@ -32,7 +32,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
 
   useEffect(() => {
     async function fetchPublishedBots() {
-      console.log("[RedirectConfig] Iniciando busca de bots. Workspace ID:", currentWorkspace?.id);
+      console.log("[RedirectConfig] Iniciando busca de bots.");
 
       try {
         const { data, error } = await (supabase as any)
@@ -43,7 +43,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
         if (error) throw error;
 
         if (data) {
-          console.log("[RedirectConfig] Bots publicados encontrados:", data.length);
+          console.log("[RedirectConfig] Bots publicados encontrados:", data.length, data);
           setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
@@ -59,7 +59,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     }
 
     fetchPublishedBots();
-  }, [currentWorkspace?.id]);
+  }, []);
 
   useEffect(() => {
     setConfig({ ...config, targetFlow });
