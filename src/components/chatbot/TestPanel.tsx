@@ -635,11 +635,13 @@ export const TestPanel = ({
           currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
           continue;
         } else if (nodeType === "go-to" && cfg.targetContainerId) {
-          console.log(`[node:go-to] Jumping to container: ${cfg.targetContainerId}`);
+          console.log(`[node:go-to] Jumping from node ${node.id} to container: ${cfg.targetContainerId}`);
           const targetNodeId = resolveTarget(cfg.targetContainerId);
-          if (targetNodeId) {
+          if (targetNodeId && targetNodeId !== node.id) {
             currentNodeId = targetNodeId;
             continue;
+          } else {
+            console.warn(`[node:go-to] Target not found or same as current: ${targetNodeId}`);
           }
         }
 
