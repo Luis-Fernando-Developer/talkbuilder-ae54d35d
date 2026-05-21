@@ -9,7 +9,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // -----------------------------------------------------------------------------
 
 const ENV_URL = import.meta.env.VITE_TALKMAP_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
-const ENV_KEY = import.meta.env.VITE_TALKMAP_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY;
+const ENV_KEY = import.meta.env.VITE_TALKMAP_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 // Fallback manual via localStorage para o sistema
 const SYSTEM_FALLBACK_KEY = "talkmap_system_supabase";
