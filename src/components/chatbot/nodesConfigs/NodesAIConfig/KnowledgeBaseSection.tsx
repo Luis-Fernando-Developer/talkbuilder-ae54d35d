@@ -2,8 +2,12 @@ import { NodeConfig } from "@/types/chatbot";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Upload, Link as LinkIcon } from "lucide-react";
+import { Plus, Trash2, Upload, Link as LinkIcon, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface ToggleRowProps {
   id: string;
@@ -24,7 +28,8 @@ export const ToggleRow = ({ id, title, description, checked, onChange }: ToggleR
 );
 
 interface KBFile { id: string; name: string; content?: string; size?: number; truncated?: boolean; }
-interface KBLink { id: string; url: string; }
+interface KBLink { id: string; url: string; content?: string; }
+
 
 const MAX_FILE_CHARS = 100_000; // ~100KB de texto por arquivo
 const TEXT_EXT_REGEX = /\.(txt|md|markdown|csv|tsv|json|xml|yaml|yml|html|htm|log|rtf)$/i;
@@ -45,11 +50,14 @@ const readFileAsText = (file: File): Promise<string> =>
   });
 
 export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig; setConfig: (c: NodeConfig) => void }) => {
+  const { toast } = useToast();
+  const [fetchingLinks, setFetchingLinks] = useState<Record<string, boolean>>({});
   const kbName: string = config.kbName || "";
   const filesEnabled: boolean = config.kbFilesEnabled ?? false;
   const linksEnabled: boolean = config.kbLinksEnabled ?? false;
   const files: KBFile[] = config.kbFiles || [];
   const links: KBLink[] = config.kbLinks || [];
+
 
   const addFile = () => {
     const input = document.createElement("input");
@@ -105,8 +113,41 @@ export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig
   const updateLink = (id: string, url: string) =>
     setConfig({ ...config, kbLinks: links.map((l) => (l.id === id ? { ...l, url } : l)) });
 
+  const fetchLinkContent = async (id: string, url: string) => {
+    if (!url || !url.startsWith("http")) {
+      toast({ title: "URL inválida", description: "Por favor, insira uma URL válida começando com http ou https.", variant: "destructive" });
+      return;
+    }
+
+    setFetchingLinks(prev => ({ ...prev, [id]: true }));
+    try {
+      const { data, error } = await supabase.functions.invoke('crawl', {
+        body: { url }
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const content = data?.content || "";
+      if (!content) throw new Error("Não foi possível extrair conteúdo desta URL.");
+
+      setConfig({
+        ...config,
+        kbLinks: links.map((l) => (l.id === id ? { ...l, content } : l))
+      });
+      
+      toast({ title: "Sucesso!", description: "Conteúdo da URL extraído com sucesso." });
+    } catch (err: any) {
+      console.error("[KB] fetch link failed", err);
+      toast({ title: "Erro ao buscar conteúdo", description: err.message || "Ocorreu um erro ao tentar ler o link.", variant: "destructive" });
+    } finally {
+      setFetchingLinks(prev => ({ ...prev, [id]: false }));
+    }
+  };
+
   const removeLink = (id: string) =>
     setConfig({ ...config, kbLinks: links.filter((l) => l.id !== id) });
+
 
   return (
     <div className="space-y-3 border rounded-lg p-3 bg-muted/20">
@@ -168,23 +209,47 @@ export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig
         {linksEnabled && (
           <div className="space-y-2 pl-1">
             {links.map((l) => (
-              <div key={l.id} className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <LinkIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="https://..."
-                    value={l.url}
-                    onChange={(e) => updateLink(l.id, e.target.value)}
-                    className="h-8 pl-7 text-xs"
-                  />
+              <div key={l.id} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <LinkIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="https://..."
+                      value={l.url}
+                      onChange={(e) => updateLink(l.id, e.target.value)}
+                      className="h-8 pl-7 text-xs"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={fetchingLinks[l.id]}
+                    onClick={() => fetchLinkContent(l.id, l.url)}
+                    className="h-8 w-8 shrink-0 hover:bg-primary/10"
+                    title="Extrair conteúdo do link"
+                  >
+                    {fetchingLinks[l.id] ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : l.content ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => removeLink(l.id)}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeLink(l.id)}
-                  className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {l.content && (
+                  <p className="text-[10px] text-green-600 px-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-2.5 w-2.5" /> Conteúdo extraído ({l.content.length} caracteres)
+                  </p>
+                )}
               </div>
             ))}
             <Button
