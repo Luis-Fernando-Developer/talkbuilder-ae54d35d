@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/select";
 import { Info, Loader2 } from "lucide-react";
 import { SkillConfig } from "../SkillConfig";
-import { supabase } from "@/integrations/supabase/client";
+import { getSupabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
 
 interface RedirectConfigProps {
@@ -38,6 +38,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     setIsLoading(true);
 
     try {
+      const supabase = getSupabase();
       const { data, error } = await supabase
         .from("chatbot_flows")
         .select("id, name")
