@@ -48,8 +48,8 @@ export const buildAgentContext = ({
     
     const links = (knowledgeBase.kbLinksEnabled ? (knowledgeBase.kbLinks || []) : [])
       .filter((l: any) => l.url)
-      .map((l: any) => `- Link: ${l.url}`)
-      .join("\n");
+      .map((l: any) => `### FONTE (URL): ${l.url}\n${l.content ? `CONTEÚDO:\n${l.content}` : "(Conteúdo não disponível - use apenas a URL se necessário)"}`)
+      .join("\n\n");
 
     if (files || links) {
       kbStr = `\n\n[INFORMAÇÕES DE SUPORTE - BASE DE CONHECIMENTO]\nVocê DEVE usar as informações abaixo como sua fonte principal de verdade. Se o usuário perguntar algo que está nestes documentos, responda EXATAMENTE o que está neles.\n\n${files}\n${links}`;
