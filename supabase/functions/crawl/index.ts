@@ -10,6 +10,11 @@ const corsHeaders = {
  * e tentando manter alguma estrutura semântica (títulos, listas).
  */
 function cleanHtml(html: string) {
+  // Se detectarmos que é um arquivo CSS ou JS puro (caso o Content-Type falhe)
+  if (html.trim().startsWith(':root') || html.trim().startsWith('body {') || html.trim().startsWith('import ')) {
+    return "";
+  }
+
   return html
     // Remover scripts, styles, head, nav, footer, header e comentários
     .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
@@ -18,6 +23,8 @@ function cleanHtml(html: string) {
     .replace(/<nav\b[^>]*>([\s\S]*?)<\/nav>/gim, "")
     .replace(/<footer\b[^>]*>([\s\S]*?)<\/footer>/gim, "")
     .replace(/<header\b[^>]*>([\s\S]*?)<\/header>/gim, "")
+    .replace(/<svg\b[^>]*>([\s\S]*?)<\/svg>/gim, "") // Remover SVGs (lixo de imagem)
+    .replace(/<iframe\b[^>]*>([\s\S]*?)<\/iframe>/gim, "")
     .replace(/<!--[\s\S]*?-->/g, "")
     // Converter tags de bloco em quebras de linha para manter legibilidade
     .replace(/<(h[1-6]|p|div|section|article|li|tr|header|footer|nav)\b[^>]*>/gi, "\n")
@@ -35,6 +42,7 @@ function cleanHtml(html: string) {
     // Colapsar espaços e múltiplas quebras de linha
     .replace(/[ \t]+/g, " ")
     .replace(/\n\s*\n/g, "\n")
+    .replace(/\n{3,}/g, "\n\n") // No máximo duas quebras de linha
     .trim();
 }
 
