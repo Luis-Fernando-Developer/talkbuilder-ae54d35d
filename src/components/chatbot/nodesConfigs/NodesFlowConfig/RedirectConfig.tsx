@@ -32,13 +32,18 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
 
   useEffect(() => {
     async function fetchPublishedBots() {
-      console.log("[RedirectConfig] Iniciando busca de bots.");
+      console.log("[RedirectConfig] Iniciando busca de bots. Workspace ID:", currentWorkspace?.id);
+      
+      const workspaceId = currentWorkspace?.id || localStorage.getItem("currentWorkspaceId");
 
       try {
-        const { data, error } = await (supabase as any)
-          .from("chatbot_flows")
-          .select("id, name")
-          .eq("is_published", true);
+        let query = (supabase as any).from("chatbot_flows").select("id, name");
+        
+        if (workspaceId) {
+          query = query.eq("workspace_id", workspaceId);
+        }
+        
+        const { data, error } = await query.eq("is_published", true);
 
         if (error) throw error;
 
