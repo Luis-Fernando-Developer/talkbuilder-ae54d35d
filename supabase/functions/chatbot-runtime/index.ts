@@ -471,7 +471,10 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
         if (linksContent) kbContext += `\n\n[CONHECIMENTO - LINKS]\n${linksContent}`;
       }
 
-      const systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}${kbContext}`;
+      let systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}`;
+      if (kbContext) {
+        systemPrompt += `\n\n[INSTRUÇÃO IMPORTANTE]\nUtilize o contexto da BASE DE CONHECIMENTO fornecido abaixo para responder às perguntas do usuário de forma precisa. Caso a informação não esteja presente no contexto, informe que não encontrou os detalhes específicos na sua base de dados.\n\n${kbContext}`;
+      }
       const provider = (cfg.provider || "openai").toLowerCase();
       const nodeKey = cfg.apiKey;
       const globalKeys = flow?.settings?.aiKeys || {};
