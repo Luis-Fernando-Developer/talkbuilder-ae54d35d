@@ -636,8 +636,11 @@ export const TestPanel = ({
           continue;
         } else if (nodeType === "go-to" && cfg.targetContainerId) {
           console.log(`[node:go-to] Jumping to container: ${cfg.targetContainerId}`);
-          currentNodeId = resolveTarget(cfg.targetContainerId);
-          continue;
+          const targetNodeId = resolveTarget(cfg.targetContainerId);
+          if (targetNodeId) {
+            currentNodeId = targetNodeId;
+            continue;
+          }
         }
 
         const nextId = nextFromNode(node.id, container.id);
