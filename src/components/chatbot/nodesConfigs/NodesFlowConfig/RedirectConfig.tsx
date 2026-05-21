@@ -32,25 +32,29 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
 
   useEffect(() => {
     async function fetchPublishedBots() {
-      if (!currentWorkspace?.id) {
-        setIsLoading(false);
-        return;
-      }
+      console.log("[RedirectConfig] Iniciando busca de bots. Workspace ID:", currentWorkspace?.id);
+      
+      const workspaceId = currentWorkspace?.id || localStorage.getItem("currentWorkspaceId");
 
       try {
-        const { data, error } = await (supabase as any)
-          .from("chatbot_flows")
-          .select("id, name")
-          .eq("workspace_id", currentWorkspace.id)
-          .eq("is_published", true);
+        let query = (supabase as any).from("chatbot_flows").select("id, name");
+        
+        if (workspaceId) {
+          query = query.eq("workspace_id", workspaceId);
+        }
+        
+        const { data, error } = await query.eq("is_published", true);
 
         if (error) throw error;
 
         if (data) {
+          console.log("[RedirectConfig] Bots publicados encontrados:", data.length, data);
           setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
           })));
+        } else {
+          console.log("[RedirectConfig] Nenhum bot retornado do banco.");
         }
       } catch (error) {
         console.error("Erro ao buscar bots publicados:", error);
@@ -60,7 +64,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     }
 
     fetchPublishedBots();
-  }, [currentWorkspace?.id]);
+  }, []);
 
   useEffect(() => {
     setConfig({ ...config, targetFlow });
