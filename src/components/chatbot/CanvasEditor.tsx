@@ -356,6 +356,7 @@ const CanvasContent = ({
           type: 'container',
           position: container.position,
           selected: existingNode?.selected || false,
+          dragHandle: '.nodrag', // Adicionado para garantir que o clique no header não interfira se necessário, mas opcional
           data: {
             container,
             onNodeClick: handleNodeClick,
