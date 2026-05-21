@@ -5,15 +5,36 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+/**
+ * Limpa o HTML para extrair apenas o texto relevante, preservando quebras de linha
+ * e tentando manter alguma estrutura semântica (títulos, listas).
+ */
 function cleanHtml(html: string) {
   return html
+    // Remover scripts, styles, head, nav, footer, header e comentários
     .replace(/<script\b[^>]*>([\s\S]*?)<\/script>/gim, "")
     .replace(/<style\b[^>]*>([\s\S]*?)<\/style>/gim, "")
+    .replace(/<head\b[^>]*>([\s\S]*?)<\/head>/gim, "")
     .replace(/<nav\b[^>]*>([\s\S]*?)<\/nav>/gim, "")
     .replace(/<footer\b[^>]*>([\s\S]*?)<\/footer>/gim, "")
     .replace(/<header\b[^>]*>([\s\S]*?)<\/header>/gim, "")
+    .replace(/<!--[\s\S]*?-->/g, "")
+    // Converter tags de bloco em quebras de linha para manter legibilidade
+    .replace(/<(h[1-6]|p|div|section|article|li|tr|header|footer|nav)\b[^>]*>/gi, "\n")
+    .replace(/<(br|hr)\s*\/?>/gi, "\n")
+    .replace(/<td\b[^>]*>/gi, " | ") // Separador de colunas para tabelas
+    // Remover todas as outras tags
     .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
+    // Limpar entidades HTML básicas
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    // Colapsar espaços e múltiplas quebras de linha
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n\s*\n/g, "\n")
     .trim();
 }
 
@@ -38,18 +59,19 @@ serve(async (req) => {
     const queue = [{ url, currentDepth: 0 }];
     const baseUrl = new URL(url);
 
-    // Limit to 5 pages total to stay within time limits
-    while (queue.length > 0 && results.length < 5) {
+    // Aumentado para 10 páginas para garantir que pegamos sub-páginas de planos
+    while (queue.length > 0 && results.length < 10) {
       const { url: currentUrl, currentDepth } = queue.shift()!;
       
-      if (visited.has(currentUrl)) continue;
-      visited.add(currentUrl);
+      const normalizedUrl = currentUrl.split('#')[0].replace(/\/$/, "");
+      if (visited.has(normalizedUrl)) continue;
+      visited.add(normalizedUrl);
 
       try {
         console.log(`Fetching: ${currentUrl}`);
         const response = await fetch(currentUrl, {
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+            "User-Agent": "Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)"
           }
         });
 
@@ -61,36 +83,40 @@ serve(async (req) => {
         const html = await response.text();
         const cleaned = cleanHtml(html);
         
-        results.push({ url: currentUrl, content: cleaned });
+        if (cleaned.length > 50) { // Evitar páginas vazias ou só com erro
+          results.push({ url: currentUrl, content: cleaned });
+        }
 
-        // If we want more depth, find internal links
+        // Descobrir links internos
         if (currentDepth < depth) {
           const linkRegex = /href=["']([^"']+)["']/gi;
           let match;
-          while ((match = linkRegex.exec(html)) !== null && queue.length < 10) {
+          while ((match = linkRegex.exec(html)) !== null && queue.length < 20) {
             try {
               const link = match[1];
               const absoluteUrl = new URL(link, currentUrl).href;
               const parsedLink = new URL(absoluteUrl);
               
-              // Only same domain, no anchors, no queries (to keep it simple)
+              const cleanAbsolute = absoluteUrl.split('#')[0].replace(/\/$/, "");
+
+              // Apenas mesmo domínio, ignorar extensões de arquivos comuns
+              const isBinary = /\.(jpg|jpeg|png|gif|pdf|zip|mp4|mp3|css|js|svg|woff|woff2)$/i.test(cleanAbsolute);
+              
               if (
                 parsedLink.hostname === baseUrl.hostname && 
-                !absoluteUrl.includes('#') &&
-                !visited.has(absoluteUrl) &&
-                !queue.some(q => q.url === absoluteUrl)
+                !isBinary &&
+                !visited.has(cleanAbsolute) &&
+                !queue.some(q => q.url.split('#')[0].replace(/\/$/, "") === cleanAbsolute)
               ) {
-                // Prioritize "likely important" pages
-                const isImportant = /pricing|plans|about|contact|services|products|features/i.test(absoluteUrl);
+                // Priorizar páginas de planos, preços, sobre, etc.
+                const isImportant = /pricing|plans|precos|planos|sobre|about|features|recursos/i.test(absoluteUrl);
                 if (isImportant) {
                   queue.unshift({ url: absoluteUrl, currentDepth: currentDepth + 1 });
                 } else {
                   queue.push({ url: absoluteUrl, currentDepth: currentDepth + 1 });
                 }
               }
-            } catch (e) {
-              // Ignore invalid URLs
-            }
+            } catch { /* ignore invalid URLs */ }
           }
         }
       } catch (e) {
@@ -98,11 +124,20 @@ serve(async (req) => {
       }
     }
 
-    // Combine all content
-    const combinedContent = results
-      .map(r => `[Página: ${r.url}]\n${r.content}`)
-      .join("\n\n")
-      .slice(0, 100000); // Increased limit to 100k
+    // Combinar conteúdo com limite de 100k caracteres
+    // Ordenar resultados para que a página inicial ou páginas de planos fiquem no topo
+    const sortedResults = results.sort((a, b) => {
+      const aImp = /pricing|plans|precos|planos/i.test(a.url);
+      const bImp = /pricing|plans|precos|planos/i.test(b.url);
+      if (aImp && !bImp) return -1;
+      if (!aImp && bImp) return 1;
+      return 0;
+    });
+
+    const combinedContent = sortedResults
+      .map(r => `[FONTE: ${r.url}]\n${r.content}`)
+      .join("\n\n---\n\n")
+      .slice(0, 100000);
 
     return new Response(JSON.stringify({ 
       content: combinedContent,

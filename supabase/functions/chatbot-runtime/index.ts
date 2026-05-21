@@ -471,9 +471,9 @@ async function runFlow(execution: any, containers: any[], edges: any[], input: a
         if (linksContent) kbContext += `\n\n[CONHECIMENTO - LINKS]\n${linksContent}`;
       }
 
-      let systemPrompt = `Objetivo: ${objective}\nInstruções: ${instructions}`;
+      let systemPrompt = `Você é um assistente virtual especializado.\nObjetivo: ${objective}\nInstruções: ${instructions}`;
       if (kbContext) {
-        systemPrompt += `\n\n[INSTRUÇÃO IMPORTANTE]\nUtilize o contexto da BASE DE CONHECIMENTO fornecido abaixo para responder às perguntas do usuário de forma precisa. Caso a informação não esteja presente no contexto, informe que não encontrou os detalhes específicos na sua base de dados.\n\n${kbContext}`;
+        systemPrompt += `\n\n[INSTRUÇÕES DA BASE DE CONHECIMENTO]\nResponda o usuário BASEANDO-SE EXCLUSIVAMENTE nas informações abaixo. Se a pergunta for sobre algo não mencionado, diga que não encontrou essa informação específica na base de dados, mas tente ser útil com o que você sabe.\n\n${kbContext}`;
       }
       const provider = (cfg.provider || "openai").toLowerCase();
       const nodeKey = cfg.apiKey;
