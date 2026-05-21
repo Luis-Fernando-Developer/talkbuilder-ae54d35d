@@ -647,10 +647,10 @@ export const TestPanel = ({
           if (targetNodeId && targetNodeId !== node.id) {
             currentNodeId = targetNodeId;
             // Crucial: continue inside the while loop so it processes the target node immediately
-            // and doesn't fall through to the default nextFromNode logic below.
             continue;
           } else {
             console.warn(`[node:go-to] Target not found or same as current: ${targetNodeId}`);
+            // If jump fails, still try to follow normal edges as fallback
           }
         }
 
