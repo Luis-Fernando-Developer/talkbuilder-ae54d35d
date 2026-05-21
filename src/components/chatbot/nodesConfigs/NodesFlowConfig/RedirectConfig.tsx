@@ -32,10 +32,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
 
   useEffect(() => {
     async function fetchPublishedBots() {
-      if (!currentWorkspace?.id) {
-        setIsLoading(false);
-        return;
-      }
+      console.log("[RedirectConfig] Iniciando busca de bots. Workspace ID:", currentWorkspace?.id);
 
       try {
         const { data, error } = await (supabase as any)
