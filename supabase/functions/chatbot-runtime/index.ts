@@ -219,7 +219,8 @@ function writeMemoryState(key: string, state: any) {
   runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
 }
 
-async function runFlow(execution: any, containersIn: any[], edgesIn: any[], input: any, flow: any, supabase: any) {
+async function runFlow(execution: any, containersIn: any[], edgesIn: any[], input: any, flow: any, supabase: any, visitedFlows = new Set<string>()) {
+  if (flow?.id) visitedFlows.add(flow.id);
   let containers: any[] = containersIn;
   let edges: any[] = edgesIn;
   let currentNodeId: string | null = execution.current_node_id;
@@ -602,6 +603,13 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
           break;
         }
         console.log(`[node:redirect] carregando fluxo ${targetRef}`);
+        if (visitedFlows.has(targetRef)) {
+          console.warn("[node:redirect] loop detectado", targetRef);
+          messages.push({ id: crypto.randomUUID(), type: "bot", content: "⚠️ Loop de redirecionamento detectado." });
+          currentNodeId = null;
+          break;
+        }
+
         let targetFlow: any = null;
         try {
           const { data: byId } = await supabase
@@ -633,17 +641,26 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
           currentNodeId = null;
           break;
         }
-        containers = newContainers;
-        edges = newEdges;
-        let startId: string | null = null;
-        for (const c of containers) {
-          const sn = (c.nodes || []).find((n: any) => n.type === "start");
-          if (sn) { startId = sn.id; break; }
-        }
-        if (!startId) startId = containers[0]?.nodes?.[0]?.id ?? null;
-        currentNodeId = startId;
-        console.log(`[node:redirect] iniciando em ${currentNodeId}`);
-        continue;
+        // Recursivamente executa o novo fluxo
+        const redirectResult = await runFlow(
+          { ...execution, current_node_id: null }, 
+          newContainers, 
+          newEdges, 
+          null, 
+          targetFlow, 
+          supabase,
+          visitedFlows
+        );
+
+        messages.push(...redirectResult.messages);
+        if (redirectResult.buttons?.length) buttons = redirectResult.buttons;
+        if (redirectResult.waiting_for) waiting_for = redirectResult.waiting_for;
+        
+        return {
+          ...redirectResult,
+          messages, // Acumula mensagens
+          steps: steps + redirectResult.steps
+        };
       }
     }
 
@@ -667,12 +684,3 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   };
 }
 
-function writeMemoryState(key: string, state: any) {
-  const now = Date.now();
-  if (runtimeMemory.size > 1000) {
-    for (const [k, entry] of runtimeMemory.entries()) {
-      if (entry.expiresAt < now) runtimeMemory.delete(k);
-    }
-  }
-  runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
-}
