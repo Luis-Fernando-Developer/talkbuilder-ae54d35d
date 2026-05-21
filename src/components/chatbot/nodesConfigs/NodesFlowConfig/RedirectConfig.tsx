@@ -40,7 +40,9 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       try {
         setIsLoading(true);
         // Usamos chatbot_flows que é onde ficam as definições dos bots/fluxos
-        let query = supabase.from("chatbot_flows").select("id, name, workspace_id, is_published");
+        // Usamos cast para any pois os tipos do Supabase podem estar desatualizados
+        let query = (supabase as any).from("chatbot_flows").select("id, name, workspace_id, is_published");
+
         
         if (workspaceId) {
           query = query.eq("workspace_id", workspaceId);
