@@ -72,15 +72,17 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       let promise = inflight.get(key);
       if (!promise) {
         const supabase = getSupabase();
-        promise = supabase
-          .from("chatbot_flows")
-          .select("id, name")
-          .eq("workspace_id", id)
-          .eq("is_published", true)
-          .order("name", { ascending: true });
+        promise = Promise.resolve(
+          supabase
+            .from("chatbot_flows")
+            .select("id, name")
+            .eq("workspace_id", id)
+            .eq("is_published", true)
+            .order("name", { ascending: true })
+        );
         inflight.set(key, promise);
       }
-      const { data, error } = await promise;
+      const { data, error } = await promise!;
       inflight.delete(key);
 
       if (error) throw error;
