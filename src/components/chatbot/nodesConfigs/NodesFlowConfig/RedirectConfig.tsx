@@ -248,24 +248,54 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       </div>
 
       {config.targetFlow && (
-        <div className="space-y-2">
-          <Label>Iniciar a partir do Bloco (Opcional)</Label>
-          <Select 
-            value={config.startContainerId || "default"} 
-            onValueChange={handleStartContainerChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={isLoadingNodes ? "Carregando blocos..." : "Início padrão"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Início padrão (Bloco Start)</SelectItem>
-              {targetFlowContainers.map((container, index) => (
-                <SelectItem key={container.id} value={container.id}>
-                  {getContainerLabel(container, index)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Bloco de Entrada (Opcional)</Label>
+            <Select 
+              value={config.startContainerId || "default"} 
+              onValueChange={handleStartContainerChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingNodes ? "Carregando blocos..." : "Início padrão"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Início padrão (Bloco Start)</SelectItem>
+                {targetFlowContainers.map((container, index) => (
+                  <SelectItem key={container.id} value={container.id}>
+                    {getContainerLabel(container, index)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {config.startContainerId && selectedContainer && selectedContainer.nodes?.length > 1 && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+              <Label className="text-xs">Iniciar a partir de um Node específico</Label>
+              <Select 
+                value={config.startNodeId || ""} 
+                onValueChange={(nodeId) => setConfig({ ...config, startNodeId: nodeId })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Primeiro node do bloco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedContainer.nodes.map((node) => (
+                    <SelectItem key={node.id} value={node.id} className="text-xs">
+                      <div className="flex items-center gap-2">
+                        {getNodeIcon(node.type)}
+                        <span>{getNodeLabel(node)}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Seletor avançado: pule etapas iniciais do bloco se necessário.
+              </p>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             Se não selecionado, o fluxo iniciará normalmente pelo bloco de "Start".
           </p>
