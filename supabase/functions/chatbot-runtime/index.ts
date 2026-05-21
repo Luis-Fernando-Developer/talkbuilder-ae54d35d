@@ -594,6 +594,57 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         currentNodeId = nextFromNode(node.id, container, conditionHandle, true);
         continue;
       }
+      case "redirect": {
+        const targetRef = cfg.targetFlow || cfg.targetFlowId;
+        if (!targetRef) {
+          console.warn("[node:redirect] sem targetFlow", node.id);
+          currentNodeId = null;
+          break;
+        }
+        console.log(`[node:redirect] carregando fluxo ${targetRef}`);
+        let targetFlow: any = null;
+        try {
+          const { data: byId } = await supabase
+            .from("chatbot_flows")
+            .select("*")
+            .eq("id", targetRef)
+            .maybeSingle();
+          targetFlow = byId;
+          if (!targetFlow) {
+            const { data: byPublic } = await supabase
+              .from("chatbot_flows")
+              .select("*")
+              .eq("public_id", targetRef)
+              .maybeSingle();
+            targetFlow = byPublic;
+          }
+        } catch (e) {
+          console.error("[node:redirect] erro ao carregar fluxo", e);
+        }
+        if (!targetFlow) {
+          messages.push({ id: crypto.randomUUID(), type: "bot", content: "⚠️ Fluxo de destino não encontrado." });
+          currentNodeId = null;
+          break;
+        }
+        const newContainers = targetFlow.published_containers || targetFlow.draft_containers || [];
+        const newEdges = targetFlow.published_edges || targetFlow.draft_edges || [];
+        if (!newContainers.length) {
+          messages.push({ id: crypto.randomUUID(), type: "bot", content: "⚠️ Fluxo de destino vazio." });
+          currentNodeId = null;
+          break;
+        }
+        containers = newContainers;
+        edges = newEdges;
+        let startId: string | null = null;
+        for (const c of containers) {
+          const sn = (c.nodes || []).find((n: any) => n.type === "start");
+          if (sn) { startId = sn.id; break; }
+        }
+        if (!startId) startId = containers[0]?.nodes?.[0]?.id ?? null;
+        currentNodeId = startId;
+        console.log(`[node:redirect] iniciando em ${currentNodeId}`);
+        continue;
+      }
     }
 
     currentNodeId = nextFromNode(node.id, container);
