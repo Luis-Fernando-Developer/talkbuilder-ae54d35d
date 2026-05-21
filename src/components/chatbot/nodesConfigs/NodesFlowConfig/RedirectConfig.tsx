@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { NodeConfig, Container, Node } from "@/types/chatbot";
+import { NodeConfig, Container, Node, NodeType } from "@/types/chatbot";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Info, Loader2 } from "lucide-react";
+import { Info, Loader2, MessageSquare, Database, Share2, Box, HelpCircle } from "lucide-react";
 import { SkillConfig } from "../SkillConfig";
 import { getSupabase } from "@/lib/supabaseClient";
 import { useAuth } from "@/context/AuthContext";
@@ -196,6 +196,23 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     return container.nameContainer || `Bloco #${container.id.slice(-4)} (${index + 1})`;
   };
 
+  const getNodeIcon = (type: NodeType) => {
+    if (type.startsWith("bubble-")) return <MessageSquare className="h-3 w-3" />;
+    if (type.startsWith("input-")) return <Box className="h-3 w-3" />;
+    if (type === "set-variable" || type === "script") return <Database className="h-3 w-3" />;
+    if (type === "redirect" || type === "go-to" || type === "start") return <Share2 className="h-3 w-3" />;
+    return <HelpCircle className="h-3 w-3" />;
+  };
+
+  const getNodeLabel = (node: Node) => {
+    const typeLabel = node.type.split("-").map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+    const content = node.config.content || node.config.label || node.config.name || "";
+    const truncatedContent = content.length > 20 ? content.slice(0, 17) + "..." : content;
+    return `${typeLabel}${truncatedContent ? `: ${truncatedContent}` : ""}`;
+  };
+
+  const selectedContainer = targetFlowContainers.find(c => c.id === config.startContainerId);
+
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
@@ -231,24 +248,54 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       </div>
 
       {config.targetFlow && (
-        <div className="space-y-2">
-          <Label>Iniciar a partir do Bloco (Opcional)</Label>
-          <Select 
-            value={config.startContainerId || "default"} 
-            onValueChange={handleStartContainerChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder={isLoadingNodes ? "Carregando blocos..." : "Início padrão"} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="default">Início padrão (Bloco Start)</SelectItem>
-              {targetFlowContainers.map((container, index) => (
-                <SelectItem key={container.id} value={container.id}>
-                  {getContainerLabel(container, index)}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Bloco de Entrada (Opcional)</Label>
+            <Select 
+              value={config.startContainerId || "default"} 
+              onValueChange={handleStartContainerChange}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={isLoadingNodes ? "Carregando blocos..." : "Início padrão"} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="default">Início padrão (Bloco Start)</SelectItem>
+                {targetFlowContainers.map((container, index) => (
+                  <SelectItem key={container.id} value={container.id}>
+                    {getContainerLabel(container, index)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {config.startContainerId && selectedContainer && selectedContainer.nodes?.length > 1 && (
+            <div className="space-y-2 pl-4 border-l-2 border-primary/20">
+              <Label className="text-xs">Iniciar a partir de um Node específico</Label>
+              <Select 
+                value={config.startNodeId || ""} 
+                onValueChange={(nodeId) => setConfig({ ...config, startNodeId: nodeId })}
+              >
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Primeiro node do bloco" />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedContainer.nodes.map((node) => (
+                    <SelectItem key={node.id} value={node.id} className="text-xs">
+                      <div className="flex items-center gap-2">
+                        {getNodeIcon(node.type)}
+                        <span>{getNodeLabel(node)}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[10px] text-muted-foreground">
+                Seletor avançado: pule etapas iniciais do bloco se necessário.
+              </p>
+            </div>
+          )}
+
           <p className="text-xs text-muted-foreground">
             Se não selecionado, o fluxo iniciará normalmente pelo bloco de "Start".
           </p>
