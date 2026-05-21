@@ -742,14 +742,15 @@ export const TestPanel = ({
           // Recursively execute the new flow
           const redirectResult = await runLocalFlow(
             { 
-              ...state,
               mode: "flow",
               current_node_id: null,
+              active_agent_node_id: null,
               variables,
               message_history: messageHistory,
               persistent_memory: persistentMemory,
               visitor_id: visitorId,
-              conversation_id: conversationId
+              conversation_id: conversationId,
+              waiting_for_input: false
             },
             undefined,
             newContainers,
