@@ -398,7 +398,7 @@ export const TestPanel = ({
           const hasUserInput = !!(variables["last_message"] && String(variables["last_message"]).trim());
           if (!hasUserInput) {
             console.log("[node:ai_skipped] sem input do usuário", node.id);
-            currentNodeId = nextFromNode(node.id, container.id);
+            currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
             continue;
           }
           console.log("[node:start] AI Node processing", node.id);
