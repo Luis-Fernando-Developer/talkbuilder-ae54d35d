@@ -338,21 +338,21 @@ export const TestPanel = ({
         if (mode === "agent" && activeAgentNodeId) {
           currentNodeId = activeAgentNodeId;
         } else if (currentNodeId) {
-          const info = findNodeIn(currentNodeId, allContainers);
+          const info = findNodeIn(currentNodeId, containers);
           if (info) {
             const cfg = info.node.config || {};
             const varName = cfg.variableName || cfg.saveVariable;
             if (varName && userValue !== undefined) variables[varName] = userValue;
             
             if (info.node.type === "go-to" && cfg.targetContainerId) {
-              const targetNodeId = resolveTargetIn(cfg.targetContainerId, allContainers);
+              const targetNodeId = resolveTargetIn(cfg.targetContainerId, containers);
               if (targetNodeId && targetNodeId !== info.node.id) {
                 currentNodeId = targetNodeId;
               } else {
-                currentNodeId = nextFromNodeIn(info.node.id, info.container.id, allContainers, edges, input.button_id);
+                currentNodeId = nextFromNodeIn(info.node.id, info.container.id, containers, edgesList, input.button_id);
               }
             } else if (info.node.type !== "ai-agent") {
-              currentNodeId = nextFromNodeIn(info.node.id, info.container.id, allContainers, edges, input.button_id);
+              currentNodeId = nextFromNodeIn(info.node.id, info.container.id, containers, edgesList, input.button_id);
             }
           }
         }
@@ -362,10 +362,10 @@ export const TestPanel = ({
 
       // 2. Execution Loop
       while (currentNodeId && steps++ < 100) {
-        const found = findNodeIn(currentNodeId, allContainers);
+        const found = findNodeIn(currentNodeId, containers);
         if (!found) {
           console.warn("[node:not_found]", currentNodeId);
-          const first = allContainers.find(c => c.id === currentNodeId)?.nodes?.[0]?.id;
+          const first = containers.find(c => c.id === currentNodeId)?.nodes?.[0]?.id;
           if (first) {
             currentNodeId = first;
             continue;
@@ -383,7 +383,7 @@ export const TestPanel = ({
           waitMs = parseWaitMs(cfg);
           console.log(`[node:paused] Wait ${waitMs}ms`);
           status = "paused";
-          currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
           break;
         }
 
@@ -406,7 +406,7 @@ export const TestPanel = ({
           const hasUserInput = !!(variables["last_message"] && String(variables["last_message"]).trim());
           if (!hasUserInput) {
             console.log("[node:ai_skipped] sem input do usuário", node.id);
-            currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
             continue;
           }
           console.log("[node:start] AI Node processing", node.id);
@@ -491,7 +491,7 @@ export const TestPanel = ({
 
 
           console.log("[node:ai_completed] AI Node", node.id);
-          currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
           continue;
         }
 
@@ -536,7 +536,7 @@ export const TestPanel = ({
             console.log("[node:agent_exit]", node.id);
             mode = "flow";
             activeAgentNodeId = null;
-            currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
             continue;
           }
 
@@ -652,11 +652,11 @@ export const TestPanel = ({
           const conditions: ConditionGroup[] = cfg.conditions || [];
           const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
           const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
-          currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges, conditionHandle, true);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList, conditionHandle, true);
           continue;
         } else if (nodeType === "go-to" && cfg.targetContainerId) {
           console.log(`[node:go-to] Jumping from node ${node.id} to container: ${cfg.targetContainerId}`);
-          const targetNodeId = resolveTargetIn(cfg.targetContainerId, allContainers);
+          const targetNodeId = resolveTargetIn(cfg.targetContainerId, containers);
           if (targetNodeId && targetNodeId !== node.id) {
             currentNodeId = targetNodeId;
             // Crucial: continue inside the while loop so it processes the target node immediately
@@ -668,7 +668,7 @@ export const TestPanel = ({
         }
 
         // Only reach here if we didn't 'continue' or 'break' above
-        const nextId = nextFromNodeIn(node.id, container.id, allContainers, edges);
+        const nextId = nextFromNodeIn(node.id, container.id, containers, edgesList);
         console.log(`[node:completed] ${node.id} → next: ${nextId}`);
         currentNodeId = nextId;
       }
