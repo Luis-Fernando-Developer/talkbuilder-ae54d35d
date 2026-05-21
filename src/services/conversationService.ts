@@ -4,18 +4,6 @@ import { Conversation, Message } from "../types/runtime";
 export const conversationService = {
   async getOrCreateConversation(visitorId: string, botId: string, workspaceId: string): Promise<Conversation> {
     const supabase = getSupabase();
-    if (!supabase) {
-      return {
-        id: `local-conv-${Date.now()}`,
-        visitor_id: visitorId,
-        bot_id: botId,
-        workspace_id: workspaceId,
-        channel: "webchat",
-        runtime_mode: "flow",
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      };
-    }
     
     // Tenta encontrar uma conversa ativa recente para este visitante
     const { data: existing, error } = await supabase
@@ -40,7 +28,7 @@ export const conversationService = {
       runtime_mode: "flow" as const
     };
 
-    const { data, error: createError } = await supabase!
+    const { data, error: createError } = await supabase
       .from("conversations")
       .insert(newConversation)
       .select()
@@ -62,14 +50,6 @@ export const conversationService = {
 
   async saveMessage(message: Partial<Message>): Promise<Message> {
     const supabase = getSupabase();
-    if (!supabase) {
-       return {
-        id: `msg-${Date.now()}`,
-        ...message,
-        created_at: new Date().toISOString()
-      } as Message;
-    }
-
     const { data, error } = await supabase
       .from("messages")
       .insert(message)
@@ -90,8 +70,6 @@ export const conversationService = {
 
   async getMessages(conversationId: string, limit = 50): Promise<Message[]> {
     const supabase = getSupabase();
-    if (!supabase) return [];
-
     const { data, error } = await supabase
       .from("messages")
       .select("*")
