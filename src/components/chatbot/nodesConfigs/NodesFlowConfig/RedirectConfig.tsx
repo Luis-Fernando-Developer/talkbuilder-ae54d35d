@@ -25,11 +25,11 @@ interface PublishedBot {
 }
 
 export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
-  const [targetFlow, setTargetFlow] = useState(config.targetFlow || "");
   const [publishedBots, setPublishedBots] = useState<PublishedBot[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { currentWorkspace } = useAuth();
 
+  // Buscar os bots publicados apenas uma vez ao montar o componente ou mudar o workspace
   useEffect(() => {
     async function fetchPublishedBots() {
       if (!currentWorkspace?.id) {
@@ -38,7 +38,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       }
 
       try {
-        const { data, error } = await (supabase as any)
+        const { data, error } = await supabase
           .from("chatbot_flows")
           .select("id, name")
           .eq("workspace_id", currentWorkspace.id)
@@ -62,15 +62,23 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     fetchPublishedBots();
   }, [currentWorkspace?.id]);
 
-  useEffect(() => {
-    setConfig({ ...config, targetFlow });
-  }, [targetFlow]);
+  const handleFlowChange = (value: string) => {
+    // Atualiza a configuração diretamente sem usar useEffect para evitar loops
+    setConfig({ 
+      ...config, 
+      targetFlow: value 
+    });
+  };
 
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
         <Label>Selecionar Fluxo de Destino</Label>
-        <Select value={targetFlow} onValueChange={setTargetFlow} disabled={isLoading}>
+        <Select 
+          value={config.targetFlow || ""} 
+          onValueChange={handleFlowChange} 
+          disabled={isLoading}
+        >
           <SelectTrigger>
             <SelectValue placeholder={isLoading ? "Carregando fluxos..." : "Selecione um bot/fluxo"} />
           </SelectTrigger>
