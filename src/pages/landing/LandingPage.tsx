@@ -12,7 +12,6 @@ import LandingFooter from "./sections/LandingFooter";
 import { isSupabaseConfigured, saveSystemSupabaseCreds } from "../../lib/supabaseClient";
 import { useState } from "react";
 import { AlertCircle, Database, Settings } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "../../components/ui/dialog";
 import { Input } from "../../components/ui/input";
@@ -40,12 +39,14 @@ export default function LandingPage() {
 		<div className="landing-page relative min-h-svh overflow-x-hidden">
 			{!configured && (
 				<div className="fixed bottom-4 right-4 z-[9999] max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-					<Alert variant="destructive" className="bg-destructive/10 border-destructive/20 backdrop-blur-sm">
-						<AlertCircle className="h-4 w-4" />
-						<AlertTitle className="text-destructive font-bold">Banco Externo Não Detectado</AlertTitle>
-						<AlertDescription className="text-xs text-muted-foreground mt-1">
+					<div className="bg-destructive/10 border border-destructive/20 backdrop-blur-sm p-4 rounded-lg shadow-lg">
+						<div className="flex items-center gap-2 text-destructive font-bold mb-1">
+							<AlertCircle className="h-4 w-4" />
+							<span>Banco Externo Não Detectado</span>
+						</div>
+						<div className="text-xs text-muted-foreground mb-3">
 							O TalkMap precisa das credenciais do seu Supabase externo para funcionar.
-						</AlertDescription>
+						</div>
 						<Dialog open={showConfig} onOpenChange={setShowConfig}>
 							<DialogTrigger asChild>
 								<Button size="sm" variant="outline" className="mt-2 w-full text-[10px] h-8 gap-2">
@@ -87,7 +88,7 @@ export default function LandingPage() {
 								</div>
 							</DialogContent>
 						</Dialog>
-					</Alert>
+					</div>
 				</div>
 			)}
 			<LandingNav />
