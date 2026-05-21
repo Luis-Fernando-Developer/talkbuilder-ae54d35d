@@ -2,11 +2,13 @@ import { NodeConfig } from "@/types/chatbot";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Upload, Link as LinkIcon, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
+import { Plus, Trash2, Upload, Link as LinkIcon, Loader2, RefreshCw, CheckCircle2, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 interface ToggleRowProps {
@@ -52,6 +54,7 @@ const readFileAsText = (file: File): Promise<string> =>
 export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig; setConfig: (c: NodeConfig) => void }) => {
   const { toast } = useToast();
   const [fetchingLinks, setFetchingLinks] = useState<Record<string, boolean>>({});
+  const [previewContent, setPreviewContent] = useState<{ title: string; content: string } | null>(null);
   const kbName: string = config.kbName || "";
   const filesEnabled: boolean = config.kbFilesEnabled ?? false;
   const linksEnabled: boolean = config.kbLinksEnabled ?? false;
@@ -239,6 +242,18 @@ export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig
                       <RefreshCw className="h-3.5 w-3.5" />
                     )}
                   </Button>
+                  {l.content && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPreviewContent({ title: l.url, content: l.content || "" })}
+                      className="h-8 w-8 shrink-0"
+                      title="Ver conteúdo extraído"
+                    >
+                      <Eye className="h-3.5 w-3.5" />
+                    </Button>
+                  )}
                   <button
                     type="button"
                     onClick={() => removeLink(l.id)}
@@ -268,6 +283,19 @@ export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig
           </div>
         )}
       </div>
+
+      <Dialog open={!!previewContent} onOpenChange={() => setPreviewContent(null)}>
+        <DialogContent className="max-w-3xl max-h-[80vh]">
+          <DialogHeader>
+            <DialogTitle className="text-sm truncate">Conteúdo extraído de: {previewContent?.title}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-full max-h-[60vh] mt-4 p-4 rounded-md border bg-muted/50">
+            <pre className="text-xs whitespace-pre-wrap font-mono">
+              {previewContent?.content || "Nenhum conteúdo extraído."}
+            </pre>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
