@@ -47,7 +47,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
         if (error) throw error;
 
         if (data) {
-          setPublishedBots(data.map(bot => ({
+          setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
           })));
