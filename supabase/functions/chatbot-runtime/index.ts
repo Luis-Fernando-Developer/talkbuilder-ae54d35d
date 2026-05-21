@@ -603,6 +603,13 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
           break;
         }
         console.log(`[node:redirect] carregando fluxo ${targetRef}`);
+        if (visitedFlows.has(targetRef)) {
+          console.warn("[node:redirect] loop detectado", targetRef);
+          messages.push({ id: crypto.randomUUID(), type: "bot", content: "⚠️ Loop de redirecionamento detectado." });
+          currentNodeId = null;
+          break;
+        }
+
         let targetFlow: any = null;
         try {
           const { data: byId } = await supabase
