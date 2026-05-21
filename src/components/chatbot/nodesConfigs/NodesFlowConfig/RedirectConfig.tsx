@@ -46,10 +46,13 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
         if (error) throw error;
 
         if (data) {
+          console.log("[RedirectConfig] Bots publicados encontrados:", data.length);
           setPublishedBots(data.map((bot: any) => ({
             id: bot.id,
             name: bot.name
           })));
+        } else {
+          console.log("[RedirectConfig] Nenhum bot retornado do banco.");
         }
       } catch (error) {
         console.error("Erro ao buscar bots publicados:", error);
