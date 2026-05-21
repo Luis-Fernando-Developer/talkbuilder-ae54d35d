@@ -2,8 +2,12 @@ import { NodeConfig } from "@/types/chatbot";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2, Upload, Link as LinkIcon } from "lucide-react";
+import { Plus, Trash2, Upload, Link as LinkIcon, Loader2, RefreshCw, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+
 
 interface ToggleRowProps {
   id: string;
