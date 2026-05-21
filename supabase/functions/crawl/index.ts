@@ -88,10 +88,23 @@ serve(async (req) => {
           continue;
         }
 
+        const contentType = response.headers.get("content-type") || "";
+        if (!contentType.includes("text/html") && !contentType.includes("text/plain")) {
+          console.log(`Skipping non-HTML content: ${contentType}`);
+          continue;
+        }
+
         const html = await response.text();
-        const cleaned = cleanHtml(html);
+        let cleaned = cleanHtml(html);
         
-        if (cleaned.length > 50) { // Evitar páginas vazias ou só com erro
+        // Detecção de SPA (Single Page Application) vazia
+        if (cleaned.length < 150 && html.includes('id="root"') || html.includes('id="app"')) {
+          cleaned = `[AVISO: Esta página parece ser um aplicativo (SPA) que requer JavaScript para carregar o conteúdo. O rastreador simples não conseguiu ler os textos dinâmicos. Sugestão: Use o Firecrawl ou habilite SSR no site de destino.]\n\nMetadados encontrados:\n` + 
+                    (html.match(/<title>(.*?)<\/title>/i)?.[1] ? `Título: ${html.match(/<title>(.*?)<\/title>/i)?.[1]}\n` : "") +
+                    (html.match(/<meta name="description" content="(.*?)"/i)?.[1] ? `Descrição: ${html.match(/<meta name="description" content="(.*?)"/i)?.[1]}` : "");
+        }
+
+        if (cleaned.length > 30) { 
           results.push({ url: currentUrl, content: cleaned });
         }
 
