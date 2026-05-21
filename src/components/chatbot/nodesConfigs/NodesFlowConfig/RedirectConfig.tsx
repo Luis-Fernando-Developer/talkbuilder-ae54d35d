@@ -53,33 +53,43 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     ? publishedBots
     : [...selectedBotFallback, ...publishedBots];
 
-  const fetchPublishedBots = async () => {
-    if (!currentWorkspace?.id || isLoading || loadedWorkspaceId === currentWorkspace.id) {
+  const fetchPublishedBots = async (force = false) => {
+    const id = currentWorkspace?.id;
+    if (!id) return;
+    if (!force && (isLoading || loadedWorkspaceId === id)) return;
+
+    // Cache hit
+    const cached = botsCache.get(id);
+    if (cached && !force) {
+      setPublishedBots(cached);
+      setLoadedWorkspaceId(id);
       return;
     }
 
     setIsLoading(true);
-
     try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("chatbot_flows")
-        .select("id, name")
-        .eq("workspace_id", currentWorkspace.id)
-        .eq("is_published", true)
-        .order("name", { ascending: true });
+      const key = `bots:${id}`;
+      let promise = inflight.get(key);
+      if (!promise) {
+        const supabase = getSupabase();
+        promise = supabase
+          .from("chatbot_flows")
+          .select("id, name")
+          .eq("workspace_id", id)
+          .eq("is_published", true)
+          .order("name", { ascending: true });
+        inflight.set(key, promise);
+      }
+      const { data, error } = await promise;
+      inflight.delete(key);
 
       if (error) throw error;
 
-      const bots = (data || []).map((bot: any) => ({
-        id: bot.id,
-        name: bot.name,
-      }));
+      const bots = (data || []).map((bot: any) => ({ id: bot.id, name: bot.name }));
+      botsCache.set(id, bots);
       setPublishedBots(bots);
-      setLoadedWorkspaceId(currentWorkspace.id);
+      setLoadedWorkspaceId(id);
 
-      // Sincroniza nome do bot já selecionado (sem useEffect) para corrigir
-      // configurações antigas que só guardaram o ID.
       if (config.targetFlow) {
         const match = bots.find((b) => b.id === config.targetFlow);
         if (match && match.name !== config.targetFlowName) {
@@ -93,40 +103,54 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     }
   };
 
-  const fetchFlowNodes = async (flowId: string) => {
+  const fetchFlowContainers = async (flowId: string) => {
     if (!flowId) return;
+
+    const cached = containersCache.get(flowId);
+    if (cached) {
+      setTargetFlowContainers(cached);
+      return;
+    }
+
     setIsLoadingNodes(true);
     try {
-      const supabase = getSupabase();
-      const { data, error } = await supabase
-        .from("chatbot_flows")
-        .select("published_containers, draft_containers")
-        .eq("id", flowId)
-        .maybeSingle();
+      const key = `containers:${flowId}`;
+      let promise = inflight.get(key);
+      if (!promise) {
+        const supabase = getSupabase();
+        promise = supabase
+          .from("chatbot_flows")
+          .select("published_containers, draft_containers")
+          .eq("id", flowId)
+          .maybeSingle();
+        inflight.set(key, promise);
+      }
+      const { data, error } = await promise;
+      inflight.delete(key);
 
       if (error) throw error;
       if (data) {
-        const containers = data.published_containers || data.draft_containers || [];
-        const allNodes: Node[] = [];
-        containers.forEach((c: any) => {
-          if (c.nodes) {
-            c.nodes.forEach((n: any) => {
-              allNodes.push(n);
-            });
-          }
-        });
-        setTargetFlowNodes(allNodes);
+        const containers: Container[] = (data.published_containers || data.draft_containers || []) as Container[];
+        containersCache.set(flowId, containers);
+        setTargetFlowContainers(containers);
       }
     } catch (error) {
-      console.error("Erro ao buscar nodes do fluxo:", error);
+      console.error("Erro ao buscar blocos do fluxo:", error);
     } finally {
       setIsLoadingNodes(false);
     }
   };
 
+  // Pré-carrega bots e blocos assim que o componente monta para evitar
+  // a espera ao abrir os selects.
+  useEffect(() => {
+    fetchPublishedBots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentWorkspace?.id]);
+
   useEffect(() => {
     if (config.targetFlow) {
-      fetchFlowNodes(config.targetFlow);
+      fetchFlowContainers(config.targetFlow);
     }
   }, [config.targetFlow]);
 
@@ -137,21 +161,35 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       ...config, 
       targetFlow: value,
       targetFlowName: selectedBot?.name || value,
-      startNodeId: undefined, // Reset start node when flow changes
+      startNodeId: undefined,
+      startContainerId: undefined,
+      startContainerName: undefined,
     });
   };
 
-  const handleStartNodeChange = (value: string) => {
+  const handleStartContainerChange = (value: string) => {
+    if (value === "default") {
+      setConfig({
+        ...config,
+        startContainerId: undefined,
+        startContainerName: undefined,
+        startNodeId: undefined,
+      });
+      return;
+    }
+    const container = targetFlowContainers.find((c) => c.id === value);
+    const firstNodeId = container?.nodes?.[0]?.id;
     setConfig({
       ...config,
-      startNodeId: value === "default" ? undefined : value
+      startContainerId: value,
+      startContainerName: container?.nameContainer || `Bloco #${value.slice(-4)}`,
+      // Runtime usa startNodeId como ponto de entrada
+      startNodeId: firstNodeId,
     });
   };
 
-  const getNodeLabel = (node: Node) => {
-    const type = node.type || "node";
-    const label = node.config?.label || node.config?.message || node.config?.text || node.id;
-    return `[${type}] ${String(label).length > 30 ? String(label).substring(0, 30) + "..." : String(label)}`;
+  const getContainerLabel = (container: Container, index: number) => {
+    return container.nameContainer || `Bloco #${container.id.slice(-4)} (${index + 1})`;
   };
 
   return (
@@ -190,25 +228,25 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
 
       {config.targetFlow && (
         <div className="space-y-2">
-          <Label>Iniciar a partir do Nó (Opcional)</Label>
+          <Label>Iniciar a partir do Bloco (Opcional)</Label>
           <Select 
-            value={config.startNodeId || "default"} 
-            onValueChange={handleStartNodeChange}
+            value={config.startContainerId || "default"} 
+            onValueChange={handleStartContainerChange}
           >
             <SelectTrigger>
-              <SelectValue placeholder={isLoadingNodes ? "Carregando nós..." : "Início padrão"} />
+              <SelectValue placeholder={isLoadingNodes ? "Carregando blocos..." : "Início padrão"} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="default">Início padrão (Nó Start)</SelectItem>
-              {targetFlowNodes.map((node) => (
-                <SelectItem key={node.id} value={node.id}>
-                  {getNodeLabel(node)}
+              <SelectItem value="default">Início padrão (Bloco Start)</SelectItem>
+              {targetFlowContainers.map((container, index) => (
+                <SelectItem key={container.id} value={container.id}>
+                  {getContainerLabel(container, index)}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <p className="text-xs text-muted-foreground">
-            Se não selecionado, o fluxo iniciará normalmente pelo nó de "Start".
+            Se não selecionado, o fluxo iniciará normalmente pelo bloco de "Start".
           </p>
         </div>
       )}
