@@ -85,11 +85,6 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
     }
   };
 
-  const handleValueChange = (value: string) => {
-    console.log("[RedirectConfig] Alterando targetFlow para:", value);
-    setConfig({ ...config, targetFlow: value });
-  };
-
   return (
     <div className="p-4 space-y-4">
       <div className="space-y-2">
