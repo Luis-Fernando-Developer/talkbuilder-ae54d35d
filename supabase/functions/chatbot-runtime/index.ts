@@ -219,7 +219,9 @@ function writeMemoryState(key: string, state: any) {
   runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
 }
 
-async function runFlow(execution: any, containers: any[], edges: any[], input: any, flow: any) {
+async function runFlow(execution: any, containersIn: any[], edgesIn: any[], input: any, flow: any, supabase: any) {
+  let containers: any[] = containersIn;
+  let edges: any[] = edgesIn;
   let currentNodeId: string | null = execution.current_node_id;
   let activeAgentNodeId: string | null = execution.active_agent_node_id || null;
   let mode: string = execution.runtime_mode || "flow";
