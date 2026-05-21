@@ -209,23 +209,47 @@ export const KnowledgeBaseSection = ({ config, setConfig }: { config: NodeConfig
         {linksEnabled && (
           <div className="space-y-2 pl-1">
             {links.map((l) => (
-              <div key={l.id} className="flex items-center gap-2">
-                <div className="relative flex-1">
-                  <LinkIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input
-                    placeholder="https://..."
-                    value={l.url}
-                    onChange={(e) => updateLink(l.id, e.target.value)}
-                    className="h-8 pl-7 text-xs"
-                  />
+              <div key={l.id} className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <LinkIcon className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="https://..."
+                      value={l.url}
+                      onChange={(e) => updateLink(l.id, e.target.value)}
+                      className="h-8 pl-7 text-xs"
+                    />
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    disabled={fetchingLinks[l.id]}
+                    onClick={() => fetchLinkContent(l.id, l.url)}
+                    className="h-8 w-8 shrink-0 hover:bg-primary/10"
+                    title="Extrair conteúdo do link"
+                  >
+                    {fetchingLinks[l.id] ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : l.content ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />
+                    ) : (
+                      <RefreshCw className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={() => removeLink(l.id)}
+                    className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => removeLink(l.id)}
-                  className="p-1.5 rounded hover:bg-destructive/10 text-destructive"
-                >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
+                {l.content && (
+                  <p className="text-[10px] text-green-600 px-1 flex items-center gap-1">
+                    <CheckCircle2 className="h-2.5 w-2.5" /> Conteúdo extraído ({l.content.length} caracteres)
+                  </p>
+                )}
               </div>
             ))}
             <Button
