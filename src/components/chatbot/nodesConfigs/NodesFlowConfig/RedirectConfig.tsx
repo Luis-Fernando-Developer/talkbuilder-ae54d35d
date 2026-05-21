@@ -88,9 +88,7 @@ export const RedirectConfig = ({ config, setConfig }: RedirectConfigProps) => {
       }
     }
 
-    if (open) { // Assuming we might want to check if the dialog is open, but this component is usually rendered when open
-       fetchPublishedBots();
-    }
+    fetchPublishedBots();
     
     return () => { isMounted = false; };
   }, [currentWorkspace?.id]);
