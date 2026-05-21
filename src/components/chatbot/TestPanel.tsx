@@ -277,7 +277,7 @@ export const TestPanel = ({
       containersIn?: Container[],
       edgesIn?: Edge[],
       visitedFlows = new Set<string>()
-    ) => {
+    ): Promise<any> => {
       const containers = containersIn || allContainers;
       const edgesList = edgesIn || edges;
       let mode: RuntimeMode = state?.mode || "flow";
