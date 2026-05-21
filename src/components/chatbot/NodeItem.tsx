@@ -305,7 +305,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
           ) : hasGoToPreview ? (
             <div className="mt-2 p-2 bg-green-50 rounded border border-green-200 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-green-700">
-                Pular para bloco ID: {node.config.targetContainerId.slice(-4)}
+                Pular para: {node.config.targetContainerName || `Bloco ${node.config.targetContainerId?.slice(-4) || ''}`}
               </p>
             </div>
           ) : hasAIPreview ? (
