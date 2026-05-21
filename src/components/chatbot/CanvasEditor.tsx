@@ -350,10 +350,12 @@ const CanvasContent = ({
   useEffect(() => {
     setNodes((currentNodes: FlowNode[]) => {
       const next: FlowNode[] = containers.map((container) => {
+        const existingNode = currentNodes.find(n => n.id === container.id);
         return {
           id: container.id,
           type: 'container',
           position: container.position,
+          selected: existingNode?.selected || false,
           data: {
             container,
             onNodeClick: handleNodeClick,
