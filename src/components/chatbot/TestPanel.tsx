@@ -483,7 +483,7 @@ export const TestPanel = ({
 
 
           console.log("[node:ai_completed] AI Node", node.id);
-          currentNodeId = nextFromNode(node.id, container.id);
+          currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
           continue;
         }
 
@@ -528,7 +528,7 @@ export const TestPanel = ({
             console.log("[node:agent_exit]", node.id);
             mode = "flow";
             activeAgentNodeId = null;
-            currentNodeId = nextFromNode(node.id, container.id);
+            currentNodeId = nextFromNodeIn(node.id, container.id, allContainers, edges);
             continue;
           }
 
