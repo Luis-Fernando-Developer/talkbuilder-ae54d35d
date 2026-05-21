@@ -19,6 +19,7 @@ import { richHtmlFor, richToPlainText } from "@/lib/richText";
 import { type Message as RuntimeMessage, type RuntimeState, type RuntimeMode, type PersistentMemory, type NodeExecutionStatus } from "../../types/runtime";
 import { conversationService } from "../../services/conversationService";
 import { buildAgentContext } from "../../services/aiContextBuilder";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message extends RuntimeMessage {
   // UI Specific extension
@@ -182,24 +183,25 @@ export const TestPanel = ({
     return container?.nodes?.[0]?.id ?? null;
   };
 
-  const findNode = (nodeId: string | null) => {
+  const findNodeIn = (nodeId: string | null, containers: Container[]) => {
     if (!nodeId) return null;
-    for (const container of allContainers) {
+    for (const container of containers) {
       const node = container.nodes.find((n) => n.id === nodeId);
       if (node) return { node, container };
     }
     return null;
   };
 
-  const resolveTarget = (target: string): string | null => {
+  const resolveTargetIn = (target: string, containers: Container[]): string | null => {
     if (!target) return null;
-    if (findNode(target)) return target;
-    const first = firstNodeOfContainer(target);
+    if (findNodeIn(target, containers)) return target;
+    const container = containers.find((c) => c.id === target);
+    const first = container?.nodes?.[0]?.id ?? null;
     if (first) return first;
     return null;
   };
 
-  const nextFromNode = (nodeId: string, containerId: string, handle?: string | null, strictHandle = false): string | null => {
+  const nextFromNodeIn = (nodeId: string, containerId: string, containers: Container[], edgesList: Edge[], handle?: string | null, strictHandle = false): string | null => {
     const normalizeHandle = (value?: string | null) => {
       if (!value) return "";
       const raw = String(value);
@@ -212,7 +214,7 @@ export const TestPanel = ({
       !!value && String(value).startsWith(`${nodeId}-`);
     const wantedHandle = normalizeHandle(handle);
     // Only consider edges whose target still exists in the current graph.
-    const validEdges = edges.filter((e) => resolveTarget(e.target) !== null);
+    const validEdges = edgesList.filter((e) => resolveTargetIn(e.target, containers) !== null);
     const fromNode = validEdges.filter(
       (e) => e.source === nodeId || (e.source === containerId && isInnerNodeHandle(e.sourceHandle))
     );
@@ -224,10 +226,10 @@ export const TestPanel = ({
     if (!edge && wantedHandle) edge = fromNode.find((e) => normalizeHandle(e.sourceHandle) === "default");
     if (!edge) edge = fromNode.find((e) => !e.sourceHandle);
     if (!edge) edge = fromNode[0];
-    if (edge) return resolveTarget(edge.target);
+    if (edge) return resolveTargetIn(edge.target, containers);
 
     const containerEdge = validEdges.find((e) => e.source === containerId && !e.sourceHandle);
-    if (containerEdge) return resolveTarget(containerEdge.target);
+    if (containerEdge) return resolveTargetIn(containerEdge.target, containers);
     return null;
   };
 
@@ -269,9 +271,17 @@ export const TestPanel = ({
     return condition.logicalOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
   };
 
-    const runLocalFlow = async (state: RuntimeState | null, input?: { message?: string; button_id?: string }) => {
+    const runLocalFlow = async (
+      state: RuntimeState | null, 
+      input?: { message?: string; button_id?: string },
+      containersIn?: Container[],
+      edgesIn?: Edge[],
+      visitedFlows = new Set<string>()
+    ): Promise<any> => {
+      const containers = containersIn || allContainers;
+      const edgesList = edgesIn || edges;
       let mode: RuntimeMode = state?.mode || "flow";
-      let currentNodeId = state?.current_node_id || startContainer?.nodes?.[0]?.id || null;
+      let currentNodeId = state?.current_node_id || containers?.[0]?.nodes?.[0]?.id || null;
       let activeAgentNodeId = state?.active_agent_node_id || null;
       const variables = { ...(state?.variables || {}) };
       const persistentMemory: PersistentMemory = { ...(state?.persistent_memory || {}) };
@@ -328,21 +338,21 @@ export const TestPanel = ({
         if (mode === "agent" && activeAgentNodeId) {
           currentNodeId = activeAgentNodeId;
         } else if (currentNodeId) {
-          const info = findNode(currentNodeId);
+          const info = findNodeIn(currentNodeId, containers);
           if (info) {
             const cfg = info.node.config || {};
             const varName = cfg.variableName || cfg.saveVariable;
             if (varName && userValue !== undefined) variables[varName] = userValue;
             
             if (info.node.type === "go-to" && cfg.targetContainerId) {
-              const targetNodeId = resolveTarget(cfg.targetContainerId);
+              const targetNodeId = resolveTargetIn(cfg.targetContainerId, containers);
               if (targetNodeId && targetNodeId !== info.node.id) {
                 currentNodeId = targetNodeId;
               } else {
-                currentNodeId = nextFromNode(info.node.id, info.container.id, input.button_id);
+                currentNodeId = nextFromNodeIn(info.node.id, info.container.id, containers, edgesList, input.button_id);
               }
             } else if (info.node.type !== "ai-agent") {
-              currentNodeId = nextFromNode(info.node.id, info.container.id, input.button_id);
+              currentNodeId = nextFromNodeIn(info.node.id, info.container.id, containers, edgesList, input.button_id);
             }
           }
         }
@@ -352,11 +362,14 @@ export const TestPanel = ({
 
       // 2. Execution Loop
       while (currentNodeId && steps++ < 100) {
-        const found = findNode(currentNodeId);
+        const found = findNodeIn(currentNodeId, containers);
         if (!found) {
           console.warn("[node:not_found]", currentNodeId);
-          currentNodeId = firstNodeOfContainer(currentNodeId);
-          if (currentNodeId) continue;
+          const first = containers.find(c => c.id === currentNodeId)?.nodes?.[0]?.id;
+          if (first) {
+            currentNodeId = first;
+            continue;
+          }
           break;
         }
 
@@ -370,7 +383,7 @@ export const TestPanel = ({
           waitMs = parseWaitMs(cfg);
           console.log(`[node:paused] Wait ${waitMs}ms`);
           status = "paused";
-          currentNodeId = nextFromNode(node.id, container.id);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
           break;
         }
 
@@ -393,7 +406,7 @@ export const TestPanel = ({
           const hasUserInput = !!(variables["last_message"] && String(variables["last_message"]).trim());
           if (!hasUserInput) {
             console.log("[node:ai_skipped] sem input do usuário", node.id);
-            currentNodeId = nextFromNode(node.id, container.id);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
             continue;
           }
           console.log("[node:start] AI Node processing", node.id);
@@ -478,7 +491,7 @@ export const TestPanel = ({
 
 
           console.log("[node:ai_completed] AI Node", node.id);
-          currentNodeId = nextFromNode(node.id, container.id);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
           continue;
         }
 
@@ -523,7 +536,7 @@ export const TestPanel = ({
             console.log("[node:agent_exit]", node.id);
             mode = "flow";
             activeAgentNodeId = null;
-            currentNodeId = nextFromNode(node.id, container.id);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
             continue;
           }
 
@@ -639,11 +652,11 @@ export const TestPanel = ({
           const conditions: ConditionGroup[] = cfg.conditions || [];
           const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
           const conditionHandle = matchedCondition ? `${node.id}-cond-${matchedCondition.id}` : `${node.id}-else`;
-          currentNodeId = nextFromNode(node.id, container.id, conditionHandle, true);
+          currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList, conditionHandle, true);
           continue;
         } else if (nodeType === "go-to" && cfg.targetContainerId) {
           console.log(`[node:go-to] Jumping from node ${node.id} to container: ${cfg.targetContainerId}`);
-          const targetNodeId = resolveTarget(cfg.targetContainerId);
+          const targetNodeId = resolveTargetIn(cfg.targetContainerId, containers);
           if (targetNodeId && targetNodeId !== node.id) {
             currentNodeId = targetNodeId;
             // Crucial: continue inside the while loop so it processes the target node immediately
@@ -652,10 +665,119 @@ export const TestPanel = ({
             console.warn(`[node:go-to] Target not found or same as current: ${targetNodeId}`);
             // If jump fails, still try to follow normal edges as fallback
           }
+        } else if (nodeType === "redirect") {
+          const targetRef = cfg.targetFlow || cfg.targetFlowId;
+          if (!targetRef) {
+            console.warn("[node:redirect] sem targetFlow", node.id);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
+            continue;
+          }
+
+          if (visitedFlows.has(targetRef) || targetRef === flowId) {
+            console.warn("[node:redirect] loop detectado", targetRef);
+            nextMessages.push({ 
+              id: crypto.randomUUID(), 
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot", 
+              content: "⚠️ Loop de redirecionamento detectado.",
+              isHtml: false
+            } as Message);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
+            continue;
+          }
+
+          visitedFlows.add(targetRef);
+
+          console.log(`[node:redirect] carregando fluxo ${targetRef}`);
+          let targetFlow: any = null;
+          try {
+            const { data: byId } = await supabase
+              .from("chatbot_flows")
+              .select("*")
+              .eq("id", targetRef)
+              .maybeSingle();
+            targetFlow = byId;
+            if (!targetFlow) {
+              const { data: byPublic } = await supabase
+                .from("chatbot_flows")
+                .select("*")
+                .eq("public_id", targetRef)
+                .maybeSingle();
+              targetFlow = byPublic;
+            }
+          } catch (e) {
+            console.error("[node:redirect] erro ao carregar fluxo", e);
+          }
+
+          if (!targetFlow) {
+            nextMessages.push({ 
+              id: crypto.randomUUID(), 
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot", 
+              content: "⚠️ Fluxo de destino não encontrado.",
+              isHtml: false
+            } as Message);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
+            continue;
+          }
+
+          const newContainers = targetFlow.published_containers || targetFlow.draft_containers || [];
+          const newEdges = targetFlow.published_edges || targetFlow.draft_edges || [];
+          
+          if (!newContainers.length) {
+             nextMessages.push({ 
+              id: crypto.randomUUID(), 
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot", 
+              content: "⚠️ Fluxo de destino vazio.",
+              isHtml: false
+            } as Message);
+            currentNodeId = nextFromNodeIn(node.id, container.id, containers, edgesList);
+            continue;
+          }
+
+          // Recursively execute the new flow
+          const redirectResult = await runLocalFlow(
+            { 
+              mode: "flow",
+              current_node_id: null,
+              active_agent_node_id: null,
+              variables,
+              message_history: messageHistory,
+              persistent_memory: persistentMemory,
+              visitor_id: visitorId,
+              conversation_id: conversationId,
+              waiting_for_input: false
+            },
+            undefined,
+            newContainers,
+            newEdges,
+            visitedFlows
+          );
+
+          nextMessages.push(...(redirectResult.messages as Message[]));
+          if (redirectResult.buttons?.length) nextButtons = redirectResult.buttons;
+          if (redirectResult.waiting_for) {
+            waitingFor = redirectResult.waiting_for;
+            waitingForCfg = redirectResult.waiting_for_config;
+            status = "waiting_input";
+          }
+          
+          return {
+            ...redirectResult,
+            messages: nextMessages,
+            runtime_state: {
+              ...redirectResult.runtime_state,
+              variables: { ...variables, ...redirectResult.runtime_state.variables }
+            }
+          };
         }
 
         // Only reach here if we didn't 'continue' or 'break' above
-        const nextId = nextFromNode(node.id, container.id);
+        const nextId = nextFromNodeIn(node.id, container.id, containers, edgesList);
         console.log(`[node:completed] ${node.id} → next: ${nextId}`);
         currentNodeId = nextId;
       }
