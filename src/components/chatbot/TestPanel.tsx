@@ -284,6 +284,75 @@ export const TestPanel = ({
     return condition.logicalOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
   };
 
+  const collectAgentSkills = (containersToScan: Container[], agentNodeId?: string | null) => {
+    return containersToScan.flatMap((container) =>
+      (container.nodes || [])
+        .filter((node) => node.id !== agentNodeId && node.config?.isSkill)
+        .map((node) => ({
+          id: node.id,
+          type: node.type,
+          containerId: container.id,
+          containerName: container.nameContainer || `Bloco #${container.id.slice(-4)}`,
+          description: String(node.config?.skillDescription || "Use quando esta ação for útil para atender o usuário."),
+          label: node.type === "redirect"
+            ? `Redirecionar para ${node.config?.targetFlowName || node.config?.targetFlow || "outro fluxo"}`
+            : node.type === "go-to"
+              ? `Ir para ${node.config?.targetContainerName || node.config?.targetContainerId || "outro bloco"}`
+              : String(node.config?.name || node.config?.label || node.type),
+        }))
+    );
+  };
+
+  const buildSkillSystemPrompt = (skills: ReturnType<typeof collectAgentSkills>) => {
+    if (!skills.length) {
+      return "\n\n[SKILLS DISPONÍVEIS]\nNenhuma skill foi habilitada nos outros nodes deste fluxo.";
+    }
+
+    const list = skills.map((skill, index) => (
+      `${index + 1}. ID: ${skill.id}\nTipo: ${skill.type}\nBloco: ${skill.containerName}\nNome: ${skill.label}\nInstrução da skill: ${skill.description}`
+    )).join("\n\n");
+
+    return `\n\n[SKILLS DISPONÍVEIS PARA O AGENTE]\n${list}\n\nQuando a mensagem do usuário combinar com a instrução de uma skill, use a ferramenta use_skill com o ID exato da skill. Não invente perguntas antes de usar uma skill claramente solicitada.`;
+  };
+
+  const buildUseSkillTool = (skills: ReturnType<typeof collectAgentSkills>) => {
+    if (!skills.length) return undefined;
+    return {
+      type: "function",
+      function: {
+        name: "use_skill",
+        description: "Executa um node marcado como Skill/Ferramenta IA no fluxo atual.",
+        parameters: {
+          type: "object",
+          properties: {
+            skill_id: {
+              type: "string",
+              enum: skills.map((skill) => skill.id),
+              description: "ID exato do node skill que deve ser executado."
+            },
+            message: {
+              type: "string",
+              description: "Mensagem curta para avisar o usuário antes de executar a skill."
+            }
+          },
+          required: ["skill_id"]
+        }
+      }
+    };
+  };
+
+  const parseSkillFromText = (reply: string | null) => {
+    if (!reply) return null;
+    const jsonMatch = reply.match(/\{[\s\S]*"skill_id"[\s\S]*\}/);
+    if (!jsonMatch) return null;
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed?.skill_id ? { skill_id: String(parsed.skill_id), message: parsed.message ? String(parsed.message) : "" } : null;
+    } catch {
+      return null;
+    }
+  };
+
     const runLocalFlow = async (
       state: RuntimeState | null, 
       input?: { message?: string; button_id?: string },
