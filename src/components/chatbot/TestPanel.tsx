@@ -634,6 +634,8 @@ export const TestPanel = ({
           console.log("[node:ai_generating] Agent", node.id);
           const objective = cfg.objective || "assistente conversacional";
           const instructions = cfg.instructions || "Ajude o usuário de forma natural.";
+          const skills = cfg.toolCallingEnabled === false ? [] : collectAgentSkills(containers, node.id);
+          const useSkillTool = buildUseSkillTool(skills);
           
           const nodeKey = (cfg.apiKey || "").trim();
           const nodeProvider = (cfg.provider || "openai").toLowerCase();
@@ -642,7 +644,7 @@ export const TestPanel = ({
           const selectedProvider = nodeProvider === "gemini" ? "google" : nodeProvider as "openai" | "anthropic" | "google";
 
           const { system, messages: contextMessages } = buildAgentContext({
-            systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}`,
+            systemPrompt: `Objetivo: ${objective}\nInstruções: ${instructions}${buildSkillSystemPrompt(skills)}`,
             history: messageHistory,
             persistentMemory,
             variables,
@@ -655,6 +657,7 @@ export const TestPanel = ({
           });
 
           let aiReply: string | null = null;
+          let skillCall: { skill_id: string; message?: string } | null = null;
           if (activeKey) {
             try {
               if (selectedProvider === "openai") {
@@ -664,11 +667,18 @@ export const TestPanel = ({
                   body: JSON.stringify({
                     model: cfg.model || "gpt-4o-mini",
                     messages: [{ role: "system", content: system }, ...contextMessages],
+                    ...(useSkillTool ? { tools: [useSkillTool], tool_choice: "auto" } : {}),
                   }),
                 });
                 if (res.ok) {
                   const data = await res.json();
-                  aiReply = data.choices?.[0]?.message?.content || null;
+                  const msg = data.choices?.[0]?.message;
+                  const toolCall = msg?.tool_calls?.find((call: any) => call?.function?.name === "use_skill");
+                  if (toolCall?.function?.arguments) {
+                    const args = JSON.parse(toolCall.function.arguments);
+                    skillCall = args?.skill_id ? { skill_id: String(args.skill_id), message: args.message } : null;
+                  }
+                  aiReply = msg?.content || null;
                 }
               } else if (selectedProvider === "google") {
                 const model = (cfg.model || "gemini-2.0-flash").trim();
@@ -680,17 +690,67 @@ export const TestPanel = ({
                     contents: contextMessages.map(m => ({
                       role: m.role === "assistant" ? "model" : "user",
                       parts: [{ text: m.content }]
-                    }))
+                    })),
+                    ...(useSkillTool ? {
+                      tools: [{ function_declarations: [{
+                        name: useSkillTool.function.name,
+                        description: useSkillTool.function.description,
+                        parameters: useSkillTool.function.parameters
+                      }] }],
+                      tool_config: { function_calling_config: { mode: "AUTO" } }
+                    } : {})
                   }),
                 });
                 if (res.ok) {
                   const data = await res.json();
-                  aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || null;
+                  const parts = data.candidates?.[0]?.content?.parts || [];
+                  const fn = parts.find((part: any) => part.functionCall?.name === "use_skill")?.functionCall;
+                  if (fn?.args?.skill_id) {
+                    skillCall = { skill_id: String(fn.args.skill_id), message: fn.args.message };
+                  }
+                  aiReply = parts.map((part: any) => part.text).filter(Boolean).join("\n").trim() || null;
                 }
               }
             } catch (e) {
               console.error("[agent-node] AI call failed", e);
             }
+          }
+
+          skillCall = skillCall || parseSkillFromText(aiReply);
+
+          if (skillCall?.skill_id && skills.some((skill) => skill.id === skillCall?.skill_id)) {
+            if (skillCall.message || aiReply) {
+              const notice = String(skillCall.message || aiReply).trim();
+              if (notice) nextMessages.push({ id: crypto.randomUUID(), conversation_id: conversationId || "temp", role: "assistant", type: "bot", content: notice, isHtml: false } as Message);
+            }
+
+            const skillResult = await runLocalFlow(
+              {
+                mode: "flow",
+                current_node_id: skillCall.skill_id,
+                active_agent_node_id: null,
+                variables,
+                message_history: messageHistory,
+                persistent_memory: persistentMemory,
+                visitor_id: visitorId,
+                conversation_id: conversationId,
+                waiting_for_input: false
+              },
+              undefined,
+              containers,
+              edgesList,
+              visitedRedirects
+            );
+
+            nextMessages.push(...(skillResult.messages || []));
+            return {
+              ...skillResult,
+              messages: nextMessages,
+              runtime_state: {
+                ...skillResult.runtime_state,
+                variables: { ...variables, ...(skillResult.runtime_state?.variables || {}) }
+              }
+            };
           }
 
           if (aiReply) {
