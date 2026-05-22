@@ -93,7 +93,7 @@ export const ButtonGroupNodeItem = ({
           e.stopPropagation();
           onGroupClick();
         }}
-        className="flex items-center justify-between px-3 py-2 bg-orange-500/20 rounded-t-lg border-b border-accent/30 cursor-pointer hover:bg-orange-500/30 transition-colors group/header"
+        className="flex items-center justify-between px-3 py-2 bg-orange-500/20 rounded-t-lg border-b border-accent/30 cursor-pointer hover:bg-orange-500/30 transition-colors"
       >
         <div className="flex items-center gap-2">
           <Settings className="h-4 w-4 text-orange-600" />
@@ -106,7 +106,7 @@ export const ButtonGroupNodeItem = ({
           )}
         </div>
         
-        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Drag Handle */}
           <div
             draggable
