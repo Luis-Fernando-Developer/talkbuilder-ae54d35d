@@ -225,6 +225,44 @@ const CanvasContent = ({
     toast.success("Configuração salva!");
   }, [selectedNode, containers, onContainersChange]);
 
+  const handleDeleteNode = useCallback((containerId: string, nodeId: string) => {
+    const updatedContainers = containers.map(container => {
+      if (container.id === containerId) {
+        return {
+          ...container,
+          nodes: container.nodes.filter(n => n.id !== nodeId)
+        };
+      }
+      return container;
+    });
+    onContainersChange(updatedContainers);
+    toast.success("Node removido!");
+  }, [containers, onContainersChange]);
+
+  const handleDuplicateNode = useCallback((containerId: string, nodeId: string) => {
+    const updatedContainers = containers.map(container => {
+      if (container.id === containerId) {
+        const nodeToDuplicate = container.nodes.find(n => n.id === nodeId);
+        if (nodeToDuplicate) {
+          const newNode = {
+            ...nodeToDuplicate,
+            id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          };
+          const nodeIndex = container.nodes.findIndex(n => n.id === nodeId);
+          const newNodes = [...container.nodes];
+          newNodes.splice(nodeIndex + 1, 0, newNode);
+          return {
+            ...container,
+            nodes: newNodes
+          };
+        }
+      }
+      return container;
+    });
+    onContainersChange(updatedContainers);
+    toast.success("Node duplicado!");
+  }, [containers, onContainersChange]);
+
   // Button group handlers - open individual button config
   const handleButtonClick = useCallback((nodeId: string, buttonId: string) => {
     const result = findNodeInContainers(nodeId);
