@@ -229,6 +229,17 @@ export const TestPanel = ({
     if (!edge) edge = fromNode[0];
     if (edge) return resolveTargetIn(edge.target, containers);
 
+    // Fallback: avançar para o próximo node dentro do mesmo bloco (ordem do array).
+    // Nodes internos de um container não possuem edges entre si — eles são sequenciais.
+    const container = containers.find((c) => c.id === containerId);
+    if (container) {
+      const idx = container.nodes.findIndex((n) => n.id === nodeId);
+      if (idx >= 0 && idx < container.nodes.length - 1) {
+        return container.nodes[idx + 1].id;
+      }
+    }
+
+    // Último node do bloco: segue a edge de saída do container (se houver).
     const containerEdge = validEdges.find((e) => e.source === containerId && !e.sourceHandle);
     if (containerEdge) return resolveTargetIn(containerEdge.target, containers);
     return null;
