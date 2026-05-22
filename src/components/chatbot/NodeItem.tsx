@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   MessageSquare,
   Hash,
@@ -6,7 +6,7 @@ import {
   Headphones,
   File,
   Type,
-  Image,
+  Image as ImageIcon,
   Globe,
   AtSign,
   ImageUp,
@@ -27,15 +27,26 @@ import {
   Brain,
   Table,
   UserRound,
+  MoreVertical,
+  Copy,
+  Trash2,
 } from "lucide-react";
 import { Node, NodeType } from "@/types/chatbot";
 import { renderTextSegments } from "@/lib/textParser";
 import { RichText } from "@/lib/richText";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface NodeItemProps {
   node: Node;
   onClick: () => void;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
 const nodeIcons: Record<NodeType, React.ReactNode> = {
