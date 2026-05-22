@@ -173,7 +173,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 		const pathSlug = pathParts[0];
 		
 		const found = mapped.find((w: any) => w.slug === pathSlug);
-		setCurrentWorkspace(found || mapped[0] || null);
+		const target = found || mapped[0] || null;
+		
+		setCurrentWorkspace((prev: any) => {
+			if (prev?.id === target?.id && prev?.slug === target?.slug) return prev;
+			return target;
+		});
 	}
 
 	function switchWorkspace(slug: string) {
