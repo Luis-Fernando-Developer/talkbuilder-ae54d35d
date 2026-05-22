@@ -280,6 +280,8 @@ export const ContainerNode = memo(({ data }: NodeProps<ContainerNodeData>) => {
                         onAddButton={(label) => onAddButton?.(node.id, label)}
                         onUpdateButton={(buttonId, updates) => onUpdateButton?.(node.id, buttonId, updates)}
                         onDeleteButton={(buttonId) => onDeleteButton?.(node.id, buttonId)}
+                        onDelete={() => onDeleteNode(node.id)}
+                        onDuplicate={() => onDuplicateNode(node.id)}
                       />
                     ) : node.type === 'condition' ? (
                       <ConditionNodeItem
@@ -287,11 +289,15 @@ export const ContainerNode = memo(({ data }: NodeProps<ContainerNodeData>) => {
                         nodeIndex={idx}
                         onGroupClick={() => onNodeClick(node.id)}
                         onConditionClick={(conditionId) => onConditionClick?.(node.id, conditionId)}
+                        onDelete={() => onDeleteNode(node.id)}
+                        onDuplicate={() => onDuplicateNode(node.id)}
                       />
                     ) : (
                       <NodeItem
                         node={node}
                         onClick={() => onNodeClick(node.id)}
+                        onDelete={() => onDeleteNode(node.id)}
+                        onDuplicate={() => onDuplicateNode(node.id)}
                       />
                     )}
                   </div>
