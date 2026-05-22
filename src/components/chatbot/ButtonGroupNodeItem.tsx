@@ -91,7 +91,7 @@ export const ButtonGroupNodeItem = ({
           e.stopPropagation();
           onGroupClick();
         }}
-        className="flex items-center justify-between px-3 py-2 bg-orange-500/20 rounded-t-lg border-b border-accent/30 cursor-pointer hover:bg-orange-500/30 transition-colors"
+        className="flex items-center justify-between px-3 py-2 bg-orange-500/20 rounded-t-lg border-b border-accent/30 cursor-pointer hover:bg-orange-500/30 transition-colors group/header"
       >
         <div className="flex items-center gap-2">
           <Settings className="h-4 w-4 text-orange-600" />
@@ -103,20 +103,57 @@ export const ButtonGroupNodeItem = ({
             <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">Múltipla</span>
           )}
         </div>
-        {/* Drag Handle */}
-        <div
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            e.dataTransfer.setData("nodeId", node.id);
-            e.dataTransfer.setData("text/plain", node.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="p-1 rounded-md hover:bg-orange-500/30 cursor-grab active:cursor-grabbing transition-all"
-          title="Arraste para mover para outro bloco"
-        >
-          <GripVertical className="h-3.5 w-3.5 text-orange-600" />
+        
+        <div className="flex items-center gap-1 opacity-0 group-hover/header:opacity-100 transition-opacity">
+          {/* Drag Handle */}
+          <div
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData("nodeId", node.id);
+              e.dataTransfer.setData("text/plain", node.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded-md hover:bg-orange-500/30 cursor-grab active:cursor-grabbing transition-all"
+            title="Arraste para mover para outro bloco"
+          >
+            <GripVertical className="h-3.5 w-3.5 text-orange-600" />
+          </div>
+
+          {/* Ellipsis Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded-md hover:bg-orange-500/30 cursor-pointer transition-all"
+              >
+                <MoreVertical className="h-3.5 w-3.5 text-orange-600" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.();
+                }}
+                className="gap-2"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span>Duplicar</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="gap-2 text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
