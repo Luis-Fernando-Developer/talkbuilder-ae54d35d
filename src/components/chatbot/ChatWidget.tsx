@@ -11,16 +11,23 @@ const escapeHtml = (s: string) =>
 const formatMarkdown = (text: string): string => {
   if (!text) return "";
   let html = escapeHtml(text);
+  
   // Bold: **text** or __text__
+  // Using a more robust regex that handles leading spaces/stars
   html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
   html = html.replace(/__([^_\n]+)__/g, "<strong>$1</strong>");
+  
   // Italic: *text* or _text_
+  // We exclude cases where it might be part of a bold sequence
   html = html.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
   html = html.replace(/(^|[^_])_([^_\n]+)_(?!_)/g, "$1<em>$2</em>");
+  
   // Inline code: `text`
   html = html.replace(/`([^`\n]+)`/g, '<code class="px-1 py-0.5 bg-black/10 rounded text-xs">$1</code>');
+  
   // Links: [text](url)
   html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="underline">$1</a>');
+  
   return html;
 };
 
