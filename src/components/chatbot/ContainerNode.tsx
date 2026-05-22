@@ -20,6 +20,8 @@ interface ContainerNodeData {
   onTest: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
+  onDeleteNode: (nodeId: string) => void;
+  onDuplicateNode: (nodeId: string) => void;
   onNodeDrop: (nodeId: string, targetContainerId: string, insertIndex?: number) => void;
 }
 
