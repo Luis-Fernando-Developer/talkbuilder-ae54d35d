@@ -398,7 +398,7 @@ export const ChatWidget = ({
                 ) : (
                   <p
                     className="whitespace-pre-wrap break-words prose prose-sm max-w-none prose-strong:font-bold prose-strong:text-inherit"
-                    dangerouslySetInnerHTML={{ __html: formatMarkdown(message.content) }}
+                    dangerouslySetInnerHTML={{ __html: markdownToSafeHtml(message.content) }}
                   />
                 )}
               </div>
