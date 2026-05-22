@@ -195,7 +195,7 @@ const nodeLabels: Record<NodeType, string> = {
   "human-handoff": "Transbordo Humano",
 };
 
-export const NodeItem = ({ node, onClick }: NodeItemProps) => {
+export const NodeItem = ({ node, onClick, onDelete, onDuplicate }: NodeItemProps) => {
   const normalizedType = String(node.type).toLowerCase();
   const effectiveType = normalizedType === "wait" || normalizedType === "await" ? "wait" : node.type;
 
@@ -244,28 +244,79 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
       className={cn(
         "nodrag nopan",
         nodeColors[effectiveType],
-        "rounded-lg p-0 cursor-pointer transition-all duration-200 select-none border relative overflow-hidden group  border-border/60"
+        "rounded-lg p-0 cursor-pointer transition-all duration-200 select-none border relative overflow-hidden group border-border/60"
       )}
     >
-      {/* Drag Handle - sempre visível */}
-      <div
-        draggable
-        onDragStart={handleDragStart}
-        onMouseDown={handleDragHandleMouseDown}
-        onClick={(e) => e.stopPropagation()}
-        className="nodrag nopan absolute top-2 right-2 p-1 rounded-md bg-white/90 hover:bg-white border border-border/50 shadow-sm cursor-grab active:cursor-grabbing transition-all opacity-0 group-hover:opacity-100 z-10 flex items-center justify-center"
-        title="Arraste para mover para outro bloco"
-      >
-        <MoveIcon className="h-3 w-3 text-muted-foreground" />
+      {/* Standardized Header */}
+      <div className={cn(
+        "flex items-center justify-between px-3 py-1.5 border-b border-border/40",
+        nodeColors[effectiveType].split(' ')[0], // Use the background color part
+        "bg-opacity-20"
+      )}>
+        <div className="flex items-center gap-2 overflow-hidden">
+          <div className="shrink-0 scale-75">
+            {nodeIcons[effectiveType]}
+          </div>
+          <span className="text-[10px] font-bold uppercase tracking-wider opacity-70 truncate">
+            {nodeCategories[effectiveType]}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Drag Handle */}
+          <div
+            draggable
+            onDragStart={handleDragStart}
+            onMouseDown={handleDragHandleMouseDown}
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded hover:bg-black/5 cursor-grab active:cursor-grabbing"
+            title="Arraste para mover"
+          >
+            <MoveIcon className="h-3 w-3 opacity-60" />
+          </div>
+
+          {/* Ellipsis Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded hover:bg-black/5"
+              >
+                <MoreVertical className="h-3 w-3 opacity-60" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.();
+                }}
+                className="gap-2"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span>Duplicar</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="gap-2 text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
 
-      <div className="flex items-start gap-2 p-3 min-h-[40px]">
-        <div className="mt-0.5 shrink-0">
-          {nodeIcons[effectiveType]}
-        </div>
-        <div className="flex-1 min-w-0 flex flex-col gap-1">
+      <div className="p-3">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold text-left w-full pr-4 truncate">{nodeLabels[effectiveType]}</p>
+            <p className="text-xs font-semibold text-left w-full truncate opacity-90">
+              {nodeLabels[effectiveType]}
+            </p>
             {node.config.isSkill && (
               <div title="Ativado como Skill para IA">
                 <Brain className="h-3 w-3 text-primary shrink-0" />
@@ -273,6 +324,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
             )}
           </div>
 
+          {/* Content Preview */}
           {hasVideoPreview ? (
             <div className="mt-2 max-h-[150px] overflow-hidden">
               <video
@@ -292,11 +344,11 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               />
             </div>
           ) : hasDocumentPreview ? (
-            <div className="mt-2 p-2 bg-muted rounded border max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-muted/50 rounded border max-h-[150px] overflow-y-auto">
               <p className="text-xs">{node.config["FileName"] || "Documento anexado"}</p>
             </div>
           ) : hasAudioPreview ? (
-            <div className="mt-2 p-2 bg-muted rounded border flex items-center gap-2 max-h-[150px] overflow-hidden">
+            <div className="mt-2 p-2 bg-muted/50 rounded border flex items-center gap-2 max-h-[150px] overflow-hidden">
               <Headphones className="h-4 w-4 text-primary" />
               <audio
                 src={node.config["AudioURL"]}
@@ -305,55 +357,44 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
                 style={{ maxWidth: '100%' }}
               />
             </div>
-          ) : hasButtonsPreview ? (
-            <div className="mt-2 space-y-1 max-h-[150px] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-transparent">
-              {(node.config.buttons as Array<{ id: string; label: string; saveVariable?: string }>).map((button) => (
-                <div
-                  key={button.id}
-                  className="px-2 py-1.5 bg-white border rounded text-xs text-gray-700 font-medium text-center"
-                >
-                  {button.label}
-                </div>
-              ))}
-            </div>
           ) : hasSetVariablePreview ? (
-            <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-purple-50/50 rounded border border-purple-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-purple-700">
                 {node.config.variableName} = {node.config.value || "(vazio)"}
               </p>
             </div>
           ) : hasScriptPreview ? (
-            <div className="mt-2 p-3 space-y-2 border border-red-600 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-3 space-y-2 border border-red-600/30 max-h-[150px] overflow-y-auto bg-red-50/10">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-purple-700">
-                  {node.config.executeOnServer ? 'Vai executar do lado do servidor' : 'Vai executar do lado do cliente'}
+                <span className="text-[10px] font-medium text-purple-700">
+                  {node.config.executeOnServer ? 'Lado do servidor' : 'Lado do cliente'}
                 </span>
               </div>
-              <pre className="text-xs bg-black/20 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap text-gray-700">
+              <pre className="text-[10px] bg-black/5 p-2 rounded overflow-hidden text-ellipsis whitespace-nowrap text-gray-700">
                 {node.config.code?.substring(0, 50) || "// código vazio"}
                 {node.config.code?.length > 50 ? '...' : ''}
               </pre>
             </div>
           ) : hasWaitPreview ? (
-            <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-purple-50/50 rounded border border-purple-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-purple-700">
                 Aguardar {node.config.waitTime} {node.config.timeUnit === 'seconds' ? 'segundo(s)' : node.config.timeUnit === 'minutes' ? 'minuto(s)' : 'hora(s)'}
               </p>
             </div>
           ) : hasRedirectPreview ? (
-            <div className="mt-2 p-2 bg-green-50 rounded border border-green-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-green-50/50 rounded border border-green-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-green-700">
                 Fluxo: {node.config.targetFlowName || node.config.targetFlow}
               </p>
             </div>
           ) : hasGoToPreview ? (
-            <div className="mt-2 p-2 bg-green-50 rounded border border-green-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-green-50/50 rounded border border-green-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-green-700">
                 Pular para: {node.config.targetContainerName || (node.config.targetContainerId ? `Bloco ${node.config.targetContainerId.slice(-4)}` : 'Não selecionado')}
               </p>
             </div>
           ) : hasAIPreview ? (
-            <div className="mt-2 p-2 bg-cyan-50 rounded border border-cyan-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-cyan-50/50 rounded border border-cyan-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-cyan-700">
                 AI: {node.config.provider} ({node.config.model || "padrão"})
               </p>
@@ -362,7 +403,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               </p>
             </div>
           ) : hasAgentPreview ? (
-            <div className="mt-2 p-2 bg-indigo-50 rounded border border-indigo-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-indigo-50/50 rounded border border-indigo-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-indigo-700">
                 Agente: {node.config.provider}
               </p>
@@ -371,7 +412,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               </p>
             </div>
           ) : hasSheetsPreview ? (
-            <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-orange-50/50 rounded border border-orange-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-orange-700">
                 Sheets: {node.config.action === 'insert' ? 'Inserir' : node.config.action === 'update' ? 'Atualizar' : 'Obter'}
               </p>
@@ -380,7 +421,7 @@ export const NodeItem = ({ node, onClick }: NodeItemProps) => {
               </p>
             </div>
           ) : hasHandoffPreview ? (
-            <div className="mt-2 p-2 bg-orange-50 rounded border border-orange-200 max-h-[150px] overflow-y-auto">
+            <div className="mt-2 p-2 bg-orange-50/50 rounded border border-orange-200/50 max-h-[150px] overflow-y-auto">
               <p className="text-xs font-semibold text-orange-700">
                 Transferir para Humano
               </p>
