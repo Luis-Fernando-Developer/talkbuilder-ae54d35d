@@ -335,7 +335,7 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   const buildSkillSystemPrompt = (skills: any[]) => {
     if (!skills.length) return "\n\n[SKILLS DISPONÍVEIS]\nNenhuma skill foi habilitada nos outros nodes deste fluxo.";
     const list = skills.map((skill, index) => `${index + 1}. ID: ${skill.id}\nTipo: ${skill.type}\nBloco: ${skill.containerName}\nNome: ${skill.label}\nInstrução da skill: ${skill.description}`).join("\n\n");
-    return `\n\n[SKILLS DISPONÍVEIS PARA O AGENTE]\n${list}\n\nQuando a mensagem do usuário combinar com a instrução de uma skill, use a ferramenta use_skill com o ID exato da skill. Não invente perguntas antes de usar uma skill claramente solicitada.`;
+    return `\n\n[SKILLS DISPONÍVEIS PARA O AGENTE]\n${list}\n\nQuando a mensagem do usuário combinar com a instrução de uma skill, use a ferramenta use_skill com o ID exato da skill. Se a chamada de ferramenta não estiver disponível, responda apenas com JSON neste formato: {"skill_id":"ID_DA_SKILL","message":"mensagem opcional"}. Não invente perguntas antes de usar uma skill claramente solicitada.`;
   };
 
   const buildUseSkillTool = (skills: any[]) => skills.length ? {
