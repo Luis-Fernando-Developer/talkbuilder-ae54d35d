@@ -14,8 +14,8 @@ const formatMarkdown = (text: string): string => {
   
   // Bold: **text** or __text__
   // Using a more robust regex that handles leading spaces/stars
-  html = html.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
-  html = html.replace(/__([^_\n]+)__/g, "<strong>$1</strong>");
+  html = html.replace(/\*\*([^*\n]+?)\*\*/g, "<strong>$1</strong>");
+  html = html.replace(/__([^_\n]+??)__/g, "<strong>$1</strong>");
   
   // Italic: *text* or _text_
   // We exclude cases where it might be part of a bold sequence

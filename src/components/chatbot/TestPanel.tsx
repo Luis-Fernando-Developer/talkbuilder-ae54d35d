@@ -1082,7 +1082,14 @@ export const TestPanel = ({
                    : message.isHtml ? <div className="rich-bubble whitespace-pre-wrap break-words" dangerouslySetInnerHTML={{ __html: message.content }} />
                    : message.type === "bot" ? (
                        <div className="prose prose-sm max-w-none break-words [&>*]:my-1 [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0" style={{ color: "inherit" }}>
-                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                         <ReactMarkdown 
+                           remarkPlugins={[remarkGfm]}
+                           components={{
+                             strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                           }}
+                         >
+                           {message.content}
+                         </ReactMarkdown>
                        </div>
                      )
                    : <div className="whitespace-pre-wrap break-words">{renderTextSegments(message.content)}</div>}
