@@ -633,7 +633,7 @@ export const TestPanel = ({
             };
             messageHistory.push(botMsg);
             if (conversationId) conversationService.saveMessage(botMsg);
-            nextMessages.push({ ...botMsg, type: "bot", content: aiReply, isHtml: true } as Message);
+            nextMessages.push({ ...botMsg, type: "bot", content: aiReply, isHtml: false } as Message);
           }
 
           waitingFor = "input-text";
