@@ -96,7 +96,7 @@ export function WorkspaceProvider({
 		return () => {
 			cancelled = true;
 		};
-	}, [user, currentWorkspace]);
+	}, [user?.id, currentWorkspace?.id]);
 
 	// setItems "smart": detecta diff entre antigo/novo e propaga ao Supabase.
 	// Mantém compatibilidade com toda a UI legada que faz setItems(prev => ...).
@@ -197,7 +197,7 @@ export function WorkspaceProvider({
 					});
 			}
 		}
-	}, [user, currentWorkspace]);
+	}, [user?.id, currentWorkspace?.id]);
 
 	return (
 		<WorkspaceContext.Provider
