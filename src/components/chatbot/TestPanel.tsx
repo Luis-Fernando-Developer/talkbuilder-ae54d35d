@@ -799,6 +799,30 @@ export const TestPanel = ({
           });
         } else if (nodeType === "set-variable" && cfg.variableName) {
           variables[cfg.variableName] = replaceVars(String(cfg.value || ""));
+        } else if (nodeType === "script") {
+          try {
+            const rawCode = String(cfg.code || "");
+            const interpolated = replaceVars(rawCode);
+            const varNames = Object.keys(variables);
+            const varValues = varNames.map((k) => variables[k]);
+            // eslint-disable-next-line no-new-func
+            const fn = new Function(...varNames, `"use strict";\n${interpolated}`);
+            const result = await fn(...varValues);
+            console.log(`[node:script] result=`, result);
+            if (cfg.variableName) {
+              variables[cfg.variableName] = result;
+            }
+          } catch (err) {
+            console.error("[node:script] error", err);
+            nextMessages.push({
+              id: crypto.randomUUID(),
+              conversation_id: conversationId || "temp",
+              role: "assistant",
+              type: "bot",
+              content: `⚠️ Erro no script: ${err instanceof Error ? err.message : String(err)}`,
+              isHtml: false,
+            } as Message);
+          }
         } else if (nodeType === "condition") {
           const conditions: ConditionGroup[] = cfg.conditions || [];
           const matchedCondition = conditions.find((condition) => evaluateCondition(condition, variables, replaceVars));
