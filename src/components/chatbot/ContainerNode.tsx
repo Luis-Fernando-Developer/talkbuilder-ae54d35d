@@ -192,12 +192,13 @@ export const ContainerNode = memo(({ data }: NodeProps<ContainerNodeData>) => {
               className="rounded-md p-1.5 pl-2 placeholder:text-black focus:bg-gray-100/5 text-sm w-full focus:outline-none bg-gray-100/5 text-violet-800 text-left"
             />
           ) : (
-            <h3 
+            <h3
               onClick={(e) => {
                 e.stopPropagation();
                 setIsEditingContainerNameNode(true);
-              }} 
-              className="rounded-md p-1.5 w-full pl-2 border border-border/40 text-sm text-foreground px-0.5 cursor-text text-left"
+              }}
+              title={nameContainerNode || `Bloco #${container.id.slice(-6)}`}
+              className="rounded-md p-1.5 w-full min-w-0 pl-2 border border-border/40 text-sm text-foreground px-0.5 cursor-text text-left truncate whitespace-nowrap overflow-hidden"
             >
               {nameContainerNode || <span className='text-muted-foreground italic text-left'>{`Bloco #${container.id.slice(-6)}`}</span>}
             </h3>
