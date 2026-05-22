@@ -1086,7 +1086,7 @@ export const TestPanel = ({
                          <ReactMarkdown 
                            remarkPlugins={[remarkGfm]}
                            components={{
-                             strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
+                              strong: ({node, ...props}) => <strong className="font-bold text-inherit" {...props} />,
                            }}
                          >
                             {normalizeMarkdown(message.content)}
