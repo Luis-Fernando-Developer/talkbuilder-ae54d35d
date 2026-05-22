@@ -278,6 +278,14 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       if (first) return first;
       return edge.target;
     }
+    // Fallback: avançar para o próximo node dentro do mesmo bloco (ordem do array).
+    // Nodes internos não possuem edges entre si — são sequenciais.
+    if (container?.nodes?.length) {
+      const idx = container.nodes.findIndex((n: any) => n.id === nodeId);
+      if (idx >= 0 && idx < container.nodes.length - 1) {
+        return container.nodes[idx + 1].id;
+      }
+    }
     const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
     if (cEdge) {
       if (findNode(cEdge.target)) return cEdge.target;
