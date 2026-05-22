@@ -1,16 +1,24 @@
 import { useState, useRef, useEffect } from "react";
 import { Handle, Position } from "reactflow";
-import { Filter, Settings, Plus, GripVertical, Trash2 } from "lucide-react";
+import { Filter, Settings, Plus, GripVertical, Trash2, MoreVertical, Copy } from "lucide-react";
 import { Node, ConditionGroup, ConditionComparison } from "@/types/chatbot";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ConditionNodeItemProps {
   node: Node;
   onGroupClick: () => void;
   onConditionClick: (conditionId: string) => void;
   nodeIndex: number;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
 const operatorLabels: Record<string, string> = {
@@ -43,11 +51,18 @@ const getConditionSummary = (condition: ConditionGroup): string => {
   return parts.join(joiner);
 };
 
-export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIndex }: ConditionNodeItemProps) => {
+export const ConditionNodeItem = ({ 
+  node, 
+  onGroupClick, 
+  onConditionClick, 
+  nodeIndex,
+  onDelete,
+  onDuplicate,
+}: ConditionNodeItemProps) => {
   const conditions: ConditionGroup[] = node.config.conditions || [];
 
   return (
-    <div className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible" style={{ width: 270 }}>
+    <div className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible group" style={{ width: 270 }}>
       {/* Header */}
       <div
         onClick={(e) => {
@@ -60,20 +75,57 @@ export const ConditionNodeItem = ({ node, onGroupClick, onConditionClick, nodeIn
           <Filter className="h-4 w-4 text-purple-700" />
           <span className="text-sm font-medium text-purple-700">Condição</span>
         </div>
-        {/* Drag Handle */}
-        <div
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            e.dataTransfer.setData("nodeId", node.id);
-            e.dataTransfer.setData("text/plain", node.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="p-1 rounded-md hover:bg-purple-400/30 cursor-grab active:cursor-grabbing transition-all"
-          title="Arraste para mover para outro bloco"
-        >
-          <GripVertical className="h-3.5 w-3.5 text-purple-600" />
+        
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Drag Handle */}
+          <div
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData("nodeId", node.id);
+              e.dataTransfer.setData("text/plain", node.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded-md hover:bg-purple-400/30 cursor-grab active:cursor-grabbing transition-all"
+            title="Arraste para mover para outro bloco"
+          >
+            <GripVertical className="h-3.5 w-3.5 text-purple-600" />
+          </div>
+
+          {/* Ellipsis Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded-md hover:bg-purple-400/30 cursor-pointer transition-all"
+              >
+                <MoreVertical className="h-3.5 w-3.5 text-purple-600" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.();
+                }}
+                className="gap-2"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span>Duplicar</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="gap-2 text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 

@@ -1,9 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { Handle, Position } from "reactflow";
-import { Settings, Plus, GripVertical } from "lucide-react";
+import { Settings, Plus, GripVertical, MoreVertical, Copy, Trash2 } from "lucide-react";
 import { Node, ButtonConfig } from "@/types/chatbot";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface ButtonGroupNodeItemProps {
   node: Node;
@@ -13,6 +19,8 @@ interface ButtonGroupNodeItemProps {
   onUpdateButton: (buttonId: string, updates: Partial<ButtonConfig>) => void;
   onDeleteButton: (buttonId: string) => void;
   nodeIndex: number;
+  onDelete?: () => void;
+  onDuplicate?: () => void;
 }
 
 export const ButtonGroupNodeItem = ({
@@ -23,6 +31,8 @@ export const ButtonGroupNodeItem = ({
   onUpdateButton,
   onDeleteButton,
   nodeIndex,
+  onDelete,
+  onDuplicate,
 }: ButtonGroupNodeItemProps) => {
   const [newButtonLabel, setNewButtonLabel] = useState("");
   const [editingButtonId, setEditingButtonId] = useState<string | null>(null);
@@ -76,7 +86,7 @@ export const ButtonGroupNodeItem = ({
   const handleSpacing = 44; // Space between each button handle
 
   return (
-    <div className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible" style={{ width: 270 }}>
+    <div className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible group" style={{ width: 270 }}>
       {/* Header - Click to open group config */}
       <div
         onClick={(e) => {
@@ -95,20 +105,57 @@ export const ButtonGroupNodeItem = ({
             <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">Múltipla</span>
           )}
         </div>
-        {/* Drag Handle */}
-        <div
-          draggable
-          onDragStart={(e) => {
-            e.stopPropagation();
-            e.dataTransfer.setData("nodeId", node.id);
-            e.dataTransfer.setData("text/plain", node.id);
-            e.dataTransfer.effectAllowed = "move";
-          }}
-          onClick={(e) => e.stopPropagation()}
-          className="p-1 rounded-md hover:bg-orange-500/30 cursor-grab active:cursor-grabbing transition-all"
-          title="Arraste para mover para outro bloco"
-        >
-          <GripVertical className="h-3.5 w-3.5 text-orange-600" />
+        
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {/* Drag Handle */}
+          <div
+            draggable
+            onDragStart={(e) => {
+              e.stopPropagation();
+              e.dataTransfer.setData("nodeId", node.id);
+              e.dataTransfer.setData("text/plain", node.id);
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            onClick={(e) => e.stopPropagation()}
+            className="p-1 rounded-md hover:bg-orange-500/30 cursor-grab active:cursor-grabbing transition-all"
+            title="Arraste para mover para outro bloco"
+          >
+            <GripVertical className="h-3.5 w-3.5 text-orange-600" />
+          </div>
+
+          {/* Ellipsis Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="p-1 rounded-md hover:bg-orange-500/30 cursor-pointer transition-all"
+              >
+                <MoreVertical className="h-3.5 w-3.5 text-orange-600" />
+              </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-32">
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDuplicate?.();
+                }}
+                className="gap-2"
+              >
+                <Copy className="h-3.5 w-3.5" />
+                <span>Duplicar</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.();
+                }}
+                className="gap-2 text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                <span>Excluir</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
