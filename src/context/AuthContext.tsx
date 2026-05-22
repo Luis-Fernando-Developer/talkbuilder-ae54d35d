@@ -47,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 	const isConfigured = useMemo(() => isSupabaseConfigured(), []);
 
+	const lastLoadedUserIdRef = useRef<string | null>(null);
+
 	useEffect(() => {
 		const supabase = getSupabase();
 		if (!supabase) {
@@ -56,16 +58,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
 		const {
 			data: { subscription },
-		} = supabase.auth.onAuthStateChange((_event, newSession) => {
+		} = supabase.auth.onAuthStateChange((event, newSession) => {
+			console.log("[Auth] Evento:", event);
 			setSession(newSession);
 			const newUser = newSession?.user ?? null;
 			setUser(newUser);
 			
 			if (newUser) {
-				// Avoid refresh loop by checking if we already have the profile/workspaces for this user
-				// But for simplicity, we just trigger the load
-				loadAll(newUser.id);
+				// Evita loader global se for apenas atualização de token ou se o usuário for o mesmo
+				const isSilent = event === 'TOKEN_REFRESHED' || lastLoadedUserIdRef.current === newUser.id;
+				loadAll(newUser.id, isSilent);
 			} else {
+				lastLoadedUserIdRef.current = null;
 				setProfile(null);
 				setWorkspaces([]);
 				setCurrentWorkspace(null);
@@ -73,13 +77,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 			}
 		});
 
-		async function loadAll(userId: string) {
-			setLoading(true);
-			await Promise.all([
-				loadProfile(userId),
-				loadWorkspaces(userId)
-			]);
-			setLoading(false);
+		async function loadAll(userId: string, silent = false) {
+			if (!silent) setLoading(true);
+			
+			try {
+				await Promise.all([
+					loadProfile(userId),
+					loadWorkspaces(userId)
+				]);
+				lastLoadedUserIdRef.current = userId;
+			} catch (error) {
+				console.error("[Auth] Erro ao carregar dados do usuário:", error);
+			} finally {
+				setLoading(false);
+			}
 		}
 
 		supabase.auth.getSession().then(({ data: { session: s } }) => {
