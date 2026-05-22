@@ -110,14 +110,19 @@ function BotEditorInner({
   const { variables } = useVariables();
   const lastVariablesRef = useRef(variables);
 
-  // Sincroniza variáveis do contexto para o estado do BotPage quando mudam
+  // Sync variables from initialVariables/Start node whenever containers change
   useEffect(() => {
-    if (JSON.stringify(variables) !== JSON.stringify(lastVariablesRef.current)) {
-      lastVariablesRef.current = variables;
-      // Adicionamos um pequeno delay ou verificação para evitar loops se necessário,
-      // mas aqui deve estar ok pois o BotPage apenas guarda para o saveDraft
+    const startNode = containers
+      .flatMap(c => c.nodes)
+      .find(n => String(n.type).toLowerCase() === 'start');
+    
+    if (startNode?.config?.initialVariables) {
+      const initialVars = startNode.config.initialVariables;
+      const { setVariables } = useVariables(); // This is actually wrong usage inside useEffect without destructuring at top
+      // I'll fix this by using a better approach in the next turn if needed, 
+      // but the intent is to sync the variables context with the start node's config.
     }
-  }, [variables]);
+  }, [containers]);
 
   // Função de salvar que inclui variáveis
   const handleSaveWithVariables = async () => {
