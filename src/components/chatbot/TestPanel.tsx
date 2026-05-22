@@ -15,6 +15,7 @@ interface ResponseMapping {
 import { ScrollArea } from "../../components/ui/scroll-area";
 import { renderTextSegments } from "@/lib/textParser";
 import { richHtmlFor, richToPlainText } from "@/lib/richText";
+import { normalizeMarkdown } from "@/lib/markdown";
 
 import { type Message as RuntimeMessage, type RuntimeState, type RuntimeMode, type PersistentMemory, type NodeExecutionStatus } from "../../types/runtime";
 import { conversationService } from "../../services/conversationService";
@@ -1088,7 +1089,7 @@ export const TestPanel = ({
                              strong: ({node, ...props}) => <strong className="font-bold" {...props} />,
                            }}
                          >
-                           {message.content}
+                            {normalizeMarkdown(message.content)}
                          </ReactMarkdown>
                        </div>
                      )
