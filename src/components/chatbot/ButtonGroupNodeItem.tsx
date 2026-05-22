@@ -86,7 +86,10 @@ export const ButtonGroupNodeItem = ({
   const handleSpacing = 44; // Space between each button handle
 
   return (
-    <div className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible group" style={{ width: 250 }}>
+    <div
+      className="relative bg-accent/10 border border-accent/30 rounded-lg overflow-visible group"
+      style={{ width: 250 }}
+    >
       {/* Header - Click to open group config */}
       <div
         onClick={(e) => {
@@ -105,7 +108,7 @@ export const ButtonGroupNodeItem = ({
             <span className="text-xs bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">Múltipla</span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Drag Handle */}
           <div
@@ -134,7 +137,7 @@ export const ButtonGroupNodeItem = ({
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onDuplicate?.();
@@ -144,7 +147,7 @@ export const ButtonGroupNodeItem = ({
                 <Copy className="h-3.5 w-3.5" />
                 <span>Duplicar</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete?.();
@@ -209,7 +212,7 @@ export const ButtonGroupNodeItem = ({
               id={`${node.id}-btn-${button.id}`}
               style={{
                 position: "absolute",
-                right: "-24px",
+                right: "-20px",
                 top: "50%",
                 transform: "translate(50%, -50%)",
               }}
