@@ -59,7 +59,7 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   // Bubbles
   "bubble-text": <MessageSquare className="h-4 w-4" />,
   "bubble-number": <Hash className="h-4 w-4" />,
-  "bubble-image": <Image className="h-4 w-4" />,
+  "bubble-image": <ImageIcon className="h-4 w-4" />,
   "bubble-video": <Film className="h-4 w-4" />,
   "bubble-audio": <Headphones className="h-4 w-4" />,
   "bubble-document": <File className="h-4 w-4" />,
@@ -86,6 +86,39 @@ const nodeIcons: Record<NodeType, React.ReactNode> = {
   // Integrations
   "google-sheets": <Table className="h-4 w-4" />,
   "human-handoff": <UserRound className="h-4 w-4" />,
+};
+
+const nodeCategories: Record<NodeType, string> = {
+  "start": "Fluxo",
+  "webhook": "Fluxo",
+  "http-request": "Fluxo",
+  "redirect": "Fluxo",
+  "go-to": "Fluxo",
+  "bubble-text": "Bubble",
+  "bubble-number": "Bubble",
+  "bubble-image": "Bubble",
+  "bubble-video": "Bubble",
+  "bubble-audio": "Bubble",
+  "bubble-document": "Bubble",
+  "input-text": "Input",
+  "input-number": "Input",
+  "input-phone": "Input",
+  "input-mail": "Input",
+  "input-image": "Input",
+  "input-video": "Input",
+  "input-audio": "Input",
+  "input-document": "Input",
+  "input-webSite": "Input",
+  "input-buttons": "Input",
+  "set-variable": "Lógica",
+  "script": "Lógica",
+  "condition": "Lógica",
+  "wait": "Lógica",
+  "await": "Lógica",
+  "ai-node": "AI",
+  "ai-agent": "AI",
+  "google-sheets": "Integração",
+  "human-handoff": "Integração",
 };
 
 const nodeColors: Record<NodeType, string> = {
