@@ -51,10 +51,10 @@ const getConditionSummary = (condition: ConditionGroup): string => {
   return parts.join(joiner);
 };
 
-export const ConditionNodeItem = ({ 
-  node, 
-  onGroupClick, 
-  onConditionClick, 
+export const ConditionNodeItem = ({
+  node,
+  onGroupClick,
+  onConditionClick,
   nodeIndex,
   onDelete,
   onDuplicate,
@@ -62,7 +62,10 @@ export const ConditionNodeItem = ({
   const conditions: ConditionGroup[] = node.config.conditions || [];
 
   return (
-    <div className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible group" style={{ width: 250 }}>
+    <div
+      className="relative bg-purple-100 border border-purple-300 rounded-lg overflow-visible group"
+      style={{ width: 250 }}
+    >
       {/* Header */}
       <div
         onClick={(e) => {
@@ -75,7 +78,7 @@ export const ConditionNodeItem = ({
           <Filter className="h-4 w-4 text-purple-700" />
           <span className="text-sm font-medium text-purple-700">Condição</span>
         </div>
-        
+
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
           {/* Drag Handle */}
           <div
@@ -104,7 +107,7 @@ export const ConditionNodeItem = ({
               </div>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-32">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onDuplicate?.();
@@ -114,7 +117,7 @@ export const ConditionNodeItem = ({
                 <Copy className="h-3.5 w-3.5" />
                 <span>Duplicar</span>
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onDelete?.();
@@ -175,7 +178,7 @@ export const ConditionNodeItem = ({
               id={`${node.id}-cond-${condition.id}`}
               style={{
                 position: "absolute",
-                right: "-24px",
+                right: "-31px",
                 top: "50%",
                 transform: "translate(50%, -50%)",
               }}
@@ -214,7 +217,7 @@ export const ConditionNodeItem = ({
             id={`${node.id}-else`}
             style={{
               position: "absolute",
-              right: "-24px",
+              right: "-31px",
               top: "50%",
               transform: "translate(50%, -50%)",
             }}
