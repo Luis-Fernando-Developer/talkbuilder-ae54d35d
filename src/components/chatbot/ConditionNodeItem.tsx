@@ -175,7 +175,7 @@ export const ConditionNodeItem = ({
               id={`${node.id}-cond-${condition.id}`}
               style={{
                 position: "absolute",
-                right: "-10.5%",
+                right: "-24px",
                 top: "50%",
                 transform: "translate(50%, -50%)",
               }}
@@ -214,7 +214,7 @@ export const ConditionNodeItem = ({
             id={`${node.id}-else`}
             style={{
               position: "absolute",
-              right: "-10.5%",
+              right: "-24px",
               top: "50%",
               transform: "translate(50%, -50%)",
             }}
