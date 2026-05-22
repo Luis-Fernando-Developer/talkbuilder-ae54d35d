@@ -4,13 +4,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { getEdgeFunctionUrl } from "@/lib/supabaseHelpers";
+import { normalizeMarkdown } from "@/lib/markdown";
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 
 const formatMarkdown = (text: string): string => {
   if (!text) return "";
-  let html = escapeHtml(text);
+  let html = escapeHtml(normalizeMarkdown(text));
   
   // Bold: **text** or __text__
   // Using a more robust regex that handles leading spaces/stars
