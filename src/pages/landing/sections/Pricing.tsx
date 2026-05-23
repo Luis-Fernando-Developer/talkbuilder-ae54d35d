@@ -18,7 +18,7 @@ const plans: {
     features: [
       "1 chatbot",
       "1.000 mensagens/mês",
-      "1 instancia para Whatsapp",
+      "1 conexão para Whatsapp",
       "Editor visual completo",
       "Widget pro site",
     ],
@@ -30,7 +30,7 @@ const plans: {
     features: [
       "3 chatbots",
       "10.000 mensagens/mês",
-      "3 instancia para Whatsapp",
+      "3 conexões para Whatsapp",
       "API de Integrações",
       "Fluxos avançados",
       "Suporte por email",
@@ -44,7 +44,7 @@ const plans: {
     features: [
       "Bots ilimitados",
       "50.000 mensagens/mês",
-      "Até 10 instancias para Whatsapp",
+      "10 conexões para Whatsapp",
       "Múltiplos atendentes",
       "Templates premium",
       "API completa",
