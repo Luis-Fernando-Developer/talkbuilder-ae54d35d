@@ -16,7 +16,7 @@ const plans: {
     price: "49",
     tagline: "Pra começar e validar",
     features: [
-      "1 chatbot", 
+      "1 chatbot",
       "1.000 mensagens/mês",
       "1 instancia para Whatsapp",
       "Editor visual completo",
@@ -47,9 +47,9 @@ const plans: {
       "Até 10 instancias para Whatsapp",
       "Múltiplos atendentes",
       "Templates premium",
-      "API completa"
+      "API completa",
       "Onboarding 1:1",
-      "Suporte prioritário"
+      "Suporte prioritário",
     ],
   },
 ];
