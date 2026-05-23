@@ -49,7 +49,7 @@ const plans: {
       "Templates premium",
       "API completa"
       "Onboarding 1:1",
-      "Suporte prioritário",
+      "Suporte prioritário"
     ],
   },
 ];
