@@ -22,7 +22,7 @@ export default function CtaFinal() {
 			<div className="max-w-5xl mx-auto px-6">
 				<div
 					data-cta-content
-					className="relative overflow-hidden rounded-3xl border border-white/10 p-10 sm:p-16 text-center bg-gradient-to-br from-[#1E0828] via-[#460863] to-[#920027]"
+					className="relative overflow-hidden rounded-3xl border border-white/10 p-10 sm:p-16 text-center bg-[#0d0a14]"
 				>
 					<div className="absolute -top-20 -left-20 w-80 h-80 bg-[#460863] rounded-full blur-3xl opacity-40" />
 					<div className="absolute -bottom-20 -right-20 w-80 h-80 bg-[#920027] rounded-full blur-3xl opacity-40" />
@@ -41,7 +41,7 @@ export default function CtaFinal() {
 							<Link to="/signup">
 								<Button
 									size="lg"
-									className="px-8 h-12 text-base bg-white text-[#460863] hover:bg-white/90 border-0 font-semibold group"
+									className="px-8 h-12 text-base bg-[#920027] text-white hover:bg-[#b00030] border-0 font-semibold group"
 								>
 									Começar grátis agora
 									<ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />

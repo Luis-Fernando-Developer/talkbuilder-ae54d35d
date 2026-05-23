@@ -127,7 +127,7 @@ export default function Hero() {
 				</p>
 
 				<div data-hero-mockup className="mt-20 relative">
-					<div className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-b from-transparent via-[#460863/15] to-transparent blur-3xl" />
+					<div className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-b from-transparent via-[#460863]/10 to-transparent blur-3xl" />
 					<EditorMockup className="relative" />
 				</div>
 			</div>
