@@ -18,14 +18,14 @@ export default function LandingNav() {
 		<header
 			className={`fixed top-0 inset-x-0 z-50 transition-all duration-300 ${
 				scrolled
-					? "bg-background/70 backdrop-blur-xl border-b border-border/60"
+					? "bg-background/40 backdrop-blur-xl border-b border-white/5"
 					: "bg-transparent"
 			}`}
 		>
 			<div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
 				<Link to="/" className="flex items-center gap-2">
 					<img src={logoMark} alt="ZyloFlow" className="h-8 w-auto" />
-					<img src={logoWordmark} alt="ZyloFlow" className="h-6 w-auto" />
+					<img src={logoWordmark} alt="ZyloFlow" className="h-7 w-auto" />
 				</Link>
 
 				<nav className="hidden md:flex items-center gap-8 text-sm text-muted-foreground">
@@ -52,7 +52,7 @@ export default function LandingNav() {
 					<Link to="/signup">
 						<Button
 							size="sm"
-							className="bg-gradient-to-r from-[#460863] to-[#920027] hover:opacity-90 text-white border-0 shadow-[0_4px_20px_-4px_rgba(146,0,39,0.6)]"
+							className="bg-[#920027] hover:bg-[#b00030] text-white border-0 shadow-[0_4px_20px_-4px_rgba(146,0,39,0.6)]"
 						>
 							Começar grátis
 						</Button>

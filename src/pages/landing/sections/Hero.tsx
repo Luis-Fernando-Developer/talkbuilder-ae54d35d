@@ -47,7 +47,7 @@ export default function Hero() {
 		});
 	}, []);
 
-	const headline = ["crie", "fluxos.", "automatize.", "conecte."];
+	const headline = ["Crie fluxos.", "Automatize.", "Conecte."];
 
 	return (
 		<section
@@ -73,19 +73,16 @@ export default function Hero() {
 					Editor visual de chatbots — sem código
 				</div>
 
-				<h1 className="font-display text-5xl sm:text-7xl md:text-8xl font-bold tracking-tight leading-[0.95] mb-8">
+				<h1 className="font-display text-5xl sm:text-7xl md:text-[5rem] lg:text-[6rem] font-bold tracking-tight leading-[1.1] mb-8 flex flex-wrap justify-center gap-x-6">
 					{headline.map((w, i) => (
-						<span key={i} className="inline-block overflow-hidden align-bottom">
-							<span
-								data-hero-word
-								className={`inline-block mr-3 ${
-									w === "fluxos." || w === "automatize." || w === "conecte."
-										? "text-gradient-violet"
-										: ""
-								}`}
-							>
-								{w}
-							</span>
+						<span
+							key={i}
+							data-hero-word
+							className={`${
+								i > 0 ? "text-gradient-violet" : "text-white"
+							}`}
+						>
+							{w}
 						</span>
 					))}
 				</h1>
@@ -102,7 +99,7 @@ export default function Hero() {
 					<Link to="/signup" data-hero-cta>
 						<Button
 							size="lg"
-							className="px-8 h-12 text-base bg-gradient-to-r from-[#920027] to-[#460863] hover:opacity-90 text-white border-0 shadow-[0_10px_40px_-10px_rgba(146,0,39,0.7)] group"
+							className="px-8 h-12 text-base bg-[#920027] hover:bg-[#b00030] text-white border-0 shadow-[0_10px_40px_-10px_rgba(146,0,39,0.7)] group"
 						>
 							Começar grátis
 							<ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -127,7 +124,7 @@ export default function Hero() {
 				</p>
 
 				<div data-hero-mockup className="mt-20 relative">
-					<div className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-b from-transparent via-[#460863/15] to-transparent blur-3xl" />
+					<div className="absolute -inset-x-20 -inset-y-10 bg-gradient-to-b from-transparent via-[#460863]/10 to-transparent blur-3xl" />
 					<EditorMockup className="relative" />
 				</div>
 			</div>

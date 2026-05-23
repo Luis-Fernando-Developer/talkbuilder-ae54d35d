@@ -121,7 +121,7 @@ export default function Pricing() {
 								<Button
 									className={`w-full h-11 ${
 										p.highlight
-											? "bg-gradient-to-r from-[#460863] to-[#920027] hover:opacity-90 text-white border-0"
+											? "bg-[#920027] hover:bg-[#b00030] text-white border-0"
 											: "bg-white/5 hover:bg-white/10 border border-white/10 text-foreground"
 									}`}
 								>

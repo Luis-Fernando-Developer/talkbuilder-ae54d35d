@@ -253,13 +253,13 @@ code {
    Landing page scope: bento/3D dark with violet glow
    ========================================================== */
 .landing-page {
-  --background: #1E0828;
+  --background: #08060d;
   --foreground: #FFFFFF;
-  --card: #2A0B38;
+  --card: #120c18;
   --card-foreground: #FFFFFF;
-  --muted: #460863;
-  --muted-foreground: rgba(255, 255, 255, 0.7);
-  --border: rgba(255, 255, 255, 0.1);
+  --muted: #1a1421;
+  --muted-foreground: rgba(255, 255, 255, 0.6);
+  --border: rgba(255, 255, 255, 0.08);
   --primary: #460863;
   --primary-foreground: #FFFFFF;
   --accent: #920027;
@@ -269,14 +269,13 @@ code {
   --landing-blue: #1E0828;
   --landing-glow: 146, 0, 39;
 
-  --gradient-hero: linear-gradient(95.85deg, #460863 28.20%, #000000 100%);
+  --gradient-hero: linear-gradient(135deg, #1E0828 0%, #08060d 100%);
+  --gradient-violet-pink: linear-gradient(135deg, #460863 0%, #920027 100%);
 
-  --gradient-violet-pink: linear-gradient(265.16deg, #920027 0%, #1E0828 90.97%);
+  --shadow-glow-violet: 0 20px 60px -20px rgba(70, 8, 99, 0.45);
+  --shadow-card: 0 8px 32px -12px rgba(0, 0, 0, 0.8);
 
-  --shadow-glow-violet: 0 20px 60px -20px rgba(146, 0, 39, 0.45);
-  --shadow-card: 0 8px 32px -12px rgba(0, 0, 0, 0.6);
-
-  background: linear-gradient(95.85deg, #460863 28.20%, #000000 100%);
+  background: var(--background);
   color: var(--foreground);
   font-family: "Inter", system-ui, sans-serif;
 }
@@ -314,13 +313,10 @@ code {
 /* Bento card with gradient border */
 .bento-card {
   position: relative;
-  background: linear-gradient(
-    180deg,
-    oklch(0.22 0.018 270) 0%,
-    oklch(0.18 0.014 270) 100%
-  );
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
   border-radius: 1.5rem;
-  border: 1px solid oklch(0.32 0.02 270);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   overflow: hidden;
   transition:
     transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1),
@@ -373,9 +369,9 @@ code {
 .text-gradient-violet {
   background: linear-gradient(
     135deg,
-    #920027 0%,
-    #460863 50%,
-    #920027 100%
+    #FFFFFF 0%,
+    #920027 40%,
+    #460863 100%
   );
   -webkit-background-clip: text;
   background-clip: text;
