@@ -73,19 +73,16 @@ export default function Hero() {
 					Editor visual de chatbots — sem código
 				</div>
 
-				<h1 className="font-display text-5xl sm:text-7xl md:text-[5.5rem] font-bold tracking-tight leading-[1.1] mb-8">
+				<h1 className="font-display text-5xl sm:text-7xl md:text-[5rem] lg:text-[6rem] font-bold tracking-tight leading-[1.1] mb-8 flex flex-wrap justify-center gap-x-6">
 					{headline.map((w, i) => (
-						<span key={i} className="inline-block overflow-hidden align-bottom">
-							<span
-								data-hero-word
-								className={`inline-block mr-3 ${
-									i > 0
-										? "text-gradient-violet"
-										: ""
-								}`}
-							>
-								{w}
-							</span>
+						<span
+							key={i}
+							data-hero-word
+							className={`${
+								i > 0 ? "text-gradient-violet" : "text-white"
+							}`}
+						>
+							{w}
 						</span>
 					))}
 				</h1>
