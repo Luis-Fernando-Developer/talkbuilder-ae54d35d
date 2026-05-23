@@ -79,19 +79,19 @@ export default function Pricing() {
 					</p>
 				</div>
 
-				<div className="grid md:grid-cols-3 gap-5 items-stretch">
+				<div className="grid md:grid-cols-3 gap-5 items-stretch pt-6 overflow-visible">
 					{plans.map((p) => (
 						<div
 							key={p.id}
 							data-plan
-							className={`bento-card p-7 flex flex-col relative ${
+							className={`bento-card p-7 flex flex-col relative overflow-visible ${
 								p.highlight
 									? "md:scale-105 md:-my-2 border-[#460863] shadow-[0_30px_80px_-20px_rgba(146,0,39,0.45)]"
 									: ""
 							}`}
 						>
 							{p.highlight && (
-								<div className="absolute -top-3 left-1/2 -translate-x-1/2 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-3 py-1 rounded-full bg-gradient-to-r from-[#460863] to-[#920027] text-white font-semibold shadow-lg">
+								<div className="absolute -top-4 left-1/2 -translate-x-1/2 z-10 inline-flex items-center gap-1 text-[10px] uppercase tracking-wider px-3 py-1.5 rounded-full bg-gradient-to-r from-[#460863] to-[#920027] text-white font-semibold shadow-lg whitespace-nowrap">
 									<Sparkles className="w-3 h-3" /> Mais escolhido
 								</div>
 							)}
