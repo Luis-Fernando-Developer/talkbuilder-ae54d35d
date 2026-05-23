@@ -88,7 +88,7 @@ export default function Faq() {
 		<section id="faq" ref={ref} className="relative py-28">
 			<div className="max-w-3xl mx-auto px-6">
 				<div className="text-center mb-12">
-					<p className="text-xs uppercase tracking-[0.2em] text-[oklch(0.78_0.18_295)] mb-4 font-medium">
+					<p className="text-xs uppercase tracking-[0.2em] text-[#920027] mb-4 font-medium">
 						FAQ
 					</p>
 					<h2 className="font-display text-4xl sm:text-5xl font-bold tracking-tight">
