@@ -101,7 +101,7 @@ export default function Hero() {
 							size="lg"
 							className="px-8 h-12 text-base bg-[#920027] hover:bg-[#b00030] text-white border-0 shadow-[0_10px_40px_-10px_rgba(146,0,39,0.7)] group"
 						>
-							Começar grátis
+							Comece agora
 							<ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
 						</Button>
 					</Link>
