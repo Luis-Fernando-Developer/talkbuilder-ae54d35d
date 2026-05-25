@@ -16,6 +16,7 @@ import SecurityConfig from "./tabsListUI/Security";
 import KeysApi from "./tabsListUI/KeysApi";
 import IntegrationsSettings from "./tabsListUI/IntegrationsSettings";
 import PaymentPlan from "./tabsListUI/PaymentPlan";
+import WhatsAppConfig from "./tabsListUI/WhatsAppConfig";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { useEmbed } from "../../../context/EmbedContext";
 import { useAuth } from "../../../context/AuthContext";
@@ -129,7 +130,8 @@ export default function ConfigurationWorkspace() {
 								</div>
 							</TabsContent>
 							<TabsContent value="integration">
-								<div className="animate-in fade-in slide-in-from-bottom-2 duration-300">
+								<div className="animate-in fade-in slide-in-from-bottom-2 duration-300 space-y-8">
+									<WhatsAppConfig />
 									<IntegrationsSettings />
 								</div>
 							</TabsContent>
