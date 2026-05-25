@@ -123,22 +123,6 @@ export default function IntegrationsSettings() {
           </CardContent>
         </Card>
 
-        <Card className='flex items-center p-4 justify-between relative'>
-          <div className='p-3 h-fit w-fit rounded-xl bg-gray-200/90'>
-            <SiWhatsapp className='w-5 h-5 text-green-600'/>
-          </div>
-          <CardHeader className='flex flex-col text-left items-start  w-full'>
-            <CardTitle>WhatsApp</CardTitle>
-            <CardDescription>Conect seu chatbot ao WhatsApp - Ativo</CardDescription>
-          </CardHeader>
-          <CardContent className='flex absolute right-0 h-full'>
-            <div className='pt-2 flex flex-col justify-between'>
-              <div className='flex items-end justify-end '>
-                <Ellipsis />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
 
         <Card className='flex items-center p-4 justify-between relative'>
           <div className='p-3 h-fit w-fit rounded-xl bg-gray-200/90'>

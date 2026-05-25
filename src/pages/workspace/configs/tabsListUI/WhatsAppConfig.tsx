@@ -15,7 +15,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "../../../../components/ui/dialog";
 
 export default function WhatsAppConfig() {
@@ -33,6 +32,9 @@ export default function WhatsAppConfig() {
     if (currentWorkspace?.id) {
       loadConnections();
     }
+    return () => {
+      if (pollInterval) clearInterval(pollInterval);
+    };
   }, [currentWorkspace?.id]);
 
   const loadConnections = async () => {
@@ -60,10 +62,8 @@ export default function WhatsAppConfig() {
 
     setCreating(true);
     try {
-      // 1. Criar na Evolution API
       const result = await evoApi.createInstance(instanceName);
       
-      // 2. Salvar no Supabase
       const { error } = await supabase.from("whatsapp_connections").insert({
         workspace_id: currentWorkspace?.id,
         instance_name: instanceName,
@@ -77,7 +77,6 @@ export default function WhatsAppConfig() {
       setInstanceName("");
       loadConnections();
       
-      // 3. Mostrar QR Code
       if (result.qrcode?.base64) {
         setQrCodeData(result.qrcode.base64);
         setShowQrModal(true);
@@ -101,7 +100,7 @@ export default function WhatsAppConfig() {
           setShowQrModal(false);
           setQrCodeData(null);
           loadConnections();
-          if (interval) clearInterval(interval);
+          clearInterval(interval);
         }
       } catch (err) {
         console.error("Erro no polling:", err);
@@ -113,17 +112,20 @@ export default function WhatsAppConfig() {
 
   const handleConnect = async (name: string) => {
     try {
+      setQrCodeData(null);
+      setShowQrModal(true);
       const result = await evoApi.getQrCode(name);
       if (result?.base64) {
         setQrCodeData(result.base64);
-        setShowQrModal(true);
         startPolling(name);
       } else if (result?.code === "instance_already_connected") {
           toast({ title: "Instância já está conectada" });
+          setShowQrModal(false);
           loadConnections();
       }
     } catch (err) {
       toast({ title: "Erro ao buscar QR Code", variant: "destructive" });
+      setShowQrModal(false);
     }
   };
 
@@ -160,90 +162,90 @@ export default function WhatsAppConfig() {
   };
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <SiWhatsapp className="w-6 h-6 text-green-500" />
-                Conexões WhatsApp
-              </CardTitle>
-              <CardDescription>
-                Gerencie suas instâncias da Evolution API
-              </CardDescription>
-            </div>
+    <Card className='border shadow-sm'>
+      <CardHeader className='pb-4'>
+        <div className='flex items-center gap-3'>
+          <div className='p-2.5 h-fit w-fit rounded-xl bg-green-50'>
+            <SiWhatsapp className='w-5 h-5 text-green-600'/>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-3">
+          <div>
+            <CardTitle className="text-xl">WhatsApp</CardTitle>
+            <CardDescription>Conecte seu chatbot ao WhatsApp via Evolution API</CardDescription>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-6">
+        <div className="flex flex-col gap-4 p-4 border rounded-xl bg-gray-50/50">
+          <Label className="text-sm font-medium">Nova Conexão</Label>
+          <div className="flex gap-2">
             <Input
-              placeholder="Nome da instância (ex: comercial-01)"
+              placeholder="Nome da instância (ex: comercial-zap)"
               value={instanceName}
               onChange={(e) => setInstanceName(e.target.value)}
+              className="bg-white"
             />
-            <Button onClick={createInstance} disabled={creating}>
+            <Button onClick={createInstance} disabled={creating} className="bg-green-600 hover:bg-green-700">
               {creating ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-              Nova Instância
+              Criar Instância
             </Button>
           </div>
+        </div>
 
-          <div className="space-y-3">
-            {loading ? (
-              <div className="flex justify-center p-8">
-                <Loader2 className="w-8 h-8 animate-spin text-primary" />
-              </div>
-            ) : connections.length === 0 ? (
-              <div className="text-center p-8 border-2 border-dashed rounded-xl text-muted-foreground">
-                Nenhuma conexão configurada.
-              </div>
-            ) : (
-              connections.map((conn) => (
-                <Card key={conn.id} className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-full ${conn.status === 'connected' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
-                        <SiWhatsapp className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{conn.instance_name}</h4>
-                        <div className="flex items-center gap-2">
-                          {conn.status === "connected" ? (
-                            <span className="flex items-center gap-1 text-xs text-green-600">
-                              <CheckCircle2 className="w-3 h-3" /> Conectado
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1 text-xs text-gray-400">
-                              <XCircle className="w-3 h-3" /> Desconectado
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" onClick={() => handleRefreshStatus(conn.instance_name)} title="Atualizar status">
-                        <RefreshCw className="w-4 h-4" />
-                      </Button>
-                      
-                      {conn.status !== "connected" && (
-                        <Button variant="outline" size="sm" onClick={() => handleConnect(conn.instance_name)}>
-                          <QrCode className="w-4 h-4 mr-2" />
-                          Conectar
-                        </Button>
+        <div className="space-y-3">
+          <Label className="text-sm font-medium px-1">Suas Instâncias</Label>
+          {loading ? (
+            <div className="flex justify-center p-8">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            </div>
+          ) : connections.length === 0 ? (
+            <div className="text-center p-8 border-2 border-dashed rounded-xl text-muted-foreground bg-white">
+              Nenhuma instância ativa. Crie uma acima para começar.
+            </div>
+          ) : (
+            connections.map((conn) => (
+              <div key={conn.id} className="flex items-center justify-between p-4 border rounded-xl bg-white shadow-sm hover:border-green-200 transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className={`p-2 rounded-lg ${conn.status === 'connected' ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    <SiWhatsapp className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-900">{conn.instance_name}</h4>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      {conn.status === "connected" ? (
+                        <span className="flex items-center gap-1 text-[11px] font-medium text-green-600 uppercase tracking-wider">
+                          <CheckCircle2 className="w-3 h-3" /> Online
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-[11px] font-medium text-gray-400 uppercase tracking-wider">
+                          <XCircle className="w-3 h-3" /> Offline
+                        </span>
                       )}
-                      
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDelete(conn.id, conn.instance_name)}>
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
                   </div>
-                </Card>
-              ))
-            )}
-          </div>
-        </CardContent>
-      </Card>
+                </div>
+                
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" onClick={() => handleRefreshStatus(conn.instance_name)} title="Atualizar status" className="h-8 w-8 text-gray-500">
+                    <RefreshCw className="w-4 h-4" />
+                  </Button>
+                  
+                  {conn.status !== "connected" && (
+                    <Button variant="outline" size="sm" onClick={() => handleConnect(conn.instance_name)} className="h-8 border-green-200 text-green-700 hover:bg-green-50">
+                      <QrCode className="w-3.5 h-3.5 mr-1.5" />
+                      Conectar
+                    </Button>
+                  )}
+                  
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-gray-400 hover:text-destructive" onClick={() => handleDelete(conn.id, conn.instance_name)}>
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </CardContent>
 
       <Dialog open={showQrModal} onOpenChange={setShowQrModal}>
         <DialogContent className="sm:max-w-md">
@@ -253,21 +255,28 @@ export default function WhatsAppConfig() {
               Escaneie o código abaixo com o seu WhatsApp para realizar a conexão.
             </DialogDescription>
           </DialogHeader>
-          <div className="flex flex-col items-center justify-center p-6 bg-white rounded-lg">
+          <div className="flex flex-col items-center justify-center p-8 bg-white rounded-lg border-2 border-dashed">
             {qrCodeData ? (
-              <img src={qrCodeData} alt="WhatsApp QR Code" className="w-64 h-64" />
+              <div className="bg-white p-2 rounded-lg shadow-sm border">
+                <img src={qrCodeData} alt="WhatsApp QR Code" className="w-64 h-64" />
+              </div>
             ) : (
-              <div className="flex flex-col items-center gap-2">
-                <Loader2 className="w-10 h-10 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Gerando QR Code...</p>
+              <div className="flex flex-col items-center gap-3 py-10">
+                <Loader2 className="w-10 h-10 animate-spin text-green-600" />
+                <p className="text-sm font-medium text-gray-500">Gerando QR Code...</p>
               </div>
             )}
-            <p className="mt-4 text-xs text-center text-muted-foreground">
-              O status será atualizado automaticamente após o escaneamento.
-            </p>
+            <div className="mt-6 text-center space-y-2">
+              <p className="text-sm text-gray-600 font-medium">
+                Aguardando leitura do código...
+              </p>
+              <p className="text-xs text-gray-400 px-4">
+                O painel será atualizado automaticamente assim que o dispositivo for pareado.
+              </p>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 }
