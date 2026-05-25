@@ -131,7 +131,6 @@ export default function ConfigurationWorkspace() {
 							</TabsContent>
 							<TabsContent value="integration">
 								<div className="animate-in fade-in slide-in-from-bottom-2 duration-300 flex flex-col gap-6">
-									<WhatsAppConfig />
 									<IntegrationsSettings />
 								</div>
 							</TabsContent>
