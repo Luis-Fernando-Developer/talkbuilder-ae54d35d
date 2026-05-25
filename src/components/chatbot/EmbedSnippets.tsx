@@ -296,7 +296,7 @@ function WhatsappBindPanel({ botPublicId }: { botPublicId: string }) {
       </div>
 
       <p className="text-[11px] text-muted-foreground leading-relaxed pt-1">
-        Webhook configurado automaticamente para: <code className="text-[10px] break-all">{webhookUrl}</code>
+        Webhook configurado na Evolution API para: <code className="text-[10px] break-all">{webhookUrl}</code>
       </p>
     </div>
   );
