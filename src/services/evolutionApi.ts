@@ -11,26 +11,33 @@ export const evoApi = {
    * Cria uma nova instância na Evolution API
    */
   async createInstance(instanceName: string) {
-    const response = await fetch(`${EVO_BASE_URL}/instance/create`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': EVO_GLOBAL_KEY
-      },
-      body: JSON.stringify({
-        instanceName,
-        token: '', // Deixa vazio para gerar automaticamente ou defina um
-        qrcode: true,
-        number: '',
-      })
-    });
-    
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Erro ao criar instância');
+    try {
+      const response = await fetch(`${EVO_BASE_URL}/instance/create`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': EVO_GLOBAL_KEY
+        },
+        body: JSON.stringify({
+          instanceName,
+          token: '', // Deixa vazio para gerar automaticamente ou defina um
+          qrcode: true,
+          number: '',
+        })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        console.error('Erro Evolution API:', data);
+        throw new Error(data.message || data.error || 'Erro ao criar instância');
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Erro na requisição createInstance:', error);
+      throw error;
     }
-    
-    return response.json();
   },
 
   /**
