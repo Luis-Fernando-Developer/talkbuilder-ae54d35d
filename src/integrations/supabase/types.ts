@@ -171,24 +171,66 @@ export type Database = {
           },
         ]
       }
-      whatsapp_bindings: {
+      profiles: {
         Row: {
-          bot_public_id: string
+          avatar_url: string | null
           created_at: string
-          instance_name: string
+          email: string | null
+          full_name: string | null
+          id: string
+          slug: string | null
           updated_at: string
         }
         Insert: {
-          bot_public_id: string
+          avatar_url?: string | null
           created_at?: string
-          instance_name: string
+          email?: string | null
+          full_name?: string | null
+          id: string
+          slug?: string | null
           updated_at?: string
         }
         Update: {
-          bot_public_id?: string
+          avatar_url?: string | null
           created_at?: string
-          instance_name?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          slug?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      whatsapp_connections: {
+        Row: {
+          created_at: string
+          id: string
+          instance_name: string
+          name: string | null
+          settings: Json | null
+          status: string | null
+          updated_at: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          instance_name: string
+          name?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          instance_name?: string
+          name?: string | null
+          settings?: Json | null
+          status?: string | null
+          updated_at?: string
+          workspace_id?: string | null
         }
         Relationships: []
       }
