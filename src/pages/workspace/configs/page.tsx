@@ -16,7 +16,7 @@ import SecurityConfig from "./tabsListUI/Security";
 import KeysApi from "./tabsListUI/KeysApi";
 import IntegrationsSettings from "./tabsListUI/IntegrationsSettings";
 import PaymentPlan from "./tabsListUI/PaymentPlan";
-import WhatsAppConfig from "./tabsListUI/WhatsAppConfig";
+// WhatsAppConfig logic moved into IntegrationsSettings
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "../../../components/ui/tabs";
 import { useEmbed } from "../../../context/EmbedContext";
 import { useAuth } from "../../../context/AuthContext";
