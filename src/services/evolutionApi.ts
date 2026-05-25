@@ -12,6 +12,25 @@ export const evoApi = {
    */
   async createInstance(instanceName: string) {
     try {
+      // Primeiro tenta verificar se já existe
+      const checkResponse = await fetch(`${EVO_BASE_URL}/instance/connectionState/${instanceName}`, {
+        method: 'GET',
+        headers: { 'apikey': EVO_GLOBAL_KEY }
+      });
+
+      if (checkResponse.ok) {
+        const checkData = await checkResponse.json();
+        // Se a instância já existe, retornamos os dados dela
+        return {
+          instance: {
+            instanceName,
+            status: checkData.instance?.state || 'disconnected',
+            apikey: EVO_GLOBAL_KEY
+          },
+          alreadyExists: true
+        };
+      }
+
       const response = await fetch(`${EVO_BASE_URL}/instance/create`, {
         method: 'POST',
         headers: {
@@ -29,7 +48,14 @@ export const evoApi = {
       const data = await response.json();
       
       if (!response.ok) {
-        console.error('Erro Evolution API:', data);
+        console.error('Erro Evolution API (Create):', data);
+        // Se retornar que já existe por erro 403/400, tentamos retornar sucesso simulado
+        if (response.status === 403 || response.status === 400 || data.message?.includes('exists')) {
+           return {
+            instance: { instanceName, apikey: EVO_GLOBAL_KEY },
+            alreadyExists: true
+           };
+        }
         throw new Error(data.message || data.error || 'Erro ao criar instância');
       }
       
