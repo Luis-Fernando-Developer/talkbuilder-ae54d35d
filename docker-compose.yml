@@ -14,7 +14,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.chatbot-server.rule=Host(`${SERVER_DOMAIN}`)"
-      - "traefik.http.routers.chatbot-server.entrypoints=websecure"
+      - "traefik.http.routers.chatbot-server.entrypoints=web,websecure"
       - "traefik.http.routers.chatbot-server.tls.certresolver=myresolver"
       - "traefik.http.services.chatbot-server.loadbalancer.server.port=3000"
 
@@ -35,7 +35,7 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.chatbot-frontend.rule=Host(`${FRONTEND_DOMAIN}`)"
-      - "traefik.http.routers.chatbot-frontend.entrypoints=websecure"
+      - "traefik.http.routers.chatbot-frontend.entrypoints=web,websecure"
       - "traefik.http.routers.chatbot-frontend.tls.certresolver=myresolver"
       - "traefik.http.services.chatbot-frontend.loadbalancer.server.port=80"
 
