@@ -1,503 +1,134 @@
--- =============================================================================
--- TalkMap — Schema completo
--- =============================================================================
--- COMO USAR:
---   1. Abra o painel do seu Supabase → SQL Editor
---   2. Cole TODO o conteúdo deste arquivo
---   3. Clique em "Run"
---   4. Pronto — login/signup, perfil, pastas, bots, empresa e workspace
---      passam a funcionar no app
--- =============================================================================
-
--- 1) Enum de planos -----------------------------------------------------------
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'plan_id') then
-    create type public.plan_id as enum ('starter', 'pro', 'business');
-  end if;
-end$$;
-
--- 2) Tabela profiles ----------------------------------------------------------
-create table if not exists public.profiles (
-  id            uuid primary key references auth.users(id) on delete cascade,
-  slug          text not null unique
-                 check (slug ~ '^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])?$'),
-  display_name  text,
-  avatar_url    text,
-  plan          public.plan_id not null default 'starter',
-  -- campos editáveis no /workspace/perfil
-  phone         text,
-  location      text,
-  job_title     text,
-  created_at    timestamptz not null default now(),
-  updated_at    timestamptz not null default now()
-);
-
--- garantir colunas se a tabela já existia de versão antiga
-alter table public.profiles add column if not exists phone     text;
-alter table public.profiles add column if not exists location  text;
-alter table public.profiles add column if not exists job_title text;
-
-create index if not exists profiles_slug_idx on public.profiles (slug);
-
--- 3) RLS profiles -------------------------------------------------------------
-alter table public.profiles enable row level security;
-
-drop policy if exists "profiles_select_public" on public.profiles;
-create policy "profiles_select_public"
-  on public.profiles for select
-  to anon, authenticated
-  using (true);
-
-drop policy if exists "profiles_update_own" on public.profiles;
-create policy "profiles_update_own"
-  on public.profiles for update
-  to authenticated
-  using (auth.uid() = id)
-  with check (auth.uid() = id);
-
-drop policy if exists "profiles_insert_own" on public.profiles;
-create policy "profiles_insert_own"
-  on public.profiles for insert
-  to authenticated
-  with check (auth.uid() = id);
-
--- 4) updated_at trigger genérico ---------------------------------------------
-create or replace function public.handle_updated_at()
-returns trigger language plpgsql as $$
-begin new.updated_at = now(); return new; end;
-$$;
-
-drop trigger if exists profiles_updated_at on public.profiles;
-create trigger profiles_updated_at
-  before update on public.profiles
-  for each row execute function public.handle_updated_at();
-
--- 5) Auto-criar profile no signup --------------------------------------------
-create or replace function public.handle_new_user()
-returns trigger language plpgsql security definer set search_path = public as $$
-declare
-  v_slug text;
-  v_plan public.plan_id;
-  v_display_name text;
-begin
-  v_slug := lower(coalesce(new.raw_user_meta_data ->> 'slug', ''));
-  v_plan := coalesce((new.raw_user_meta_data ->> 'plan')::public.plan_id, 'starter');
-  v_display_name := coalesce(new.raw_user_meta_data ->> 'display_name', split_part(new.email, '@', 1));
-
-  if v_slug = '' then
-    v_slug := regexp_replace(split_part(new.email, '@', 1), '[^a-z0-9-]', '-', 'g');
-  end if;
-
-  insert into public.profiles (id, slug, display_name, plan)
-  values (new.id, v_slug, v_display_name, v_plan);
-
-  return new;
-end;
-$$;
-
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
--- 6) Slug check ---------------------------------------------------------------
-create or replace function public.is_slug_available(p_slug text)
-returns boolean language sql stable security definer set search_path = public as $$
-  select not exists (select 1 from public.profiles where slug = lower(p_slug));
-$$;
-
-grant execute on function public.is_slug_available(text) to anon, authenticated;
-
--- =============================================================================
--- 7) WORKSPACE ITEMS — pastas e bots por usuário
--- =============================================================================
-do $$
-begin
-  if not exists (select 1 from pg_type where typname = 'workspace_item_type') then
-    create type public.workspace_item_type as enum ('folder', 'bot');
-  end if;
-end$$;
-
-create table if not exists public.workspace_items (
-  id          uuid primary key default gen_random_uuid(),
-  user_id     uuid not null references auth.users(id) on delete cascade,
-  type        public.workspace_item_type not null,
-  title       text not null,
-  description text not null default '',
-  emoji       text not null default '📁',
-  parent_id   uuid references public.workspace_items(id) on delete cascade,
-  index_item  int  not null default 0,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
-);
-
-create index if not exists workspace_items_user_idx   on public.workspace_items (user_id);
-create index if not exists workspace_items_parent_idx on public.workspace_items (parent_id);
-
-alter table public.workspace_items enable row level security;
-
-drop policy if exists "workspace_items_select_own" on public.workspace_items;
-create policy "workspace_items_select_own"
-  on public.workspace_items for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop policy if exists "workspace_items_insert_own" on public.workspace_items;
-create policy "workspace_items_insert_own"
-  on public.workspace_items for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-drop policy if exists "workspace_items_update_own" on public.workspace_items;
-create policy "workspace_items_update_own"
-  on public.workspace_items for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-drop policy if exists "workspace_items_delete_own" on public.workspace_items;
-create policy "workspace_items_delete_own"
-  on public.workspace_items for delete
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop trigger if exists workspace_items_updated_at on public.workspace_items;
-create trigger workspace_items_updated_at
-  before update on public.workspace_items
-  for each row execute function public.handle_updated_at();
-
--- =============================================================================
--- 8) COMPANIES — dados da empresa do cliente (1 por usuário)
--- =============================================================================
-create table if not exists public.companies (
-  user_id     uuid primary key references auth.users(id) on delete cascade,
-  name        text,
-  cnpj        text,
-  email       text,
-  phone       text,
-  address     text,
-  sector      text,
-  website     text,
-  logo_url    text,
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now()
-);
-
-alter table public.companies enable row level security;
-
-drop policy if exists "companies_select_own" on public.companies;
-create policy "companies_select_own"
-  on public.companies for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop policy if exists "companies_insert_own" on public.companies;
-create policy "companies_insert_own"
-  on public.companies for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-drop policy if exists "companies_update_own" on public.companies;
-create policy "companies_update_own"
-  on public.companies for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-drop trigger if exists companies_updated_at on public.companies;
-create trigger companies_updated_at
-  before update on public.companies
-  for each row execute function public.handle_updated_at();
-
--- =============================================================================
--- 9) WORKSPACE SETTINGS — configurações operacionais (1 por usuário)
--- =============================================================================
-create table if not exists public.workspace_settings (
-  user_id        uuid primary key references auth.users(id) on delete cascade,
-  workspace_name text,
-  timezone       text,
-  language       text,
-  created_at     timestamptz not null default now(),
-  updated_at     timestamptz not null default now()
-);
-
-alter table public.workspace_settings enable row level security;
-
-drop policy if exists "workspace_settings_select_own" on public.workspace_settings;
-create policy "workspace_settings_select_own"
-  on public.workspace_settings for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop policy if exists "workspace_settings_insert_own" on public.workspace_settings;
-create policy "workspace_settings_insert_own"
-  on public.workspace_settings for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-drop policy if exists "workspace_settings_update_own" on public.workspace_settings;
-create policy "workspace_settings_update_own"
-  on public.workspace_settings for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-drop trigger if exists workspace_settings_updated_at on public.workspace_settings;
-create trigger workspace_settings_updated_at
-  before update on public.workspace_settings
-  for each row execute function public.handle_updated_at();
-
--- =============================================================================
--- 10) STORAGE — bucket público de avatares
--- =============================================================================
-insert into storage.buckets (id, name, public)
-values ('avatars', 'avatars', true)
-on conflict (id) do nothing;
-
--- Policies do bucket avatars (cada usuário só mexe na sua pasta /{uid}/...)
-drop policy if exists "avatars_public_read" on storage.objects;
-create policy "avatars_public_read"
-  on storage.objects for select
-  to anon, authenticated
-  using (bucket_id = 'avatars');
-
-drop policy if exists "avatars_user_insert" on storage.objects;
-create policy "avatars_user_insert"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
-drop policy if exists "avatars_user_update" on storage.objects;
-create policy "avatars_user_update"
-  on storage.objects for update
-  to authenticated
-  using (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
-drop policy if exists "avatars_user_delete" on storage.objects;
-create policy "avatars_user_delete"
-  on storage.objects for delete
-  to authenticated
-  using (
-    bucket_id = 'avatars'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
--- =============================================================================
--- 11) STORAGE — bucket público de logos da empresa
--- =============================================================================
-insert into storage.buckets (id, name, public)
-values ('company-logos', 'company-logos', true)
-on conflict (id) do nothing;
-
-drop policy if exists "company_logos_public_read" on storage.objects;
-create policy "company_logos_public_read"
-  on storage.objects for select
-  to anon, authenticated
-  using (bucket_id = 'company-logos');
-
-drop policy if exists "company_logos_user_insert" on storage.objects;
-create policy "company_logos_user_insert"
-  on storage.objects for insert
-  to authenticated
-  with check (
-    bucket_id = 'company-logos'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
-drop policy if exists "company_logos_user_update" on storage.objects;
-create policy "company_logos_user_update"
-  on storage.objects for update
-  to authenticated
-  using (
-    bucket_id = 'company-logos'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
-drop policy if exists "company_logos_user_delete" on storage.objects;
-create policy "company_logos_user_delete"
-  on storage.objects for delete
-  to authenticated
-  using (
-    bucket_id = 'company-logos'
-    and (storage.foldername(name))[1] = auth.uid()::text
-  );
-
--- =============================================================================
--- 12) CHATBOT FLOWS — fluxo do bot, com versão rascunho e versão publicada
--- =============================================================================
--- Cada workspace_item do tipo 'bot' tem (no máximo) um chatbot_flow correspondente.
--- draft_*  -> última versão salva (sempre que o usuário clica "Salvar")
--- published_* -> versão atualmente pública (snapshot tirado no "Publicar")
--- public_id é único POR usuário (não global), permitindo URLs amigáveis.
--- =============================================================================
-create table if not exists public.chatbot_flows (
-  id                  uuid primary key default gen_random_uuid(),
-  user_id             uuid not null references auth.users(id) on delete cascade,
-  workspace_item_id   uuid not null unique references public.workspace_items(id) on delete cascade,
-  name                text not null default 'Novo bot',
-  description         text,
-  settings            jsonb not null default '{}'::jsonb,
-  -- versão em edição
-  draft_containers    jsonb not null default '[]'::jsonb,
-  draft_edges         jsonb not null default '[]'::jsonb,
-  draft_updated_at    timestamptz not null default now(),
-  -- versão publicada (snapshot)
-  published_containers jsonb,
-  published_edges     jsonb,
-  published_at        timestamptz,
-  -- publicação
-  public_id           text,
-  is_published        boolean not null default false,
-  is_active           boolean not null default false,
-  created_at          timestamptz not null default now(),
-  updated_at          timestamptz not null default now(),
-  constraint chatbot_flows_public_id_format
-    check (public_id is null or public_id ~ '^[a-z0-9](?:[a-z0-9-]{1,60}[a-z0-9])?$')
-);
-
--- public_id único por usuário (escopo: usuário, não global)
-create unique index if not exists chatbot_flows_user_public_id_uniq
-  on public.chatbot_flows (user_id, public_id)
-  where public_id is not null;
-
-create index if not exists chatbot_flows_user_idx       on public.chatbot_flows (user_id);
-create index if not exists chatbot_flows_published_idx  on public.chatbot_flows (is_published) where is_published;
-
-alter table public.chatbot_flows enable row level security;
-
--- SELECT: dono OU qualquer um (anon/authenticated) se publicado e ativo
-drop policy if exists "chatbot_flows_select_own" on public.chatbot_flows;
-create policy "chatbot_flows_select_own"
-  on public.chatbot_flows for select
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop policy if exists "chatbot_flows_select_public" on public.chatbot_flows;
-create policy "chatbot_flows_select_public"
-  on public.chatbot_flows for select
-  to anon, authenticated
-  using (is_published = true and is_active = true and public_id is not null);
-
-drop policy if exists "chatbot_flows_insert_own" on public.chatbot_flows;
-create policy "chatbot_flows_insert_own"
-  on public.chatbot_flows for insert
-  to authenticated
-  with check (auth.uid() = user_id);
-
-drop policy if exists "chatbot_flows_update_own" on public.chatbot_flows;
-create policy "chatbot_flows_update_own"
-  on public.chatbot_flows for update
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
-
-drop policy if exists "chatbot_flows_delete_own" on public.chatbot_flows;
-create policy "chatbot_flows_delete_own"
-  on public.chatbot_flows for delete
-  to authenticated
-  using (auth.uid() = user_id);
-
-drop trigger if exists chatbot_flows_updated_at on public.chatbot_flows;
-create trigger chatbot_flows_updated_at
-  before update on public.chatbot_flows
-  for each row execute function public.handle_updated_at();
-
--- Lookup público por slug do dono + public_id (sem expor user_id)
-create or replace function public.get_public_flow(p_slug text, p_public_id text)
-returns table (
-  id uuid,
-  name text,
-  description text,
-  settings jsonb,
-  containers jsonb,
-  edges jsonb,
-  owner_slug text
-) language sql stable security definer set search_path = public as $$
-  select f.id,
-         f.name,
-         f.description,
-         f.settings,
-         coalesce(f.published_containers, '[]'::jsonb) as containers,
-         coalesce(f.published_edges, '[]'::jsonb)      as edges,
-         p.slug as owner_slug
-    from public.chatbot_flows f
-    join public.profiles p on p.id = f.user_id
-   where p.slug = lower(p_slug)
-     and f.public_id = p_public_id
-     and f.is_published = true
-     and f.is_active = true
-   limit 1;
-$$;
-
-grant execute on function public.get_public_flow(text, text) to anon, authenticated;
-
-
-
 -- ============================================================
--- API Keys (para integração Flow-Appoint ↔ builder-flow-api)
--- Usado pelo endpoint POST /api/keys/validate (a ser criado no
--- backend próprio). Armazene SEMPRE o hash, nunca a chave.
+-- SETUP COMPLETO DO SEU SUPABASE (fwoescubnnagdvwasbjl)
+-- Rode este SQL no SQL Editor do seu Supabase
 -- ============================================================
-create table if not exists public.api_keys (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references auth.users(id) on delete cascade not null,
-  workspace_slug text not null,
-  key_hash text not null unique,
-  name text,
-  is_active boolean not null default true,
-  created_at timestamptz not null default now(),
-  last_used_at timestamptz
+
+-- 1) Tabela de Workspaces (multi-tenant)
+CREATE TABLE IF NOT EXISTS public.workspaces (
+  id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name       TEXT NOT NULL,
+  slug       TEXT UNIQUE NOT NULL,
+  owner_id   UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
+
+-- 2) Tabela de membros do workspace
+CREATE TABLE IF NOT EXISTS public.workspace_members (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id  UUID NOT NULL REFERENCES public.workspaces(id) ON DELETE CASCADE,
+  user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  role          TEXT NOT NULL DEFAULT 'owner' CHECK (role IN ('owner','admin','editor')),
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (workspace_id, user_id)
+);
+ALTER TABLE public.workspace_members ENABLE ROW LEVEL SECURITY;
+
+-- 3) Políticas RLS
+DROP POLICY IF EXISTS "ws read own" ON public.workspaces;
+CREATE POLICY "ws read own" ON public.workspaces FOR SELECT
+  USING (
+    owner_id = auth.uid()
+    OR EXISTS (SELECT 1 FROM public.workspace_members m WHERE m.workspace_id = id AND m.user_id = auth.uid())
+  );
+DROP POLICY IF EXISTS "ws insert own" ON public.workspaces;
+CREATE POLICY "ws insert own" ON public.workspaces FOR INSERT WITH CHECK (owner_id = auth.uid());
+DROP POLICY IF EXISTS "ws update owner" ON public.workspaces;
+CREATE POLICY "ws update owner" ON public.workspaces FOR UPDATE USING (owner_id = auth.uid());
+
+DROP POLICY IF EXISTS "wm read own" ON public.workspace_members;
+CREATE POLICY "wm read own" ON public.workspace_members FOR SELECT USING (user_id = auth.uid());
+DROP POLICY IF EXISTS "wm insert self" ON public.workspace_members;
+CREATE POLICY "wm insert self" ON public.workspace_members FOR INSERT WITH CHECK (user_id = auth.uid());
+
+-- 4) Função RPC get_my_workspaces  (resolve o 404!)
+CREATE OR REPLACE FUNCTION public.get_my_workspaces()
+RETURNS TABLE (id UUID, name TEXT, slug TEXT, role TEXT)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT w.id, w.name, w.slug, COALESCE(m.role, 'owner') AS role
+  FROM public.workspaces w
+  LEFT JOIN public.workspace_members m
+    ON m.workspace_id = w.id AND m.user_id = auth.uid()
+  WHERE w.owner_id = auth.uid()
+     OR m.user_id  = auth.uid();
+$$;
+GRANT EXECUTE ON FUNCTION public.get_my_workspaces() TO authenticated;
+
+-- 5) Trigger: ao criar usuário, criar workspace pessoal + profile
+CREATE TABLE IF NOT EXISTS public.profiles (
+  id         UUID PRIMARY KEY,
+  email      TEXT,
+  full_name  TEXT,
+  avatar_url TEXT,
+  slug       TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "profiles public read" ON public.profiles;
+CREATE POLICY "profiles public read" ON public.profiles FOR SELECT USING (true);
+DROP POLICY IF EXISTS "profiles update own" ON public.profiles;
+CREATE POLICY "profiles update own" ON public.profiles FOR UPDATE USING (auth.uid() = id);
+
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  ws_slug TEXT;
+  ws_id   UUID;
+BEGIN
+  ws_slug := split_part(NEW.email, '@', 1) || '-' || floor(random()*10000)::text;
+
+  INSERT INTO public.profiles (id, email, full_name, avatar_url, slug)
+  VALUES (NEW.id, NEW.email, NEW.raw_user_meta_data->>'full_name',
+          NEW.raw_user_meta_data->>'avatar_url', ws_slug)
+  ON CONFLICT (id) DO NOTHING;
+
+  INSERT INTO public.workspaces (name, slug, owner_id)
+  VALUES (COALESCE(NEW.raw_user_meta_data->>'full_name', 'Meu Workspace'), ws_slug, NEW.id)
+  RETURNING id INTO ws_id;
+
+  INSERT INTO public.workspace_members (workspace_id, user_id, role)
+  VALUES (ws_id, NEW.id, 'owner');
+
+  RETURN NEW;
+END; $$;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- 6) Backfill: cria workspace para usuários que já existem
+INSERT INTO public.workspaces (name, slug, owner_id)
+SELECT 'Meu Workspace',
+       split_part(u.email, '@', 1) || '-' || floor(random()*10000)::text,
+       u.id
+FROM auth.users u
+WHERE NOT EXISTS (SELECT 1 FROM public.workspaces w WHERE w.owner_id = u.id);
+
+INSERT INTO public.workspace_members (workspace_id, user_id, role)
+SELECT w.id, w.owner_id, 'owner'
+FROM public.workspaces w
+WHERE NOT EXISTS (
+  SELECT 1 FROM public.workspace_members m
+  WHERE m.workspace_id = w.id AND m.user_id = w.owner_id
 );
 
-alter table public.api_keys enable row level security;
-
-create policy "users select own api keys"
-  on public.api_keys for select
-  using (auth.uid() = user_id);
-
-create policy "users insert own api keys"
-  on public.api_keys for insert
-  with check (auth.uid() = user_id);
-
-create policy "users delete own api keys"
-  on public.api_keys for delete
-  using (auth.uid() = user_id);
-
-
--- =============================================================================
--- 13) EMBED PLAN — sincronização de plano com Flow-Appoint (host externo)
--- =============================================================================
--- Quando o workspace foi criado via embed (Flow-Appoint), a fonte de verdade
--- do plano é o host. O builder apenas armazena o último tier sincronizado.
---   embed_source       : "flow-appoint" | null (null = standalone)
---   embed_company_id   : id da empresa no host
---   embed_plan_tier    : "starter" | "pro" | "business" | "suspended"
---   embed_plan_synced_at: timestamp do último push recebido
--- =============================================================================
-alter table public.profiles add column if not exists embed_source        text;
-alter table public.profiles add column if not exists embed_company_id    text;
-alter table public.profiles add column if not exists embed_plan_tier     text;
-alter table public.profiles add column if not exists embed_plan_synced_at timestamptz;
-
--- index para lookup rápido em sync-embed-plan
-create index if not exists profiles_embed_lookup_idx
-  on public.profiles (embed_source, embed_company_id)
-  where embed_source is not null;
-
--- check tier válido (inclui 'suspended' como kill switch reversível)
-do $$
-begin
-  if not exists (
-    select 1 from pg_constraint where conname = 'profiles_embed_plan_tier_check'
-  ) then
-    alter table public.profiles add constraint profiles_embed_plan_tier_check
-      check (embed_plan_tier is null or embed_plan_tier in ('starter','pro','business','suspended'));
-  end if;
-end$$;
+-- 7) Tabela whatsapp_bindings (caso ainda não exista)
+CREATE TABLE IF NOT EXISTS public.whatsapp_bindings (
+  instance_name TEXT PRIMARY KEY,
+  bot_public_id TEXT NOT NULL,
+  webhook_url   TEXT,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE public.whatsapp_bindings ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "wb read all" ON public.whatsapp_bindings;
+CREATE POLICY "wb read all"  ON public.whatsapp_bindings FOR SELECT USING (true);
+DROP POLICY IF EXISTS "wb write all" ON public.whatsapp_bindings;
+CREATE POLICY "wb write all" ON public.whatsapp_bindings FOR ALL    USING (true) WITH CHECK (true);
