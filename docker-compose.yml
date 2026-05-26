@@ -22,6 +22,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.frontend
+      args:
+        - VITE_TALKMAP_SUPABASE_URL=${VITE_TALKMAP_SUPABASE_URL}
+        - VITE_TALKMAP_SUPABASE_ANON_KEY=${VITE_TALKMAP_SUPABASE_ANON_KEY}
     container_name: chatbot-frontend
     restart: always
     networks:
