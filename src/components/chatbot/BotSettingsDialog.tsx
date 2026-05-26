@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabaseClient } from '@/lib/supabaseClient';
+import { evoApi } from '@/services/evolutionApi';
 import { toast } from 'sonner';
 
 interface BotSettingsDialogProps {
