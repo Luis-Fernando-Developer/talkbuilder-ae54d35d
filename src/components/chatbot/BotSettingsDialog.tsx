@@ -631,41 +631,67 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
   if (loading) return <div className="flex justify-center p-4"><Loader2 className="w-6 h-6 animate-spin text-emerald-600" /></div>;
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {instances.length === 0 ? (
-        <p className="text-sm text-muted-foreground">Nenhuma instância encontrada na Evolution API. Crie uma nas configurações de integrações.</p>
+        <div className="p-8 text-center border-2 border-dashed rounded-xl bg-gray-50/50">
+          <p className="text-sm text-muted-foreground">Nenhuma instância encontrada na Evolution API.</p>
+          <p className="text-xs text-muted-foreground mt-1">Crie uma instância primeiro nas configurações de integrações.</p>
+        </div>
       ) : (
-        <div className="grid grid-cols-1 gap-2">
+        <div className="grid grid-cols-1 gap-3">
           {instances.map((inst: any) => (
-            <div key={inst.instanceName} className="flex flex-col p-3 border rounded-lg bg-white gap-3">
+            <div key={inst.instanceName} className="flex flex-col p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow gap-4">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="font-medium text-sm">{inst.instanceName}</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-3 h-3 rounded-full ${inst.status === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                  <div>
+                    <span className="font-bold text-base text-gray-900">{inst.instanceName}</span>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+                      {inst.status === 'open' ? 'Conectado' : 'Desconectado'}
+                    </p>
+                  </div>
                   {binding === inst.instanceName && (
-                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold">VINCULADO</span>
+                    <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200">
+                      BOT VINCULADO
+                    </span>
                   )}
                 </div>
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleTestWebhook(inst.instanceName)}
-                    disabled={testingWebhook === inst.instanceName}
-                    title="Enviar mensagem de teste para este webhook"
-                  >
-                    {testingWebhook === inst.instanceName ? <Loader2 className="w-4 h-4 animate-spin" /> : "Testar Webhook"}
-                  </Button>
-                  <Button 
-                    size="sm" 
-                    variant={binding === inst.instanceName ? "secondary" : "default"}
-                    onClick={() => handleBind(inst.instanceName)}
-                    disabled={binding === inst.instanceName}
-                    className={binding !== inst.instanceName ? "bg-emerald-600 hover:bg-emerald-700" : ""}
-                  >
-                    {binding === inst.instanceName ? "Vinculado" : "Vincular"}
-                  </Button>
-                </div>
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <Button 
+                  size="sm" 
+                  variant={binding === inst.instanceName ? "secondary" : "default"}
+                  onClick={() => handleBind(inst.instanceName)}
+                  disabled={binding === inst.instanceName}
+                  className={`w-full h-10 ${binding !== inst.instanceName ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : ""}`}
+                >
+                  {binding === inst.instanceName ? "✓ Já Vinculado" : "Vincular Este Bot"}
+                </Button>
+
+                <Button 
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleTestWebhook(inst.instanceName)}
+                  disabled={testingWebhook === inst.instanceName}
+                  className="w-full h-10 border-emerald-200 hover:bg-emerald-50 text-emerald-700 font-semibold"
+                >
+                  {testingWebhook === inst.instanceName ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      Testando...
+                    </>
+                  ) : (
+                    "Testar Webhook"
+                  )}
+                </Button>
+              </div>
+
+              {testingWebhook === inst.instanceName && (
+                <div className="text-[10px] text-center text-muted-foreground animate-pulse">
+                  Enviando sinal de teste para o servidor...
+                </div>
+              )}
             </div>
           ))}
         </div>
