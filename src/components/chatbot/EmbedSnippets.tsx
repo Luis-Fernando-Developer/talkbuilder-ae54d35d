@@ -285,9 +285,9 @@ function WhatsappBindPanel({ botPublicId }: { botPublicId: string }) {
             Vincule esse bot a um número de WhatsApp
           </p>
           <p className="text-green-800/80 dark:text-green-100/70">
-            As mensagens recebidas no WhatsApp serão enviadas para o webhook abaixo, que as processará usando o runtime do bot.
-            A função de webhook já está disponível na pasta <code>supabase/functions/whatsapp-webhook</code>.
+            As mensagens recebidas no WhatsApp serão enviadas para o webhook abaixo, que as processará usando o runtime do bot no seu servidor próprio (endpoint <code>/webhook/whatsapp</code>).
           </p>
+
         </div>
       </div>
 
