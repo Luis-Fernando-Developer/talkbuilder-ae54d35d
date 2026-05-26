@@ -451,6 +451,22 @@ export function BotSettingsDialog({
             </div>
           </TabsContent>
 
+          <TabsContent value="whatsapp" className="space-y-4 py-4">
+            <div className="p-4 border rounded-lg bg-emerald-50/50 border-emerald-100">
+               <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <SiWhatsapp className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-emerald-900">Configuração WhatsApp</h4>
+                    <p className="text-xs text-emerald-700">Vincule este bot a uma instância da Evolution API</p>
+                  </div>
+               </div>
+               
+               <WhatsAppBindingSection botPublicId={settings.public_id || flowId} />
+            </div>
+          </TabsContent>
+
           <TabsContent value="ai" className="space-y-6 py-4">
             <div className="space-y-4">
               <div className="p-3 bg-primary/5 border border-primary/10 rounded-lg">
