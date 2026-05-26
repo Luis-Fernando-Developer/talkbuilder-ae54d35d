@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SiWhatsapp } from '@icons-pack/react-simple-icons';
 import { GradientPicker } from './GradientPicker';
 import { Settings, Palette, Type, FileText, Upload, Download, Copy, Image as ImageIcon, MessageCircle, X, Loader2, Key } from 'lucide-react';
 import {
@@ -194,6 +195,10 @@ export function BotSettingsDialog({
             <TabsTrigger value="ai">
               <Key className="h-4 w-4 mr-2" />
               IA & Chaves
+            </TabsTrigger>
+            <TabsTrigger value="whatsapp">
+              <SiWhatsapp className="h-4 w-4 mr-2" />
+              WhatsApp
             </TabsTrigger>
           </TabsList>
 
