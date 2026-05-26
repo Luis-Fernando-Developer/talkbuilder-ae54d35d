@@ -33,6 +33,14 @@ app.use((req, res, next) => {
   next();
 });
 
+// Rota GET auxiliar para testar se o endpoint existe via navegador
+app.get("/webhook/whatsapp", (req, res) => {
+  res.json({ 
+    message: "Webhook endpoint is active. Use POST to send data from Evolution API.",
+    usage: "POST /webhook/whatsapp"
+  });
+});
+
 // Endpoint para Webhook da Evolution API
 app.post("/webhook/whatsapp", async (req, res) => {
   try {
