@@ -6,9 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Configurações da Evolution API (VPS do cliente)
-const EVO_BASE_URL = "https://evo.zailom.com";
-const EVO_GLOBAL_KEY = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+// Configurações da Evolution API (Prioriza variáveis de ambiente)
+const EVO_BASE_URL = Deno.env.get("EVO_BASE_URL") ?? "https://evo.zailom.com";
+const EVO_GLOBAL_KEY = Deno.env.get("EVO_GLOBAL_KEY") ?? "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855";
+
 
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
