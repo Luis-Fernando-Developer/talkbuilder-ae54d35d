@@ -11,7 +11,7 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 80;
 
-// Configuração de CORS usando o pacote 'cors'
+// Configuração de CORS robusta
 const corsOptions = {
   origin: "*",
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
@@ -19,9 +19,21 @@ const corsOptions = {
   credentials: false,
   optionsSuccessStatus: 204,
 };
+
 app.use(cors(corsOptions));
-// Responder explicitamente a TODOS os preflight (OPTIONS) — evita travar atrás do Traefik
-app.options(/.*/, cors(corsOptions));
+
+// Middleware manual para garantir que OPTIONS nunca trave e logue preflights
+app.use((req, res, next) => {
+  if (req.method === 'OPTIONS') {
+    console.log(`[CORS-PREFLIGHT] ${req.url}`);
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 
 
 app.use(morgan("dev"));
