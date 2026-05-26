@@ -63,9 +63,11 @@ app.get("/", (req, res) => {
   res.json({ 
     status: "ok", 
     message: "Flow Builder Server is running",
+    port: port,
     timestamp: new Date().toISOString()
   });
 });
+
 
 app.get("/health", (req, res) => {
   res.json({ status: "ok" });
