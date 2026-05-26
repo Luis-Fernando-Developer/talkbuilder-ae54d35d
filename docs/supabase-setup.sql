@@ -13,10 +13,18 @@ CREATE TABLE IF NOT EXISTS public.workspaces (
   id         UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name       TEXT NOT NULL,
   slug       TEXT UNIQUE NOT NULL,
-  owner_id   UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- Adiciona a coluna owner_id caso não exista (importante para quem já tem a tabela)
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'public' AND table_name = 'workspaces' AND column_name = 'owner_id') THEN
+        ALTER TABLE public.workspaces ADD COLUMN owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+    END IF;
+END $$;
+
 ALTER TABLE public.workspaces ENABLE ROW LEVEL SECURITY;
 
 -- 2) Tabela de membros do workspace
