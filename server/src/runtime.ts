@@ -127,7 +127,10 @@ export async function processRuntime(body: any) {
   }
 
   // Executar Fluxo
-  const result = await runFlow(execution, containers, edges, payload, flow, supabase);
+  console.log(`[runtime] Iniciando execução do fluxo. Input: ${JSON.stringify(payload || body?.payload)}`);
+  const result = await runFlow(execution, containers, edges, payload || body?.payload, flow, supabase);
+  console.log(`[runtime] Execução finalizada. Status: ${result.status}. Mensagens geradas: ${result.messages?.length || 0}`);
+
 
   // Persistir novo estado
   if (execution.id) {
@@ -344,12 +347,19 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
   }
 
+  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}`);
+
   while (currentNodeId && steps < 100) {
     steps++;
     const info = findNode(currentNodeId);
-    if (!info) break;
+    if (!info) {
+      console.log(`[runtime] Node não encontrado: ${currentNodeId}`);
+      break;
+    }
 
     const { node, container } = info;
+    console.log(`[runtime] Processando node: ${node.id} (${node.type})`);
+
     const cfg = node.config || {};
     const nodeType = (node.type || "").toLowerCase();
 
@@ -452,7 +462,9 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
 
     currentNodeId = nextFromNode(node.id, container);
+    console.log(`[runtime] Próximo node: ${currentNodeId}`);
   }
+
 
   if (!currentNodeId) status = "completed";
 
