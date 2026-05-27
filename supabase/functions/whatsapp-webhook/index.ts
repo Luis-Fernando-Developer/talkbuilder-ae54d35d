@@ -24,6 +24,7 @@ Deno.serve(async (req: Request) => {
     let isGroup = false;
     let fromMe = false;
     let buttonId: string | null = null;
+    let apiKey = body.apikey || body.apiKey; // Tenta pegar a chave da requisição
 
     // 1. Verificar se é um evento padrão (MESSAGES_UPSERT) ou chamada direta do EvolutionBot
     const isUpsert = body.event === "MESSAGES_UPSERT" || body.event === "messages.upsert";
