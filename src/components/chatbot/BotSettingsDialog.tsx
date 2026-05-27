@@ -662,7 +662,7 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
   const handleTestWebhook = async (instanceName: string) => {
     setTestingWebhook(instanceName);
     try {
-      const webhookUrl = getWhatsAppWebhookUrl();
+      const webhookUrl = getWhatsAppWebhookUrl(botPublicId);
       if (!webhookUrl) {
         toast.error("URL do servidor não configurada. Configure VITE_BACKEND_URL.");
         return;
