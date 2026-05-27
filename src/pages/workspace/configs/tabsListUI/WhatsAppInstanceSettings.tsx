@@ -88,20 +88,30 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
         if (webhook) {
           setWebhookByEvents(webhook.byEvents ?? true);
           setWebhookBase64(webhook.base64 ?? false);
-          setSelectedEvents(webhook.events || ["MESSAGES_UPSERT"]);
+          // If events is null/undefined or empty, default to MESSAGES_UPSERT
+          const events = webhook.events || [];
+          setSelectedEvents(events.length > 0 ? events : ["MESSAGES_UPSERT"]);
+        } else {
+          // If no webhook object exists, set defaults
+          setWebhookByEvents(true);
+          setWebhookBase64(false);
+          setSelectedEvents(["MESSAGES_UPSERT"]);
         }
       }
 
       if (settingsData) {
         // Load Settings info with priority to settingsData
+        // Evolution API v2 might return data wrapped in 'settings' or directly
+        const s = settingsData.settings || settingsData;
+        
         setSettings({
-          reject_call: settingsData.rejectCall ?? settingsData.reject_call ?? false,
-          msg_call: settingsData.msgCall ?? settingsData.msg_call ?? "",
-          groups_ignore: settingsData.groupsIgnore ?? settingsData.groups_ignore ?? false,
-          always_online: settingsData.alwaysOnline ?? settingsData.always_online ?? false,
-          read_messages: settingsData.readMessages ?? settingsData.read_messages ?? false,
-          sync_full_history: settingsData.syncFullHistory ?? settingsData.sync_full_history ?? false,
-          read_status: settingsData.readStatus ?? settingsData.read_status ?? false,
+          reject_call: s.rejectCall ?? s.reject_call ?? false,
+          msg_call: s.msgCall ?? s.msg_call ?? "",
+          groups_ignore: s.groupsIgnore ?? s.groups_ignore ?? false,
+          always_online: s.alwaysOnline ?? s.always_online ?? false,
+          read_messages: s.readMessages ?? s.read_messages ?? false,
+          sync_full_history: s.syncFullHistory ?? s.sync_full_history ?? false,
+          read_status: s.readStatus ?? s.read_status ?? false,
         });
       }
     } catch (err) {
