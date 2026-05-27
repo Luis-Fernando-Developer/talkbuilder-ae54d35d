@@ -540,6 +540,33 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                     </div>
 
                     <div className="space-y-4">
+                      <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/30 space-y-3">
+                        <Label className="text-[10px] uppercase font-bold text-blue-800 dark:text-blue-300 flex items-center gap-1.5">
+                          <CheckCircle2 className="w-3 h-3" />
+                          Vincular ao Flow Builder
+                        </Label>
+                        <div className="space-y-2">
+                          <Label className="text-xs text-muted-foreground">Escolha qual Bot este WhatsApp deve executar:</Label>
+                          <select 
+                            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                            value={selectedBotId}
+                            onChange={(e) => setSelectedBotId(e.target.value)}
+                          >
+                            <option value="">Selecione um Bot publicado...</option>
+                            {availableBots.map(bot => (
+                              <option key={bot.id} value={bot.public_id || bot.id}>
+                                {bot.name} ({bot.public_id || "Sem ID"})
+                              </option>
+                            ))}
+                          </select>
+                          {availableBots.length === 0 && (
+                            <p className="text-[10px] text-amber-600 font-medium">
+                              * Nenhum bot publicado encontrado. Publique um bot no Flow Builder primeiro.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase text-muted-foreground">Descrição</Label>
