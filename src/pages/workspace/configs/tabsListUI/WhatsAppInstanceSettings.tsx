@@ -65,7 +65,8 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
     ? `https://xllkibdddlmcdbrhzedu.supabase.co/functions/v1/whatsapp-webhook` 
     : `${window.location.origin}/functions/v1/whatsapp-webhook`;
     
-  const fixedWebhookUrl = "https://api-flowbuilder.zailom.com/webhook/whatsapp";
+  // const fixedWebhookUrl = "https://api-flowbuilder.zailom.com/webhook/whatsapp";
+  const [webhookUrl, setWebhookUrl] = useState(currentProjectUrl);
 
   // Instance Settings State
   const [settings, setSettings] = useState({
