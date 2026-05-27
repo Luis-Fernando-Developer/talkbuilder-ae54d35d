@@ -168,7 +168,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                 </TabsTrigger>
                 <TabsTrigger value="settings" className="flex items-center gap-2">
                   <Bell className="w-4 h-4" />
-                  Configurações Gerais
+                  Geral e Settings
                 </TabsTrigger>
               </TabsList>
             </div>
