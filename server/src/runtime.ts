@@ -161,9 +161,10 @@ export async function processRuntime(body: any) {
   writeMemoryState(memoryKey, runtimeState);
 
   return {
-    messages: result.messages,
+    messages: messages,
     waiting_for: result.waiting_for,
     wait_ms: result.wait_ms,
+
     buttons: result.buttons,
     session_id: session?.id ?? null,
     runtime_state: runtimeState,
@@ -349,6 +350,8 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
 
   console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}`);
 
+  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}. Containers: ${containers.length}`);
+
   while (currentNodeId && steps < 100) {
     steps++;
     const info = findNode(currentNodeId);
@@ -358,7 +361,8 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
 
     const { node, container } = info;
-    console.log(`[runtime] Processando node: ${node.id} (${node.type})`);
+    console.log(`[runtime] Processando node: ${node.id} (${node.type}). Config: ${JSON.stringify(node.config)}`);
+
 
     const cfg = node.config || {};
     const nodeType = (node.type || "").toLowerCase();
@@ -395,9 +399,11 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       case "bubble-text":
       case "bubble-number": {
         const text = replaceVars(cfg.message || cfg.content || cfg.text || cfg.number || "");
+        console.log(`[runtime] Bubble text detectado: "${text}"`);
         if (text) messages.push({ id: crypto.randomUUID(), type: "bot", content: text });
         break;
       }
+
       case "bubble-image": {
         const url = getPublicImageUrl(cfg.ImageURL || cfg.imageUrl || cfg.url || cfg.src || "");
         if (url) {
