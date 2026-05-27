@@ -130,7 +130,7 @@ Deno.serve(async (req: Request) => {
         ? {
             number: remoteJid,
             title: "Escolha uma opção:",
-            description: msg.text,
+            description: msgText,
             footer: "Bot",
             buttons: buttons.map(b => ({
               buttonId: b.id,
@@ -140,8 +140,9 @@ Deno.serve(async (req: Request) => {
           }
         : {
             number: remoteJid,
-            text: msg.text
+            text: msgText
           };
+
 
       console.log(`[whatsapp-webhook] Enviando resposta via Evolution (${endpoint})...`);
       const sendResponse = await fetch(`${EVO_BASE_URL}/${endpoint}/${instanceName}`, {
