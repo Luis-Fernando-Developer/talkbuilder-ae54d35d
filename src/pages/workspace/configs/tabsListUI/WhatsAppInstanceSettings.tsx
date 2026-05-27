@@ -584,6 +584,9 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                             placeholder="https://sua-api.com/bot"
                             className="text-xs"
                           />
+                          <p className="text-[9px] text-muted-foreground">
+                            Use esta URL para que o bot use seu Flow Builder.
+                          </p>
                         </div>
                         <div className="space-y-2">
                           <Label className="text-xs font-bold uppercase text-muted-foreground">API Key (Bot/Externo)</Label>
