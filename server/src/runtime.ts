@@ -526,6 +526,82 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         }
         break;
       }
+      case "ai-agent":
+      case "agent": {
+        const provider = (cfg.provider || "openai").toLowerCase();
+        const activeKey = flow?.settings?.aiKeys?.[`${provider}Key`] || flow?.settings?.[`${provider}_key`] || cfg.apiKey;
+        const userPrompt = replaceVars(input?.message || variables["last_message"] || "").trim();
+        const systemPrompt = replaceVars(cfg.systemPrompt || cfg.instructions || "Você é um agente inteligente.").trim();
+        
+        console.log(`[runtime] Node Agent detectado. Input: ${userPrompt}`);
+
+        if (activeKey && (userPrompt || cfg.welcomeMessage)) {
+          try {
+            // Se for a primeira vez no node e tiver mensagem de boas vindas, envia ela
+            if (!isResponseToInput && cfg.welcomeMessage) {
+               const welcome = replaceVars(cfg.welcomeMessage);
+               messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
+               status = "waiting_input";
+               // Não avançamos o currentNodeId, ficamos parados aqui esperando o input real
+               return {
+                 messages,
+                 waiting_for: "text",
+                 wait_ms: 0,
+                 buttons: [],
+                 variables,
+                 next_node_id: node.id,
+                 active_agent_node_id: node.id,
+                 mode: "agent",
+                 steps,
+                 status: "waiting_input"
+               };
+            }
+
+            if (userPrompt) {
+              let aiReply = "";
+              if (provider === "openai") {
+                const res = await fetch("https://api.openai.com/v1/chat/completions", {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    model: cfg.model || "gpt-4o-mini",
+                    messages: [
+                      { role: "system", content: systemPrompt }, 
+                      { role: "user", content: userPrompt }
+                    ],
+                  }),
+                });
+                if (res.ok) {
+                  const data: any = await res.json();
+                  aiReply = data.choices?.[0]?.message?.content || "";
+                }
+              }
+
+              if (aiReply) {
+                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+                
+                // Agents geralmente esperam nova resposta a menos que haja um gatilho de saída
+                status = "waiting_input";
+                return {
+                  messages,
+                  waiting_for: "text",
+                  wait_ms: 0,
+                  buttons: [],
+                  variables,
+                  next_node_id: node.id,
+                  active_agent_node_id: node.id,
+                  mode: "agent",
+                  steps,
+                  status: "waiting_input"
+                };
+              }
+            }
+          } catch (e) {
+            console.error("[ai-agent] failed", e);
+          }
+        }
+        break;
+      }
       case "redirect": {
         const targetRef = cfg.targetFlow || cfg.targetFlowId;
         if (targetRef) {
