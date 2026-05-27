@@ -2,7 +2,7 @@ import { supabase } from "./supabase.js";
 import { processRuntime } from "./runtime.js";
 import { evolutionApi } from "./evolution.js";
 
-export async function handleWhatsAppWebhook(payload: any) {
+export async function handleWhatsAppWebhook(payload: any, query?: any) {
   // console.log("Recebendo webhook WhatsApp:", JSON.stringify(payload, null, 2));
   
   // Suporte a ambos formatos: com ou sem o wrapper de evento da Evolution API
@@ -44,23 +44,34 @@ export async function handleWhatsAppWebhook(payload: any) {
   }
 
   // 1. Identify Bot
-  const { data: binding } = await supabase
-    .from("whatsapp_bindings")
-    .select("bot_public_id")
-    .eq("instance_name", instanceName)
-    .maybeSingle();
+  let botPublicId = query?.bot_id || query?.flow_id;
 
-  if (!binding) {
+  if (!botPublicId) {
+    const { data: binding } = await supabase
+      .from("whatsapp_bindings")
+      .select("bot_public_id")
+      .eq("instance_name", instanceName)
+      .maybeSingle();
+
+    if (binding) {
+      botPublicId = binding.bot_public_id;
+    }
+  }
+
+  if (!botPublicId) {
     console.error(`Binding não encontrado para a instância: ${instanceName}`);
-    return { error: "binding_not_found" };
+    // Debug: Listar bindings existentes para ajudar o usuário
+    const { data: allBindings } = await supabase.from("whatsapp_bindings").select("instance_name, bot_public_id");
+    console.log("Bindings cadastrados no banco:", JSON.stringify(allBindings));
+    return { error: "binding_not_found", instance: instanceName };
   }
   
-  console.log(`Flow ID encontrado: ${binding.bot_public_id}`);
+  console.log(`Flow ID encontrado: ${botPublicId}`);
 
   // 2. Process via Runtime
   const runtimeResult = await processRuntime({
     action: "message",
-    flow_id: binding.bot_public_id,
+    flow_id: botPublicId,
     contact_id: remoteJid,
     channel: "whatsapp",
     payload: {
