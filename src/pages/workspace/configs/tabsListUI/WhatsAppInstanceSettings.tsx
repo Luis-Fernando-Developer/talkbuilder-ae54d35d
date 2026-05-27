@@ -112,7 +112,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
       console.log("Bot data:", botData);
 
       // Load Webhook info (Prioritize data from webhook/find)
-      const webhook = webhookData || (instanceData && instanceData.webhook);
+      const webhook = webhookData?.webhook || webhookData || (instanceData && instanceData.webhook);
       
       if (webhook) {
         // Handle different possible structures from API
@@ -121,10 +121,6 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
         setWebhookBase64(w.base64 ?? false);
         const events = w.events || [];
         setSelectedEvents(events.length > 0 ? events : ["MESSAGES_UPSERT"]);
-      } else {
-        setWebhookByEvents(true);
-        setWebhookBase64(false);
-        setSelectedEvents(["MESSAGES_UPSERT"]);
       }
 
       if (settingsData) {
@@ -148,19 +144,19 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
           description: b.description ?? "Evolution Bot Settings",
           apiUrl: b.apiUrl ?? "",
           apiKey: b.apiKey ?? "",
-          triggerType: b.triggerType ?? "Keyword",
-          triggerKeyword: b.triggerKeyword ?? "",
-          triggerOperator: b.triggerOperator ?? "Contains",
+          triggerType: b.triggerType || "Keyword",
+          triggerKeyword: b.triggerKeyword || b.triggerValue || "",
+          triggerOperator: b.triggerOperator || "Contains",
           expire: b.expire ?? 300,
           keywordFinish: b.keywordFinish ?? "bye",
           delayMessage: b.delayMessage ?? 1000,
           unknownMessage: b.unknownMessage ?? "Sorry, I dont understand",
-          listeningFromMe: b.listeningFromMe ?? false,
-          stopBotFromMe: b.stopBotFromMe ?? false,
-          keepOpen: b.keepOpen ?? false,
+          listeningFromMe: !!b.listeningFromMe,
+          stopBotFromMe: !!b.stopBotFromMe,
+          keepOpen: !!b.keepOpen,
           debounceTime: b.debounceTime ?? 1,
-          splitMessages: b.splitMessages ?? false,
-          ignoreJids: b.ignoreJids ?? "",
+          splitMessages: !!b.splitMessages,
+          ignoreJids: b.ignoreJids ? (Array.isArray(b.ignoreJids) ? b.ignoreJids.join(", ") : b.ignoreJids) : "",
         });
       }
     } catch (err) {
