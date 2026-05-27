@@ -106,11 +106,15 @@ export async function handleWhatsAppWebhook(payload: any, query?: any) {
           }
         });
         // Também enviamos via API para garantir (Webhook mode)
-        await evolutionApi.sendButtons(instanceName, remoteJid, msg.content, runtimeResult.buttons);
+        console.log(`[WHATSAPP] Enviando botões via API Evolution para ${remoteJid}`);
+        const result = await evolutionApi.sendButtons(instanceName, remoteJid, msg.content, runtimeResult.buttons);
+        console.log(`[WHATSAPP] Resultado envio botões:`, JSON.stringify(result));
       } else {
         botResponses.push({ text: msg.content });
         // Também enviamos via API para garantir (Webhook mode)
-        await evolutionApi.sendText(instanceName, remoteJid, msg.content);
+        console.log(`[WHATSAPP] Enviando texto via API Evolution para ${remoteJid}`);
+        const result = await evolutionApi.sendText(instanceName, remoteJid, msg.content);
+        console.log(`[WHATSAPP] Resultado envio texto:`, JSON.stringify(result));
       }
     }
   }
