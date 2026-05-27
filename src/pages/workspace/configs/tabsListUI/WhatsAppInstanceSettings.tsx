@@ -139,6 +139,9 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
         setWebhookBase64(w.base64 ?? false);
         const events = w.events || [];
         setSelectedEvents(events.length > 0 ? events : ["MESSAGES_UPSERT"]);
+        if (w.url) {
+          setWebhookUrl(w.url);
+        }
       }
 
       if (settingsData) {
