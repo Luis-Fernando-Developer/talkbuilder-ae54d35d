@@ -318,7 +318,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                       <div className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:border-green-200 transition-colors">
                         <div className="space-y-0.5">
                           <Label className="text-sm font-semibold">Sincronizar Histórico</Label>
-                          <p className="text-[10px] text-muted-foreground">Sincronizar todo o histórico ao escanear</p>
+                          <p className="text-[10px] text-muted-foreground">Sincronizar todo o histórico completo no scan do QR Code</p>
                         </div>
                         <Switch 
                           checked={settings.sync_full_history} 
