@@ -76,26 +76,32 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
   const loadInstanceData = async () => {
     setLoading(true);
     try {
-      const data = await evoApi.fetchInstance(instanceName);
-      if (data) {
+      // Fetch both instance (for webhook) and specific settings
+      const [instanceData, settingsData] = await Promise.all([
+        evoApi.fetchInstance(instanceName),
+        evoApi.fetchSettings(instanceName)
+      ]);
+
+      if (instanceData) {
         // Load Webhook info
-        const webhook = data.webhook;
+        const webhook = instanceData.webhook;
         if (webhook) {
           setWebhookByEvents(webhook.byEvents ?? true);
           setWebhookBase64(webhook.base64 ?? false);
           setSelectedEvents(webhook.events || ["MESSAGES_UPSERT"]);
         }
+      }
 
-        // Load Settings info
-        // Note: The structure might vary depending on the API response
-        const apiSettings = data.settings || {};
+      if (settingsData) {
+        // Load Settings info with priority to settingsData
         setSettings({
-          reject_call: apiSettings.rejectCall ?? apiSettings.reject_call ?? false,
-          groups_ignore: apiSettings.groupsIgnore ?? apiSettings.groups_ignore ?? false,
-          always_online: apiSettings.alwaysOnline ?? apiSettings.always_online ?? false,
-          read_messages: apiSettings.readMessages ?? apiSettings.read_messages ?? false,
-          sync_full_history: apiSettings.syncFullHistory ?? apiSettings.sync_full_history ?? false,
-          read_status: apiSettings.readStatus ?? apiSettings.read_status ?? false,
+          reject_call: settingsData.rejectCall ?? settingsData.reject_call ?? false,
+          msg_call: settingsData.msgCall ?? settingsData.msg_call ?? "",
+          groups_ignore: settingsData.groupsIgnore ?? settingsData.groups_ignore ?? false,
+          always_online: settingsData.alwaysOnline ?? settingsData.always_online ?? false,
+          read_messages: settingsData.readMessages ?? settingsData.read_messages ?? false,
+          sync_full_history: settingsData.syncFullHistory ?? settingsData.sync_full_history ?? false,
+          read_status: settingsData.readStatus ?? settingsData.read_status ?? false,
         });
       }
     } catch (err) {
