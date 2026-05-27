@@ -257,9 +257,15 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
     if (!confirm("Tem certeza que deseja remover o Evolution Bot?")) return;
     setSavingBot(true);
     try {
+      // 1. Remover do Evolution API
       await evoApi.deleteEvolutionBot(instanceName);
-      toast({ title: "Evolution Bot removido com sucesso!" });
+      
+      // 2. Remover do Supabase
+      await supabase.from("whatsapp_bindings").delete().eq("instance_name", instanceName);
+
+      toast({ title: "Evolution Bot e Vínculo removidos com sucesso!" });
       setBotSettings(prev => ({ ...prev, enabled: false }));
+      setSelectedBotId("");
     } catch (err: any) {
       toast({ title: "Erro ao remover Evolution Bot", description: err.message, variant: "destructive" });
     } finally {
