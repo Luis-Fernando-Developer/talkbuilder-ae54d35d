@@ -322,12 +322,12 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   // Execution Loop
   const hasUserInput = !!(input && (input.message !== undefined || input.button_id !== undefined));
   
-  // Se não houver currentNodeId, estamos começando um fluxo do zero com a mensagem do usuário.
-  // Nesse caso, o usuário mandou "Oi" para iniciar o bot, então NÃO é resposta a um input.
-  const isResponseToInput = hasUserInput && execution.current_node_id && (
+  // O input só é considerado uma resposta se o fluxo estivesse explicitamente aguardando por um.
+  // Caso contrário (ex: mensagem de "Oi" inicial), ele é apenas o gatilho que inicia o fluxo.
+  const isResponseToInput = !!(hasUserInput && execution.current_node_id && (
     (execution.waiting_for_input === true) || 
     (mode === "agent" && !!activeAgentNodeId)
-  );
+  ));
   
   // LOG PARA DEBUG
   console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. execution.waiting_for_input: ${execution.waiting_for_input}.`);
