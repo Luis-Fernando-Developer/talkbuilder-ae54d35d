@@ -721,18 +721,25 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3">
-          {instances.map((inst: any) => (
-            <div key={inst.instanceName} className="flex flex-col p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow gap-4">
+          {instances.map((inst: any) => {
+            const instanceName = getEvolutionInstanceName(inst);
+            const instanceState = getEvolutionInstanceState(inst);
+            const isConnected = instanceState === 'open' || instanceState === 'connected';
+            const isBound = binding === instanceName;
+            const isBindingThis = bindingBusy === instanceName;
+
+            return (
+            <div key={instanceName} className="flex flex-col p-4 border rounded-xl bg-white shadow-sm hover:shadow-md transition-shadow gap-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${inst.status === 'open' ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
+                  <div className={`w-3 h-3 rounded-full ${isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-gray-300'}`} />
                   <div>
-                    <span className="font-bold text-base text-gray-900">{inst.instanceName}</span>
+                    <span className="font-bold text-base text-gray-900">{instanceName}</span>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-                      {inst.status === 'open' ? 'Conectado' : 'Desconectado'}
+                      {isConnected ? 'Conectado' : 'Desconectado'}
                     </p>
                   </div>
-                  {binding === inst.instanceName && (
+                  {isBound && (
                     <span className="text-[10px] bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full font-bold border border-emerald-200">
                       BOT VINCULADO
                     </span>
@@ -743,22 +750,23 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
               <div className="grid grid-cols-2 gap-2">
                 <Button 
                   size="sm" 
-                  variant={binding === inst.instanceName ? "secondary" : "default"}
-                  onClick={() => handleBind(inst.instanceName)}
-                  disabled={binding === inst.instanceName}
-                  className={`w-full h-10 ${binding !== inst.instanceName ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : ""}`}
+                  variant={isBound ? "secondary" : "default"}
+                  onClick={() => handleBind(instanceName)}
+                  disabled={isBound || Boolean(bindingBusy)}
+                  className={`w-full h-10 ${!isBound ? "bg-emerald-600 hover:bg-emerald-700 text-white font-bold" : ""}`}
                 >
-                  {binding === inst.instanceName ? "✓ Já Vinculado" : "Vincular Este Bot"}
+                  {isBindingThis ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {isBound ? "✓ Já Vinculado" : "Vincular Este Bot"}
                 </Button>
 
                 <Button 
                   size="sm"
                   variant="outline"
-                  onClick={() => handleTestWebhook(inst.instanceName)}
-                  disabled={testingWebhook === inst.instanceName}
+                  onClick={() => handleTestWebhook(instanceName)}
+                  disabled={testingWebhook === instanceName}
                   className="w-full h-10 border-emerald-200 hover:bg-emerald-50 text-emerald-700 font-semibold"
                 >
-                  {testingWebhook === inst.instanceName ? (
+                  {testingWebhook === instanceName ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin mr-2" />
                       Testando...
@@ -769,13 +777,14 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
                 </Button>
               </div>
 
-              {testingWebhook === inst.instanceName && (
+              {testingWebhook === instanceName && (
                 <div className="text-[10px] text-center text-muted-foreground animate-pulse">
                   Enviando sinal de teste para o servidor...
                 </div>
               )}
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
