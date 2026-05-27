@@ -161,8 +161,9 @@ export async function processRuntime(body: any) {
   writeMemoryState(memoryKey, runtimeState);
 
   return {
-    messages: messages,
+    messages: result.messages,
     waiting_for: result.waiting_for,
+
     wait_ms: result.wait_ms,
 
     buttons: result.buttons,
