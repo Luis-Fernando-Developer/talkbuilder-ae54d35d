@@ -109,14 +109,19 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
     setLoading(true);
     try {
       // Fetch all needed data in parallel
-      const [instanceData, settingsData, webhookData, botData, flowsData, bindingData] = await Promise.all([
+      const [instanceData, settingsData, webhookData, botData, { data: flows }, { data: binding }] = await Promise.all([
         evoApi.fetchInstance(instanceName),
         evoApi.fetchSettings(instanceName),
         evoApi.fetchWebhook(instanceName),
         evoApi.fetchEvolutionBot(instanceName),
-        evoApi.fetchChatbotFlows(), // Need to implement this or use supabase directly
-        evoApi.fetchBinding(instanceName) // Need to implement this
+        supabase.from("chatbot_flows").select("id, name, public_id, is_published").eq("is_published", true),
+        supabase.from("whatsapp_bindings").select("*").eq("instance_name", instanceName).maybeSingle()
       ]);
+
+      setAvailableBots(flows || []);
+      if (binding) {
+        setSelectedBotId(binding.bot_public_id);
+      }
 
       console.log("Instance data:", instanceData);
       console.log("Settings data:", settingsData);
@@ -154,7 +159,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
         setBotSettings({
           enabled: b.enabled ?? false,
           description: b.description ?? "Evolution Bot Settings",
-          apiUrl: b.apiUrl ?? "",
+          apiUrl: b.apiUrl || currentProjectUrl,
           apiKey: b.apiKey ?? "",
           triggerType: b.triggerType || "Keyword",
           triggerKeyword: b.triggerKeyword || b.triggerValue || "",
