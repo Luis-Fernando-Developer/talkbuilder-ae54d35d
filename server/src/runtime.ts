@@ -357,8 +357,6 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
   }
 
-  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}`);
-
   console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}. Containers: ${containers.length}`);
 
   while (currentNodeId && steps < 100) {
