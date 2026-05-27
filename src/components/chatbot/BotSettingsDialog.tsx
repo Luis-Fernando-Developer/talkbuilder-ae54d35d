@@ -580,8 +580,9 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
 
       setBinding(instanceName);
       toast.success(`Bot vinculado à instância ${instanceName}`);
-    } catch (err) {
-      toast.error("Erro ao vincular bot");
+    } catch (err: any) {
+      console.error("Erro ao vincular bot:", err);
+      toast.error(`Erro ao vincular bot: ${err?.message || err?.details || 'desconhecido'}`);
     }
   };
 
