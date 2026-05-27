@@ -127,7 +127,10 @@ export async function processRuntime(body: any) {
   }
 
   // Executar Fluxo
-  const result = await runFlow(execution, containers, edges, payload, flow, supabase);
+  console.log(`[runtime] Iniciando execução do fluxo. Input: ${JSON.stringify(payload || body?.payload)}`);
+  const result = await runFlow(execution, containers, edges, payload || body?.payload, flow, supabase);
+  console.log(`[runtime] Execução finalizada. Status: ${result.status}. Mensagens geradas: ${result.messages?.length || 0}`);
+
 
   // Persistir novo estado
   if (execution.id) {
@@ -160,7 +163,9 @@ export async function processRuntime(body: any) {
   return {
     messages: result.messages,
     waiting_for: result.waiting_for,
+
     wait_ms: result.wait_ms,
+
     buttons: result.buttons,
     session_id: session?.id ?? null,
     runtime_state: runtimeState,
@@ -340,16 +345,35 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       if (startNode) {
         currentNodeId = startNode.id;
         break;
+    }
+    if (!currentNodeId) {
+      console.log(`[runtime] NENHUM NODE DE START ENCONTRADO nos ${containers.length} containers.`);
+      // Se não houver start, tenta pegar o primeiro node do primeiro container como fallback
+      if (containers.length > 0 && containers[0].nodes?.length > 0) {
+        currentNodeId = containers[0].nodes[0].id;
+        console.log(`[runtime] Usando fallback: primeiro node do primeiro container (${currentNodeId})`);
       }
     }
   }
 
+  }
+
+  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}`);
+
+  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}. Containers: ${containers.length}`);
+
   while (currentNodeId && steps < 100) {
     steps++;
     const info = findNode(currentNodeId);
-    if (!info) break;
+    if (!info) {
+      console.log(`[runtime] Node não encontrado: ${currentNodeId}`);
+      break;
+    }
 
     const { node, container } = info;
+    console.log(`[runtime] Processando node: ${node.id} (${node.type}). Config: ${JSON.stringify(node.config)}`);
+
+
     const cfg = node.config || {};
     const nodeType = (node.type || "").toLowerCase();
 
@@ -385,9 +409,11 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       case "bubble-text":
       case "bubble-number": {
         const text = replaceVars(cfg.message || cfg.content || cfg.text || cfg.number || "");
+        console.log(`[runtime] Bubble text detectado: "${text}"`);
         if (text) messages.push({ id: crypto.randomUUID(), type: "bot", content: text });
         break;
       }
+
       case "bubble-image": {
         const url = getPublicImageUrl(cfg.ImageURL || cfg.imageUrl || cfg.url || cfg.src || "");
         if (url) {
@@ -452,7 +478,9 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
 
     currentNodeId = nextFromNode(node.id, container);
+    console.log(`[runtime] Próximo node: ${currentNodeId}`);
   }
+
 
   if (!currentNodeId) status = "completed";
 
