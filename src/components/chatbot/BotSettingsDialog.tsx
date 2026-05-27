@@ -654,13 +654,28 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
   const handleTestWebhook = async (instanceName: string) => {
     setTestingWebhook(instanceName);
     try {
-      const backend = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, '') || '';
-      if (!backend) {
-        toast.error("VITE_BACKEND_URL não configurado no frontend!");
-        setTestingWebhook(null);
+      const webhookUrl = getWhatsAppWebhookUrl();
+      if (!webhookUrl) {
+        toast.error("URL do servidor não configurada. Configure VITE_BACKEND_URL.");
         return;
       }
-      const response = await fetch(`${backend}/webhook/whatsapp`, {
+
+      // Garante que o teste encontre o bot no servidor, mesmo se o usuário clicar em testar antes de vincular.
+      const { error: bindError } = await supabaseClient
+        .from("whatsapp_bindings")
+        .upsert(
+          {
+            instance_name: instanceName,
+            bot_public_id: botPublicId,
+            webhook_url: webhookUrl,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "instance_name,bot_public_id" }
+        );
+      if (bindError) throw bindError;
+      setBinding(instanceName);
+
+      const response = await fetch(webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
