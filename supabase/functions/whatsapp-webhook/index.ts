@@ -30,10 +30,19 @@ Deno.serve(async (req: Request) => {
     const isUpsert = body.event === "MESSAGES_UPSERT" || body.event === "messages.upsert";
 
     if (isUpsert) {
-      const messageData = body.data;
+      // 1.1 Pode ser um objeto direto ou um array dentro de data
+      let messageData = body.data;
+      
+      // Se data for um array (comum em algumas versões), pega o primeiro
+      if (Array.isArray(messageData)) {
+        messageData = messageData[0];
+      } else if (messageData?.messages && Array.isArray(messageData.messages)) {
+        messageData = messageData.messages[0];
+      }
+
       if (!messageData || !messageData.key) {
-        console.error("[whatsapp-webhook] Payload inválido: falta 'data' ou 'key'");
-        return new Response(JSON.stringify({ error: "invalid_payload" }), { status: 400 });
+        console.error("[whatsapp-webhook] Payload inválido ou mensagem vazia");
+        return new Response(JSON.stringify({ error: "invalid_payload_or_empty" }), { status: 200 }); // Retorna 200 para evitar retentativas infinitas da Evo
       }
 
       remoteJid = messageData.key.remoteJid;
@@ -41,14 +50,17 @@ Deno.serve(async (req: Request) => {
       fromMe = messageData.key.fromMe || false;
 
       // Extrair texto da mensagem
-      text = messageData.message?.conversation || 
-             messageData.message?.extendedTextMessage?.text || 
-             messageData.message?.buttonsResponseMessage?.selectedButtonId ||
-             messageData.message?.templateButtonReplyMessage?.selectedId ||
+      const msg = messageData.message || {};
+      text = msg.conversation || 
+             msg.extendedTextMessage?.text || 
+             msg.buttonsResponseMessage?.selectedButtonId ||
+             msg.templateButtonReplyMessage?.selectedId ||
+             msg.listResponseMessage?.singleSelectReply?.selectedRowId ||
              "";
       
-      buttonId = messageData.message?.buttonsResponseMessage?.selectedButtonId || 
-                 messageData.message?.templateButtonReplyMessage?.selectedId;
+      buttonId = msg.buttonsResponseMessage?.selectedButtonId || 
+                 msg.templateButtonReplyMessage?.selectedId ||
+                 msg.listResponseMessage?.singleSelectReply?.selectedRowId;
     } else if (body.remoteJid && body.content !== undefined) {
       // Formato do Evolution Bot (chamada direta)
       remoteJid = body.remoteJid;
