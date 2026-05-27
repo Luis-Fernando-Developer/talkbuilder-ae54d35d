@@ -329,9 +329,10 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     (mode === "agent" && !!activeAgentNodeId)
   );
   
+  // LOG PARA DEBUG
+  console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. execution.waiting_for_input: ${execution.waiting_for_input}.`);
+
   let inputConsumed = !isResponseToInput; 
-
-
 
   if (hasUserInput) {
     variables["last_message"] = input.message ?? input.button_id;
@@ -346,9 +347,12 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         const cfg = info.node.config || {};
         const varName = cfg.variableName || cfg.saveVariable;
         const userValue = input.message ?? input.button_id;
+        console.log(`[runtime] Salvando input "${userValue}" na variável "${varName}"`);
         if (varName && userValue !== undefined) variables[varName] = userValue;
+        
         if (info.node.type !== "ai-agent") {
            currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+           console.log(`[runtime] Avançando para próximo node após input: ${currentNodeId}`);
         }
         inputConsumed = true;
       }
