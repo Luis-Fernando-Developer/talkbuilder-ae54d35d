@@ -337,12 +337,15 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   }
 
   if (isResponseToInput && currentNodeId) {
-    if (mode === "agent" && activeAgentNodeId) {
-      currentNodeId = activeAgentNodeId;
-    } else {
-      const info = findNode(currentNodeId);
-      if (info) {
-        const cfg = info.node.config || {};
+    const info = findNode(currentNodeId);
+    if (info) {
+      const cfg = info.node.config || {};
+      const nodeType = (info.node.type || "").toLowerCase();
+      
+      if (nodeType === "ai-agent" || nodeType === "agent") {
+        console.log(`[runtime] Processando resposta no modo Agent: ${currentNodeId}`);
+        // No modo Agent, o nó se mantém até que algo mude o modo ou complete
+      } else {
         const varName = cfg.variableName || cfg.saveVariable;
         const userValue = input.message ?? input.button_id;
         
@@ -351,10 +354,8 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
           variables[varName] = userValue;
         }
         
-        if (info.node.type !== "ai-agent") {
-           currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
-           console.log(`[runtime] Avançando para próximo node após processar resposta: ${currentNodeId}`);
-        }
+        currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+        console.log(`[runtime] Avançando para próximo node após processar resposta: ${currentNodeId}`);
       }
     }
   }
