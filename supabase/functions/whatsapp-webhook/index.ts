@@ -164,7 +164,7 @@ Deno.serve(async (req: Request) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "apikey": EVO_GLOBAL_KEY
+          "apikey": apiKey || EVO_GLOBAL_KEY
         },
         body: JSON.stringify(payload)
       });
