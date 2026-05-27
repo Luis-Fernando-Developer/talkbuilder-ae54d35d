@@ -558,9 +558,11 @@ function getEvolutionInstanceState(instance: any): string {
   ).toLowerCase();
 }
 
-function getWhatsAppWebhookUrl(): string {
+function getWhatsAppWebhookUrl(botPublicId?: string): string {
   const backend = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, '') || '';
-  return backend ? `${backend}/webhook/whatsapp` : '';
+  if (!backend) return '';
+  const url = `${backend}/webhook/whatsapp`;
+  return botPublicId ? `${url}?bot_id=${botPublicId}` : url;
 }
 
 function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
