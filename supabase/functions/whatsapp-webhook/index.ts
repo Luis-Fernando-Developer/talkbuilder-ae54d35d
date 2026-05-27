@@ -61,10 +61,10 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ status: "no_text" }), { headers: { "Content-Type": "application/json" } });
     }
 
-    // Inicializar Supabase Client (usando credenciais do projeto atual)
+    // Inicializar Supabase Client (usando credenciais do projeto externo fixo para garantir)
     const supabase = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      Deno.env.get("EXTERNAL_SUPABASE_URL") ?? Deno.env.get("SUPABASE_URL") ?? "https://fwoescubnnagdvwasbjl.supabase.co",
+      Deno.env.get("EXTERNAL_SUPABASE_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
     // 1. Buscar Bot vinculado a esta instância

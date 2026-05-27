@@ -559,8 +559,9 @@ function getEvolutionInstanceState(instance: any): string {
 }
 
 function getWhatsAppWebhookUrl(): string {
-  const backend = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, '') || '';
-  return backend ? `${backend}/webhook/whatsapp` : '';
+  // Priorizamos a URL do Supabase Function para o webhook, que é o padrão do sistema
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://fwoescubnnagdvwasbjl.supabase.co";
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/whatsapp-webhook`;
 }
 
 function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
@@ -678,9 +679,13 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
       if (bindError) throw bindError;
       setBinding(instanceName);
 
+      console.log("[WhatsApp] Disparando teste para:", webhookUrl);
       const response = await fetch(webhookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           event: "MESSAGES_UPSERT",
           instance: instanceName,

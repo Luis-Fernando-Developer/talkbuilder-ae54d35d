@@ -197,3 +197,46 @@ CREATE POLICY "wc delete members" ON public.whatsapp_connections
     OR EXISTS (SELECT 1 FROM public.workspaces w WHERE w.id = workspace_id AND w.owner_id = auth.uid())
     OR EXISTS (SELECT 1 FROM public.workspace_members m WHERE m.workspace_id = whatsapp_connections.workspace_id AND m.user_id = auth.uid())
   );
+
+-- 9) Tabelas de Runtime (Execução do Bot)
+CREATE TABLE IF NOT EXISTS public.flow_executions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  flow_id uuid NOT NULL REFERENCES public.chatbot_flows(id) ON DELETE CASCADE,
+  contact_id text NOT NULL,
+  channel_id text NOT NULL DEFAULT 'webchat',
+  current_node_id text,
+  variables jsonb NOT NULL DEFAULT '{}'::jsonb,
+  waiting_for_input boolean NOT NULL DEFAULT false,
+  runtime_mode text DEFAULT 'flow',
+  active_agent_node_id text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (flow_id, contact_id, channel_id)
+);
+
+CREATE INDEX IF NOT EXISTS flow_executions_lookup_idx ON public.flow_executions (flow_id, contact_id, channel_id);
+ALTER TABLE public.flow_executions ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.flow_executions TO anon, authenticated, service_role;
+CREATE POLICY "FE read all" ON public.flow_executions FOR SELECT USING (true);
+CREATE POLICY "FE write all" ON public.flow_executions FOR ALL USING (true) WITH CHECK (true);
+
+CREATE TABLE IF NOT EXISTS public.conversation_sessions (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  workspace_id uuid,
+  flow_id uuid NOT NULL REFERENCES public.chatbot_flows(id) ON DELETE CASCADE,
+  contact_id text NOT NULL,
+  channel_id text NOT NULL DEFAULT 'webchat',
+  status text NOT NULL DEFAULT 'active',
+  started_at timestamptz NOT NULL DEFAULT now(),
+  last_interaction_at timestamptz NOT NULL DEFAULT now(),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS conversation_sessions_lookup_idx ON public.conversation_sessions (flow_id, contact_id, channel_id, status, last_interaction_at DESC);
+ALTER TABLE public.conversation_sessions ENABLE ROW LEVEL SECURITY;
+GRANT ALL ON public.conversation_sessions TO anon, authenticated, service_role;
+CREATE POLICY "CS read all" ON public.conversation_sessions FOR SELECT USING (true);
+CREATE POLICY "CS write all" ON public.conversation_sessions FOR ALL USING (true) WITH CHECK (true);
+
