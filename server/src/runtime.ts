@@ -322,39 +322,39 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   // Execution Loop
   const hasUserInput = !!(input && (input.message !== undefined || input.button_id !== undefined));
   
-  // Se não houver currentNodeId, estamos começando um fluxo do zero com a mensagem do usuário.
-  // Nesse caso, o usuário mandou "Oi" para iniciar o bot, então NÃO é resposta a um input.
-  const isResponseToInput = hasUserInput && execution.current_node_id && (
+  // O input só é considerado uma resposta se o fluxo estivesse explicitamente aguardando por um.
+  // Caso contrário (ex: mensagem de "Oi" inicial), ele é apenas o gatilho que inicia o fluxo.
+  const isResponseToInput = !!(hasUserInput && execution.current_node_id && (
     (execution.waiting_for_input === true) || 
     (mode === "agent" && !!activeAgentNodeId)
-  );
+  ));
   
   // LOG PARA DEBUG
   console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. execution.waiting_for_input: ${execution.waiting_for_input}.`);
-
-  let inputConsumed = !isResponseToInput; 
 
   if (hasUserInput) {
     variables["last_message"] = input.message ?? input.button_id;
   }
 
-  if (isResponseToInput) {
+  if (isResponseToInput && currentNodeId) {
     if (mode === "agent" && activeAgentNodeId) {
       currentNodeId = activeAgentNodeId;
-    } else if (currentNodeId) {
+    } else {
       const info = findNode(currentNodeId);
       if (info) {
         const cfg = info.node.config || {};
         const varName = cfg.variableName || cfg.saveVariable;
         const userValue = input.message ?? input.button_id;
+        
         console.log(`[runtime] Salvando input "${userValue}" na variável "${varName}"`);
-        if (varName && userValue !== undefined) variables[varName] = userValue;
+        if (varName && userValue !== undefined) {
+          variables[varName] = userValue;
+        }
         
         if (info.node.type !== "ai-agent") {
            currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
-           console.log(`[runtime] Avançando para próximo node após input: ${currentNodeId}`);
+           console.log(`[runtime] Avançando para próximo node após processar resposta: ${currentNodeId}`);
         }
-        inputConsumed = true;
       }
     }
   }
@@ -407,18 +407,16 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
 
     if (nodeType.startsWith("input-")) {
-      if (!inputConsumed) {
-        waiting_for = nodeType === "input-buttons" ? "buttons" : "text";
-        if (nodeType === "input-buttons") {
-          buttons = (cfg.buttons || []).map((b: any) => ({
-            id: b.id,
-            label: b.label || b.text || b.value || "",
-            value: b.value,
-          }));
-        }
-        status = "waiting_input";
-        break;
+      waiting_for = nodeType === "input-buttons" ? "buttons" : "text";
+      if (nodeType === "input-buttons") {
+        buttons = (cfg.buttons || []).map((b: any) => ({
+          id: b.id,
+          label: b.label || b.text || b.value || "",
+          value: b.value,
+        }));
       }
+      status = "waiting_input";
+      break;
     }
 
     // Nodes types
