@@ -326,11 +326,11 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   // Caso contrário (ex: mensagem de "Oi" inicial), ele é apenas o gatilho que inicia o fluxo.
   const isResponseToInput = !!(hasUserInput && execution.current_node_id && (
     (execution.waiting_for_input === true) || 
-    (mode === "agent" && !!activeAgentNodeId)
+    (execution.runtime_mode === "agent")
   ));
   
   // LOG PARA DEBUG
-  console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. execution.waiting_for_input: ${execution.waiting_for_input}.`);
+  console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. waiting_for_input: ${execution.waiting_for_input}. mode: ${execution.runtime_mode}`);
 
   if (hasUserInput) {
     variables["last_message"] = input.message ?? input.button_id;
