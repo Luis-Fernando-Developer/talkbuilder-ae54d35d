@@ -559,8 +559,9 @@ function getEvolutionInstanceState(instance: any): string {
 }
 
 function getWhatsAppWebhookUrl(): string {
-  const backend = (import.meta.env.VITE_BACKEND_URL as string | undefined)?.replace(/\/$/, '') || '';
-  return backend ? `${backend}/webhook/whatsapp` : '';
+  // Priorizamos a URL do Supabase Function para o webhook, que é o padrão do sistema
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://fwoescubnnagdvwasbjl.supabase.co";
+  return `${supabaseUrl.replace(/\/$/, '')}/functions/v1/whatsapp-webhook`;
 }
 
 function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
