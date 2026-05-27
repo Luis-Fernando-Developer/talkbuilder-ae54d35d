@@ -661,17 +661,20 @@ function WhatsAppBindingSection({ botPublicId }: { botPublicId: string }) {
       }
 
       // Garante que o teste encontre o bot no servidor, mesmo se o usuário clicar em testar antes de vincular.
+      const { error: cleanupError } = await supabaseClient
+        .from("whatsapp_bindings")
+        .delete()
+        .eq("bot_public_id", botPublicId);
+      if (cleanupError) throw cleanupError;
+
       const { error: bindError } = await supabaseClient
         .from("whatsapp_bindings")
-        .upsert(
-          {
-            instance_name: instanceName,
-            bot_public_id: botPublicId,
-            webhook_url: webhookUrl,
-            updated_at: new Date().toISOString(),
-          },
-          { onConflict: "instance_name,bot_public_id" }
-        );
+        .insert({
+          instance_name: instanceName,
+          bot_public_id: botPublicId,
+          webhook_url: webhookUrl,
+          updated_at: new Date().toISOString(),
+        });
       if (bindError) throw bindError;
       setBinding(instanceName);
 
