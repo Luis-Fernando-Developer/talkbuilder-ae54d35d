@@ -26,7 +26,7 @@ export async function handleWhatsAppWebhook(payload: any, query?: any) {
   const remoteJid: string = messageData.key.remoteJid;
   const fromMe: boolean = !!messageData.key.fromMe;
 
-  console.log(`Mensagem de ${remoteJid} na instância ${instanceName}. FromMe: ${fromMe}`);
+  console.log(`Mensagem de ${remoteJid} na instância ${instanceName}. FromMe: ${fromMe}. Query: ${JSON.stringify(query)}`);
 
   if (fromMe || remoteJid.endsWith("@g.us")) {
     console.log("Mensagem ignorada (enviada por mim ou grupo)");
