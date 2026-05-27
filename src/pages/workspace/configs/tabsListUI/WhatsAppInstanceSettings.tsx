@@ -279,15 +279,35 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                      <div className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:border-green-200 transition-colors">
-                        <div className="space-y-0.5">
-                          <Label className="text-sm font-semibold">Recusar Chamadas</Label>
-                          <p className="text-[10px] text-muted-foreground">Rejeitar todas as chamadas recebidas</p>
+                      <div className="sm:col-span-2 space-y-3 p-4 border rounded-xl bg-card shadow-sm hover:border-green-200 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <div className="space-y-0.5">
+                            <Label className="text-sm font-semibold">Recusar Chamadas</Label>
+                            <p className="text-[10px] text-muted-foreground">Rejeitar todas as chamadas recebidas</p>
+                          </div>
+                          <Switch 
+                            checked={settings.reject_call} 
+                            onCheckedChange={(val) => setSettings(s => ({...s, reject_call: val}))} 
+                          />
                         </div>
-                        <Switch 
-                          checked={settings.reject_call} 
-                          onCheckedChange={(val) => setSettings(s => ({...s, reject_call: val}))} 
-                        />
+
+                        {settings.reject_call && (
+                          <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <Label className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5">
+                              <MessageSquare className="w-3 h-3" />
+                              Mensagem de Rejeição
+                            </Label>
+                            <Input 
+                              placeholder="Ex: Não aceitamos ligações por este número..." 
+                              value={settings.msg_call}
+                              onChange={(e) => setSettings(s => ({...s, msg_call: e.target.value}))}
+                              className="text-xs h-8"
+                            />
+                            <p className="text-[9px] text-muted-foreground italic">
+                              * Esta mensagem será enviada automaticamente ao recusar uma chamada.
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex items-center justify-between p-4 border rounded-xl bg-card shadow-sm hover:border-green-200 transition-colors">
