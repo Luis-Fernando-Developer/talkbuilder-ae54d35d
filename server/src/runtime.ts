@@ -452,11 +452,17 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         continue;
       }
       case "ai-node": {
-        const userMessage = String(variables["last_message"] || "").trim();
         const provider = (cfg.provider || "openai").toLowerCase();
         const activeKey = flow?.settings?.aiKeys?.[`${provider}Key`] || flow?.settings?.[`${provider}_key`] || cfg.apiKey;
+        const userPrompt = replaceVars(cfg.userMessage || variables["last_message"] || "").trim();
+        const systemPrompt = replaceVars(cfg.systemPrompt || cfg.instructions || "Você é um assistente útil.").trim();
         
-        if (activeKey && userMessage) {
+        let context = "";
+        if (cfg.kbFilesEnabled && cfg.kbFiles?.length > 0) {
+          context = "\n\nBase de Conhecimento:\n" + cfg.kbFiles.map((f: any) => `Arquivo: ${f.name}\nConteúdo: ${f.content}`).join("\n---\n");
+        }
+
+        if (activeKey && userPrompt) {
           try {
             let aiReply = "";
             if (provider === "openai") {
@@ -465,21 +471,57 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                 headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                   model: cfg.model || "gpt-4o-mini",
-                  messages: [{ role: "system", content: cfg.instructions || "Você é um assistente." }, { role: "user", content: userMessage }],
+                  messages: [
+                    { role: "system", content: systemPrompt + context }, 
+                    { role: "user", content: userPrompt }
+                  ],
                 }),
               });
               if (res.ok) {
                 const data: any = await res.json();
                 aiReply = data.choices?.[0]?.message?.content || "";
+              } else {
+                const err = await res.text();
+                console.error("[ai-node] OpenAI error:", err);
+              }
+            } else if (provider === "gemini") {
+              const model = cfg.model || "gemini-pro";
+              const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+              const res = await fetch(url, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  contents: [{
+                    parts: [{ text: `System Instructions: ${systemPrompt}${context}\n\nUser Message: ${userPrompt}` }]
+                  }]
+                }),
+              });
+              if (res.ok) {
+                const data: any = await res.json();
+                aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+              } else {
+                const err = await res.text();
+                console.error("[ai-node] Gemini error:", err);
               }
             }
+
             if (aiReply) {
-              messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-              if (cfg.saveVariable) variables[cfg.saveVariable] = aiReply;
+              console.log(`[runtime] AI Reply: ${aiReply.substring(0, 50)}...`);
+              // Note: Only push message if it's NOT just saving to variable? 
+              // Usually AI nodes send the message directly too if configured or if no saveVariable is present.
+              // In this flow, the user has a bubble-text after the AI node using the variable.
+              // So we should save the variable.
+              if (cfg.saveVariable) {
+                variables[cfg.saveVariable] = aiReply;
+              } else {
+                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+              }
             }
           } catch (e) {
             console.error("[ai-node] failed", e);
           }
+        } else {
+          console.warn("[ai-node] Missing key or prompt", { hasKey: !!activeKey, hasPrompt: !!userPrompt });
         }
         break;
       }
