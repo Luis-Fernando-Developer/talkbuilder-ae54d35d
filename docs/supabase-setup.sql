@@ -135,11 +135,12 @@ WHERE NOT EXISTS (
 -- 7) Tabela whatsapp_bindings (RECRIA do zero para garantir schema correto)
 DROP TABLE IF EXISTS public.whatsapp_bindings CASCADE;
 CREATE TABLE public.whatsapp_bindings (
-  instance_name TEXT PRIMARY KEY,
+  instance_name TEXT NOT NULL,
   bot_public_id TEXT NOT NULL,
   webhook_url   TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+  updated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (instance_name, bot_public_id)
 );
 
 -- GRANTs obrigatórios para a Data API (PostgREST)
