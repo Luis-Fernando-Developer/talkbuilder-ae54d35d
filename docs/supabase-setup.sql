@@ -132,18 +132,23 @@ WHERE NOT EXISTS (
   WHERE m.workspace_id = w.id AND m.user_id = w.owner_id
 );
 
--- 7) Tabela whatsapp_bindings (caso ainda não exista)
-CREATE TABLE IF NOT EXISTS public.whatsapp_bindings (
+-- 7) Tabela whatsapp_bindings (RECRIA do zero para garantir schema correto)
+DROP TABLE IF EXISTS public.whatsapp_bindings CASCADE;
+CREATE TABLE public.whatsapp_bindings (
   instance_name TEXT PRIMARY KEY,
   bot_public_id TEXT NOT NULL,
   webhook_url   TEXT,
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
+-- GRANTs obrigatórios para a Data API (PostgREST)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_bindings TO anon;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.whatsapp_bindings TO authenticated;
+GRANT ALL ON public.whatsapp_bindings TO service_role;
+
 ALTER TABLE public.whatsapp_bindings ENABLE ROW LEVEL SECURITY;
-DROP POLICY IF EXISTS "wb read all" ON public.whatsapp_bindings;
 CREATE POLICY "wb read all"  ON public.whatsapp_bindings FOR SELECT USING (true);
-DROP POLICY IF EXISTS "wb write all" ON public.whatsapp_bindings;
 CREATE POLICY "wb write all" ON public.whatsapp_bindings FOR ALL    USING (true) WITH CHECK (true);
 
 -- 8) Tabela whatsapp_connections + RLS (resolve "new row violates row-level security policy")
