@@ -354,7 +354,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
                           size="xs" 
                           variant="outline" 
                           className="h-9 px-3"
-                          onClick={() => setWebhookUrl(currentProjectUrl)}
+                          onClick={() => setWebhookUrl(getWebhookUrlWithBot(selectedBotId))}
                         >
                           Reset
                         </Button>
