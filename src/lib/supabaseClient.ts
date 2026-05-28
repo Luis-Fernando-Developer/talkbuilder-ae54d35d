@@ -8,8 +8,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 // PROJECT DB (Supabase principal do projeto — via env)
 // -----------------------------------------------------------------------------
 
-const EXTERNAL_SUPABASE_URL = "https://fwoescubnnagdvwasbjl.supabase.co";
-const EXTERNAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3b2VzY3Vibm5hZ2R2d2FzYmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzA1OTYsImV4cCI6MjA5MjU0NjU5Nn0.IetF2dz-c_D8gY_KWkhTXBO3wuQz4fm4h_kAhfUOxJA";
+const EXTERNAL_SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL || "https://fwoescubnnagdvwasbjl.supabase.co";
+const EXTERNAL_SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3b2VzY3Vibm5hZ2R2d2FzYmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzA1OTYsImV4cCI6MjA5MjU0NjU5Nn0.IetF2dz-c_D8gY_KWkhTXBO3wuQz4fm4h_kAhfUOxJA";
 const BLOCKED_INTERNAL_REFS: string[] = []; // Desbloqueado para garantir acesso ao banco especificado
 
 
@@ -36,7 +36,22 @@ function safeCreds(url?: string, anonKey?: string): SystemCreds | null {
 }
 
 function readSystemCreds(): SystemCreds | null {
-  // 1. Força o uso do banco externo correto, ignorando cache ou variáveis antigas.
+  // 1. Prioridade: Variáveis de Ambiente.
+  const envCreds = safeCreds(ENV_URL, ENV_KEY);
+  if (envCreds) return envCreds;
+  
+  // 2. Fallback: LocalStorage.
+  if (typeof window !== "undefined") {
+    try {
+      const raw = window.localStorage.getItem(SYSTEM_FALLBACK_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Partial<SystemCreds>;
+        if (parsed.url && parsed.anonKey) return { url: parsed.url, anonKey: parsed.anonKey };
+      }
+    } catch {}
+  }
+
+  // 3. Fallback final: banco especificado.
   return { url: EXTERNAL_SUPABASE_URL, anonKey: EXTERNAL_SUPABASE_ANON_KEY };
 }
 
@@ -58,7 +73,7 @@ function buildSystemClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: "talkmap-auth-v2", // Alterado para forçar limpeza de sessão antiga
+      storageKey: "talkmap-system-auth", // Restaurado para evitar deslogar usuário desnecessariamente
 
     },
   });
