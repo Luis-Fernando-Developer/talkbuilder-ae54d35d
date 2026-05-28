@@ -82,9 +82,7 @@ export async function handleWhatsAppWebhook(payload: any, query?: any) {
     channel: "whatsapp",
     payload: {
       message: text,
-      button_id: messageData.message?.buttonsResponseMessage?.selectedButtonId || 
-                 messageData.message?.templateButtonReplyMessage?.selectedId ||
-                 (text && text.startsWith("btn-") ? text : undefined)
+      button_id: messageData.message?.buttonsResponseMessage?.selectedButtonId || messageData.message?.templateButtonReplyMessage?.selectedId
     }
   });
 
