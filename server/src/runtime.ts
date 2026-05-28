@@ -131,10 +131,9 @@ export async function processRuntime(body: any) {
   }
 
   // Executar Fluxo
-  console.log(`[runtime] Iniciando execução do fluxo. Input: ${JSON.stringify(payload || body?.payload)}`);
+  console.log(`[runtime] Iniciando execução do fluxo. Flow: ${flow.name}. Node Atual: ${execution.current_node_id}. Input: ${JSON.stringify(payload || body?.payload)}`);
   const result = await runFlow(execution, containers, edges, payload || body?.payload, flow, supabase);
-  console.log(`[runtime] Execução finalizada. Status: ${result.status}. Mensagens geradas: ${result.messages?.length || 0}`);
-
+  console.log(`[runtime] Execução finalizada. Status: ${result.status}. Próximo Node: ${result.next_node_id}. Mensagens: ${result.messages?.length || 0}`);
 
   // Persistir novo estado
   if (execution.id) {
