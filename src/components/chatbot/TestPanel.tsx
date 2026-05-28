@@ -1486,12 +1486,8 @@ export const TestPanel = ({
                         variant="outline" 
                         className="flex-1 gap-2" 
                         onClick={() => {
-                          // Simular gravação para o teste
                           const type = waitingForType.replace('input-', '') as any;
-                          const fakeUrl = type === 'image' ? "https://images.unsplash.com/photo-1517841905240-472988babdf9" : 
-                                          type === 'video' ? "https://www.w3schools.com/html/mov_bbb.mp4" :
-                                          "https://www.w3schools.com/html/horse.mp3";
-                          sendMessage(undefined, undefined, { type, url: fakeUrl });
+                          startCapture(type);
                         }}
                         disabled={isLoading}
                       >
