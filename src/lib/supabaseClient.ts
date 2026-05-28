@@ -13,11 +13,9 @@ const EXTERNAL_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3M
 const BLOCKED_INTERNAL_REFS: string[] = []; // Desbloqueado para garantir acesso ao banco especificado
 
 
-const ENV_URL = import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
-const ENV_KEY =
-  import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_ANON_KEY ||
-  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+const ENV_URL = "https://fwoescubnnagdvwasbjl.supabase.co";
+const ENV_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ3b2VzY3Vibm5hZ2R2d2FzYmpsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY5NzA1OTYsImV4cCI6MjA5MjU0NjU5Nn0.IetF2dz-c_D8gY_KWkhTXBO3wuQz4fm4h_kAhfUOxJA";
+
 
 // Fallback manual via localStorage para o sistema
 const SYSTEM_FALLBACK_KEY = "talkmap_system_supabase";
@@ -38,39 +36,10 @@ function safeCreds(url?: string, anonKey?: string): SystemCreds | null {
 }
 
 function readSystemCreds(): SystemCreds | null {
-  // 1. Prioridade: Variáveis de Ambiente, mas bloqueia explicitamente o banco interno antigo.
-  const envCreds = safeCreds(ENV_URL, ENV_KEY);
-  if (envCreds) {
-    console.log("[Supabase] Usando credenciais das variáveis de ambiente:", envCreds.url);
-    return envCreds;
-  }
-  if (isBlockedInternalUrl(ENV_URL)) {
-    console.warn("[Supabase] VITE_SUPABASE_URL aponta para o banco interno antigo e foi ignorada.");
-  }
-  
-  // 2. Fallback: LocalStorage (para desenvolvimento/preview)
-  if (typeof window !== "undefined") {
-    try {
-      const raw = window.localStorage.getItem(SYSTEM_FALLBACK_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Partial<SystemCreds>;
-        if (parsed.url && parsed.anonKey && !isBlockedInternalUrl(parsed.url)) {
-          console.log("[Supabase] Usando credenciais do LocalStorage:", parsed.url);
-          return { url: parsed.url, anonKey: parsed.anonKey };
-        }
-        if (isBlockedInternalUrl(parsed.url)) {
-          window.localStorage.removeItem(SYSTEM_FALLBACK_KEY);
-        }
-      }
-    } catch (e) {
-      console.error("Erro ao ler credenciais do localStorage", e);
-    }
-  }
-
-  // 3. Fallback final: banco externo Zailom. Nunca volta para o banco interno Lovable.
-  console.log("[Supabase] Usando fallback externo Zailom:", EXTERNAL_SUPABASE_URL);
+  // 1. Força o uso do banco externo correto, ignorando cache ou variáveis antigas.
   return { url: EXTERNAL_SUPABASE_URL, anonKey: EXTERNAL_SUPABASE_ANON_KEY };
 }
+
 
 export function saveSystemSupabaseCreds(creds: SystemCreds): void {
   if (typeof window === "undefined") return;
@@ -89,7 +58,8 @@ function buildSystemClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: "talkmap-system-auth",
+      storageKey: "talkmap-auth-v2", // Alterado para forçar limpeza de sessão antiga
+
     },
   });
   return systemClient;
