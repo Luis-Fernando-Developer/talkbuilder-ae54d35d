@@ -38,19 +38,12 @@ export async function processRuntime(body: any) {
   }
   console.log(`[runtime] Fluxo encontrado: ${flow.name} (${flow.id})`);
 
-  // 1.1. Selecionar Versão (Sempre preferir draft se for mais recente ou se published estiver vazio)
-  const useDraft = !flow.published_containers || flow.published_containers.length === 0 || 
-                   (flow.draft_updated_at && flow.published_at && new Date(flow.draft_updated_at) > new Date(flow.published_at));
-  
-  const containers = (useDraft ? flow.draft_containers : flow.published_containers) || [];
-  const edges = (useDraft ? flow.draft_edges : flow.published_edges) || [];
-
-  console.log(`[runtime] Usando versão: ${useDraft ? "DRAFT" : "PUBLISHED"}. Containers: ${containers.length}. Edges: ${edges.length}`);
+  const containers = flow.published_containers || flow.draft_containers || [];
+  const edges = flow.published_edges || flow.draft_edges || [];
 
   if (!containers.length) {
     throw new Error("Fluxo vazio (nenhum container)");
   }
-
 
   // 2. Session
   let session: any = null;
@@ -109,7 +102,10 @@ export async function processRuntime(body: any) {
         execution = created;
       }
     } catch (e) {
-      console.warn("[runtime] execution table error", e);
+      console.warn("[runtime] execution table missing", e);
+    }
+    } catch (e) {
+      console.warn("[runtime] execution table missing", e);
     }
   } else {
     try {
@@ -121,9 +117,7 @@ export async function processRuntime(body: any) {
         .eq("channel_id", channel)
         .limit(1);
       execution = executions && executions.length > 0 ? executions[0] : null;
-    } catch (e) {
-      console.warn("[runtime] execution fetch error", e);
-    }
+    } catch {}
   }
 
   const memoryKey = `${flow.id}:${channel}:${contact_id}`;
@@ -286,66 +280,50 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     const isInnerNodeHandle = (value?: string | null) =>
       !!value && (String(value) === nodeId || String(value).startsWith(`${nodeId}-`));
 
+    
     const wantedHandle = handle || "";
     const fromNode = edges.filter(
       (e: any) => e.source === nodeId || (e.source === container.id && isInnerNodeHandle(e.sourceHandle))
     );
 
-    console.log(`[runtime:next] Buscando saída de ${nodeId}. Handle desejado: "${wantedHandle}". Edges encontradas: ${fromNode.length}`);
-
     // 1. Tenta match de handle (exato ou normalizado)
-    let edge = fromNode.find((e: any) => {
-       const sourceHandle = e.sourceHandle || "";
-       const match = wantedHandle && (sourceHandle === wantedHandle || normalizeHandle(sourceHandle) === normalizeHandle(wantedHandle));
-       if (match) console.log(`[runtime:match] Match de handle encontrado: ${sourceHandle} == ${wantedHandle}`);
-       return match;
-    });
+    let edge = fromNode.find((e: any) => 
+       wantedHandle && (e.sourceHandle === wantedHandle || normalizeHandle(e.sourceHandle) === normalizeHandle(wantedHandle))
+    );
     
     // 2. Fallbacks
     if (!edge && !strictHandle) {
-       edge = fromNode.find((e: any) => {
-         const h = normalizeHandle(e.sourceHandle);
-         return h === "default" || h === "else" || h === "success" || h === "true";
-       });
-       if (edge) console.log(`[runtime:fallback] Usando fallback (default/else): ${edge.sourceHandle}`);
-       
-       if (!edge) {
-         edge = fromNode.find((e: any) => !e.sourceHandle);
-         if (edge) console.log(`[runtime:fallback] Usando fallback (sem handle)`);
-       }
+       edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === "default" || normalizeHandle(e.sourceHandle) === "else");
+       if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
     }
 
     if (edge) {
-      console.log(`[runtime:edge_found] De ${nodeId} para ${edge.target} via handle "${edge.sourceHandle || "(vazio)"}"`);
+      console.log(`[runtime:edge_found] de ${nodeId} para ${edge.target} via handle "${wantedHandle || "(default)"}"`);
       if (findNode(edge.target)) return edge.target;
       const first = firstNodeOfContainer(edge.target);
       if (first) return first;
       return edge.target;
     }
 
-    console.log(`[runtime:edge_not_found] Nenhum edge saindo de ${nodeId} para handle "${wantedHandle}". Strict: ${strictHandle}`);
+    console.log(`[runtime:edge_not_found] nenhum edge saindo de ${nodeId} com handle "${wantedHandle}"`);
 
-    // 3. Sequencial dentro do bloco (apenas se não for um node que exige handle)
-    if (!strictHandle && container?.nodes?.length) {
+
+    // 3. Sequencial dentro do bloco
+    if (container?.nodes?.length) {
       const idx = container.nodes.findIndex((n: any) => n.id === nodeId);
       if (idx >= 0 && idx < container.nodes.length - 1) {
-        const nextId = container.nodes[idx + 1].id;
-        console.log(`[runtime:sequential] Avançando sequencialmente no container: ${nextId}`);
-        return nextId;
+        return container.nodes[idx + 1].id;
       }
     }
 
     // 4. Edge saindo do container
     const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
     if (cEdge) {
-      console.log(`[runtime:container_edge] Saindo do container ${container.id} para ${cEdge.target}`);
       if (findNode(cEdge.target)) return cEdge.target;
       return firstNodeOfContainer(cEdge.target);
     }
-    
     return null;
   };
-
 
   const decodeText = (text: string) =>
     String(text || "")
