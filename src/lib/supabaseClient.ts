@@ -34,7 +34,15 @@ function safeCreds(url?: string, anonKey?: string): SystemCreds | null {
 }
 
 function readSystemCreds(): SystemCreds | null {
-  // O usuário solicitou que o .env seja a fonte absoluta
+  // Prioriza VITE_EXTERNAL_SUPABASE_URL e VITE_EXTERNAL_SUPABASE_ANON_KEY (banco fwoes...)
+  const extUrl = import.meta.env.VITE_EXTERNAL_SUPABASE_URL;
+  const extKey = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
+
+  if (extUrl && extKey) {
+    return { url: extUrl, anonKey: extKey };
+  }
+
+  // Fallback para as envs padrão se as externas não existirem
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
@@ -42,9 +50,9 @@ function readSystemCreds(): SystemCreds | null {
     return { url: envUrl, anonKey: envKey };
   }
 
-  // Fallback apenas se as envs sumirem
   return { url: SYSTEM_SUPABASE_URL, anonKey: SYSTEM_SUPABASE_ANON_KEY };
 }
+
 
 
 
@@ -84,9 +92,12 @@ export function isSupabaseConfigured(): boolean {
 
 /** True somente se veio de variável de ambiente (modo "produção"). */
 export function isSupabaseFromEnv(): boolean {
+  const extUrl = import.meta.env.VITE_EXTERNAL_SUPABASE_URL;
+  const extKey = import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY;
   const envUrl = import.meta.env.VITE_SUPABASE_URL;
   const envKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  return Boolean(envUrl && envKey);
+  return Boolean((extUrl && extKey) || (envUrl && envKey));
+
 
 }
 
