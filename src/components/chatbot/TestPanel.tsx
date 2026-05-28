@@ -176,6 +176,129 @@ export const TestPanel = ({
   const startedFlowRef = useRef<string | null>(null);
   const lastStartNodeIdRef = useRef<string | null>(null);
   const waitTimerRef = useRef<number | null>(null);
+  
+  const [isCapturing, setIsCapturing] = useState(false);
+  const [captureType, setCaptureType] = useState<'image' | 'video' | 'audio' | null>(null);
+  const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
+  const [recordingDuration, setRecordingDuration] = useState(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const captureStreamRef = useRef<MediaStream | null>(null);
+  const captureVideoRef = useRef<HTMLVideoElement>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const timerRef = useRef<number | null>(null);
+
+  const startCapture = async (type: 'image' | 'video' | 'audio') => {
+    try {
+      const constraints: MediaStreamConstraints = {
+        audio: true,
+        video: type !== 'audio'
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      captureStreamRef.current = stream;
+      setCaptureType(type);
+      setIsCapturing(true);
+      setRecordedBlob(null);
+      setRecordingDuration(0);
+
+      if (type === 'audio' || type === 'video') {
+        const recorder = new MediaRecorder(stream);
+        mediaRecorderRef.current = recorder;
+        chunksRef.current = [];
+        
+        recorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunksRef.current.push(e.data);
+        };
+        
+        recorder.onstop = () => {
+          const blob = new Blob(chunksRef.current, { type: type === 'audio' ? 'audio/webm' : 'video/webm' });
+          setRecordedBlob(blob);
+        };
+        
+        recorder.start();
+        timerRef.current = window.setInterval(() => {
+          setRecordingDuration(prev => prev + 1);
+        }, 1000);
+        
+        if (type === 'video' && captureVideoRef.current) {
+          captureVideoRef.current.srcObject = stream;
+        }
+      } else if (type === 'image') {
+        // Delay to allow video to start
+        setTimeout(() => {
+          if (captureVideoRef.current) {
+            captureVideoRef.current.srcObject = stream;
+          }
+        }, 100);
+      }
+    } catch (err) {
+      console.error("Error accessing media devices:", err);
+      alert("Não foi possível acessar a câmera ou microfone. Verifique as permissões.");
+    }
+  };
+
+  const stopCapture = () => {
+    if (captureType === 'image') {
+      const video = captureVideoRef.current;
+      if (video) {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(video, 0, 0);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              setRecordedBlob(blob);
+              setIsCapturing(false);
+            }
+          }, 'image/jpeg');
+        }
+      }
+    } else if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      setIsCapturing(false);
+    }
+
+    if (captureStreamRef.current) {
+      captureStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const cancelCapture = () => {
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+    }
+    if (captureStreamRef.current) {
+      captureStreamRef.current.getTracks().forEach(track => track.stop());
+    }
+    if (timerRef.current) {
+      window.clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+    setIsCapturing(false);
+    setCaptureType(null);
+    setRecordedBlob(null);
+  };
+
+  const sendCaptured = () => {
+    if (recordedBlob && captureType) {
+      const url = URL.createObjectURL(recordedBlob);
+      sendMessage(undefined, undefined, { type: captureType, url });
+      cancelCapture();
+    }
+  };
+
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   const contactIdRef = useRef<string>(`test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
 
@@ -1192,6 +1315,61 @@ export const TestPanel = ({
 
   return (
     <aside className={containerClass} style={themeStyle}>
+      {isCapturing && (
+        <div className="absolute inset-0 z-[60] bg-black flex flex-col items-center justify-center p-4">
+          {(captureType === 'video' || captureType === 'image') && (
+            <video 
+              ref={captureVideoRef} 
+              autoPlay 
+              muted 
+              playsInline 
+              className="w-full max-h-[70%] bg-zinc-900 rounded-lg object-contain mb-4"
+            />
+          )}
+          {captureType === 'audio' && (
+            <div className="flex flex-col items-center gap-4 mb-8">
+              <div className="w-20 h-20 rounded-full bg-red-500/20 flex items-center justify-center animate-pulse">
+                <Mic className="h-10 w-10 text-red-500" />
+              </div>
+              <span className="text-white text-2xl font-mono">{formatDuration(recordingDuration)}</span>
+              <span className="text-zinc-400 text-sm">Gravando áudio...</span>
+            </div>
+          )}
+          {(captureType === 'video') && (
+             <div className="flex flex-col items-center gap-2 mb-4">
+               <span className="text-white font-mono">{formatDuration(recordingDuration)}</span>
+             </div>
+          )}
+          <div className="flex gap-4">
+            <Button variant="outline" className="rounded-full px-6 border-white text-white hover:bg-white/10" onClick={cancelCapture}>Cancelar</Button>
+            <Button variant="destructive" className="rounded-full px-6" onClick={stopCapture}>
+              {captureType === 'image' ? 'Tirar Foto' : 'Parar Gravação'}
+            </Button>
+          </div>
+        </div>
+      )}
+      
+      {recordedBlob && (
+        <div className="absolute inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center p-4">
+           <div className="w-full max-h-[70%] mb-4 overflow-hidden rounded-lg bg-zinc-900 flex items-center justify-center">
+             {captureType === 'image' && <img src={URL.createObjectURL(recordedBlob)} className="max-w-full max-h-full object-contain" alt="Preview" />}
+             {captureType === 'video' && <video src={URL.createObjectURL(recordedBlob)} controls className="max-w-full max-h-full" />}
+             {captureType === 'audio' && (
+               <div className="p-8 bg-zinc-800 rounded-lg w-full max-w-xs flex flex-col items-center gap-4">
+                 <Mic className="h-12 w-12 text-primary" />
+                 <audio src={URL.createObjectURL(recordedBlob)} controls className="w-full" />
+               </div>
+             )}
+           </div>
+           <div className="flex gap-4">
+             <Button variant="outline" className="rounded-full px-6 border-white text-white hover:bg-white/10" onClick={() => {
+               setRecordedBlob(null);
+               if (captureType) startCapture(captureType);
+             }}>Refazer</Button>
+             <Button className="rounded-full px-8" onClick={sendCaptured} style={{ background: theme?.primaryColor }}>Enviar</Button>
+           </div>
+        </div>
+      )}
       <div className="flex flex-col w-full h-full">
         <div className="sticky top-0 z-10 shrink-0 min-h-14 border-b border-border px-3 py-2 flex items-center justify-between"
           style={{ 
@@ -1308,12 +1486,8 @@ export const TestPanel = ({
                         variant="outline" 
                         className="flex-1 gap-2" 
                         onClick={() => {
-                          // Simular gravação para o teste
                           const type = waitingForType.replace('input-', '') as any;
-                          const fakeUrl = type === 'image' ? "https://images.unsplash.com/photo-1517841905240-472988babdf9" : 
-                                          type === 'video' ? "https://www.w3schools.com/html/mov_bbb.mp4" :
-                                          "https://www.w3schools.com/html/horse.mp3";
-                          sendMessage(undefined, undefined, { type, url: fakeUrl });
+                          startCapture(type);
                         }}
                         disabled={isLoading}
                       >
