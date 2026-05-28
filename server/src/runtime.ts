@@ -530,23 +530,29 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       case "agent": {
         const provider = (cfg.provider || "openai").toLowerCase();
         const activeKey = flow?.settings?.aiKeys?.[`${provider}Key`] || flow?.settings?.[`${provider}_key`] || cfg.apiKey;
-        const userPrompt = replaceVars(input?.message || variables["last_message"] || "").trim();
+        
+        // No modo flow, se acabamos de chegar no agente, não devemos usar o input que foi usado para o node anterior
+        const isFirstTimeInAgent = execution.active_agent_node_id !== node.id || execution.runtime_mode !== "agent";
+        
+        // Se isResponseToInput é true, significa que o usuário mandou uma mensagem.
+        // Se estamos no meio de um fluxo e acabamos de chegar no Agent node, 
+        // esse input.message era para o node anterior (ex: um input text).
+        // Só devemos processar o prompt se o agente já estava ativo ou se o modo já era agent.
+        const shouldProcessPrompt = !isFirstTimeInAgent || (execution.runtime_mode === "agent");
+        
+        const userPrompt = shouldProcessPrompt ? replaceVars(input?.message || variables["last_message"] || "").trim() : "";
         const systemPrompt = replaceVars(cfg.systemPrompt || cfg.instructions || "Você é um agente inteligente.").trim();
         
-        console.log(`[runtime] Node Agent detectado. Input: ${userPrompt}`);
-
-        // Verificamos se este nó já era o nó ativo do agente
-        const isAgentAlreadyActive = execution.active_agent_node_id === node.id && execution.runtime_mode === "agent";
+        console.log(`[runtime] Node Agent: ${node.id}. isFirstTime: ${isFirstTimeInAgent}. shouldProcessPrompt: ${shouldProcessPrompt}. Key: ${!!activeKey}`);
 
         if (activeKey) {
           try {
-            // Se for a primeira vez chegando no node (ou vindo de um flow normal) e tiver mensagem de boas vindas
-            if (!isAgentAlreadyActive && cfg.welcomeMessage) {
+            // Se for a primeira vez chegando no node e tiver mensagem de boas vindas
+            if (isFirstTimeInAgent && cfg.welcomeMessage) {
                const welcome = replaceVars(cfg.welcomeMessage);
-               console.log(`[runtime] Enviando mensagem de boas-vindas do agente: ${welcome}`);
+               console.log(`[runtime] Enviando welcome message do agente: ${welcome}`);
                messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
                
-               // Mudamos para modo agente e pausamos para esperar o input real do usuário
                return {
                  messages,
                  waiting_for: "text",
@@ -559,8 +565,9 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                };
             }
 
-            // Se temos um prompt para processar (ou se não tinha welcome message e caiu direto aqui)
+            // Se temos um prompt para processar
             if (userPrompt) {
+              console.log(`[runtime] Agente processando prompt: ${userPrompt}`);
               let aiReply = "";
               if (provider === "openai") {
                 const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -581,14 +588,14 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                   console.error("[ai-agent] OpenAI error:", await res.text());
                 }
               } else if (provider === "gemini") {
-                const model = cfg.model || "gemini-pro";
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
+                const model = cfg.model || "gemini-2.0-flash"; // Fallback para 2.0 se não especificado
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model || model}:generateContent?key=${activeKey}`;
                 const res = await fetch(url, {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
                     contents: [{
-                      parts: [{ text: `System Instructions: ${systemPrompt}\n\nUser Message: ${userPrompt}` }]
+                      parts: [{ text: `Instructions: ${systemPrompt}\n\nUser: ${userPrompt}` }]
                     }]
                   }),
                 });
@@ -600,27 +607,13 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                 }
               }
 
-            if (aiReply) {
-              console.log(`[runtime] Agente respondeu: ${aiReply.substring(0, 50)}...`);
-              messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-              
-              // Agents geralmente esperam nova resposta a menos que haja um gatilho de saída
-              return {
-                messages,
-                waiting_for: "text",
-                wait_ms: 0,
-                buttons: [],
-                variables,
-                next_node_id: node.id,
-                active_agent_node_id: node.id,
-                mode: "agent",
-                steps,
-                status: "waiting_input"
-              };
+              if (aiReply) {
+                console.log(`[runtime] Agente respondeu: ${aiReply.substring(0, 50)}...`);
+                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+              }
             }
             
-            // Fallback: se estamos no modo agente ou deveríamos estar, garantimos que ficamos parados aqui
-            status = "waiting_input";
+            // Sempre que chegamos ou estamos num Agent Node, devemos pausar e ficar nele
             return {
               messages,
               waiting_for: "text",
@@ -632,8 +625,10 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
               status: "waiting_input"
             };
           } catch (e) {
-            console.error("[ai-agent] failed", e);
+            console.error("[ai-agent] exception", e);
           }
+        } else {
+          console.warn("[ai-agent] Missing API Key");
         }
         break;
       }
