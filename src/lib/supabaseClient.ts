@@ -68,7 +68,7 @@ function buildSystemClient(): SupabaseClient {
     auth: {
       persistSession: true,
       autoRefreshToken: true,
-      storageKey: "talkmap-system-auth", // Restaurado para evitar deslogar usuário desnecessariamente
+      storageKey: "talkmap-auth-v3", // Alterado para talkmap-auth-v3 para forçar limpeza de sessões residuais de outros bancos
 
     },
   });
@@ -90,8 +90,8 @@ export function isSupabaseFromEnv(): boolean {
   const envUrl = import.meta.env.VITE_EXTERNAL_SUPABASE_URL || import.meta.env.VITE_SUPABASE_URL;
   const envKey =
     import.meta.env.VITE_EXTERNAL_SUPABASE_ANON_KEY ||
-    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY ||
-    import.meta.env.VITE_SUPABASE_ANON_KEY;
+    import.meta.env.VITE_SUPABASE_ANON_KEY ||
+    import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
   return Boolean(envUrl && envKey && envUrl.includes(SYSTEM_SUPABASE_REF));
 }
 
