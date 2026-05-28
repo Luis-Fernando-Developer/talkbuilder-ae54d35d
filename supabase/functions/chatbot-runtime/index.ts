@@ -122,14 +122,41 @@ Deno.serve(async (req: Request) => {
           .eq("channel_id", channel)
           .maybeSingle();
         execution = existing;
-      } catch {}
+      } catch (e) {
+        console.warn("[runtime] erro ao buscar execution", e);
+      }
     }
 
     const memoryKey = `${flow.id}:${channel}:${contact_id}`;
     const clientState = payload?.runtime_state || body?.runtime_state || readMemoryState(memoryKey);
 
     if (!execution) {
-      execution = normalizeClientState(clientState);
+      // Se não existe no banco, criamos um objeto inicial
+      execution = {
+        ...normalizeClientState(clientState),
+        flow_id: flow.id,
+        contact_id: contact_id,
+        channel_id: channel,
+        workspace_id: flow.user_id
+      };
+      
+      // Tentamos criar no banco para ter um ID real
+      try {
+        const { data: created } = await supabase
+          .from("flow_executions")
+          .upsert({ 
+            workspace_id: flow.user_id, 
+            flow_id: flow.id, 
+            contact_id, 
+            channel_id: channel,
+            variables: execution.variables || {}
+          }, { onConflict: 'flow_id,contact_id,channel_id' })
+          .select()
+          .single();
+        if (created) execution = created;
+      } catch (e) {
+        console.warn("[runtime] falha ao auto-criar execution no banco", e);
+      }
     } else if (action !== "start" && clientState?.current_node_id) {
       execution = { ...execution, ...normalizeClientState(clientState), id: execution.id };
     }

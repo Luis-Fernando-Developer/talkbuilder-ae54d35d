@@ -104,6 +104,9 @@ export async function processRuntime(body: any) {
     } catch (e) {
       console.warn("[runtime] execution table missing", e);
     }
+    } catch (e) {
+      console.warn("[runtime] execution table missing", e);
+    }
   } else {
     try {
       const { data: executions } = await supabase
@@ -121,9 +124,31 @@ export async function processRuntime(body: any) {
   const clientState = payload?.runtime_state || body?.runtime_state || readMemoryState(memoryKey);
 
   if (!execution) {
-    execution = normalizeClientState(clientState);
+    execution = {
+      ...normalizeClientState(clientState),
+      flow_id: flow.id,
+      contact_id,
+      channel_id: channel,
+      workspace_id: flow.user_id
+    };
+    
+    try {
+      const { data: created } = await supabase
+        .from("flow_executions")
+        .upsert({ 
+          workspace_id: flow.user_id, 
+          flow_id: flow.id, 
+          contact_id, 
+          channel_id: channel,
+          variables: execution.variables || {}
+        }, { onConflict: 'flow_id,contact_id,channel_id' })
+        .select()
+        .single();
+      if (created) execution = created;
+    } catch (e) {
+      console.warn("[runtime] falha ao auto-criar execution no banco", e);
+    }
   } else if (action !== "start" && clientState?.current_node_id) {
-    // Apenas sobrescreve se o estado for válido
     const newState = normalizeClientState(clientState);
     if (newState.current_node_id) {
        execution = { ...execution, ...newState, id: execution.id };
