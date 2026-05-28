@@ -618,12 +618,26 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                 status: "waiting_input"
               };
             }
+            
+            // Fallback: se estamos no modo agente ou deveríamos estar, garantimos que ficamos parados aqui
+            status = "waiting_input";
+            return {
+              messages,
+              waiting_for: "text",
+              variables,
+              next_node_id: node.id,
+              active_agent_node_id: node.id,
+              mode: "agent",
+              steps,
+              status: "waiting_input"
+            };
           } catch (e) {
             console.error("[ai-agent] failed", e);
           }
         }
         break;
       }
+
 
       case "redirect": {
         const targetRef = cfg.targetFlow || cfg.targetFlowId;
