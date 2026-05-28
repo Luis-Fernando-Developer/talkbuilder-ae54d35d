@@ -123,7 +123,11 @@ export async function processRuntime(body: any) {
   if (!execution) {
     execution = normalizeClientState(clientState);
   } else if (action !== "start" && clientState?.current_node_id) {
-    execution = { ...execution, ...normalizeClientState(clientState), id: execution.id };
+    // Apenas sobrescreve se o estado for válido
+    const newState = normalizeClientState(clientState);
+    if (newState.current_node_id) {
+       execution = { ...execution, ...newState, id: execution.id };
+    }
   }
 
   // Executar Fluxo
@@ -163,9 +167,7 @@ export async function processRuntime(body: any) {
   return {
     messages: result.messages,
     waiting_for: result.waiting_for,
-
     wait_ms: result.wait_ms,
-
     buttons: result.buttons,
     session_id: session?.id ?? null,
     runtime_state: runtimeState,
@@ -205,12 +207,12 @@ function writeMemoryState(key: string, state: any) {
   runtimeMemory.set(key, { state, expiresAt: now + MEMORY_TTL_MS });
 }
 
-async function runFlow(execution: any, containersIn: any[], edgesIn: any[], input: any, flow: any, supabase: any, _visitedRedirects = new Set<string>()): Promise<any> {
+async function runFlow(execution: any, containersIn: any[], edgesIn: any[], input: any, flow: any, supabase: any, visitedRedirects = new Set<string>()): Promise<any> {
   const containers: any[] = containersIn;
   const edges: any[] = edgesIn;
   let currentNodeId: string | null = execution.current_node_id;
-  const activeAgentNodeId: string | null = execution.active_agent_node_id || null;
-  const mode: string = execution.runtime_mode || "flow";
+  let activeAgentNodeId: string | null = execution.active_agent_node_id || null;
+  let mode: string = execution.runtime_mode || "flow";
   const variables: Record<string, any> = { ...(execution.variables || {}) };
   const messages: any[] = [];
   let waiting_for: string | null = null;
@@ -236,37 +238,55 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
 
   const normalizeHandle = (value?: string | null) => {
     if (!value) return "";
-    const raw = String(value);
-    const buttonMatch = raw.match(/-btn-(.+)$/);
+    let raw = String(value);
+    // Remove prefixo de ID de node se existir (ex: node-123-cond-abc -> cond-abc)
+    if (raw.includes("-cond-")) raw = "cond-" + raw.split("-cond-")[1];
+    else if (raw.includes("-btn-")) raw = "btn-" + raw.split("-btn-")[1];
+    else if (raw.endsWith("-else")) raw = "else";
+    else if (raw.endsWith("-default")) raw = "default";
+    
+    // Legacy mapping
+    const buttonMatch = raw.match(/btn-(.+)$/);
     if (buttonMatch?.[1]) return buttonMatch[1];
-    if (raw.endsWith("-default")) return "default";
     return raw;
   };
 
   const nextFromNode = (nodeId: string, container: any, handle?: string, strictHandle = false): string | null => {
     const isInnerNodeHandle = (value?: string | null) =>
       !!value && String(value).startsWith(`${nodeId}-`);
-    const wantedHandle = normalizeHandle(handle);
+    
+    const wantedHandle = handle || "";
     const fromNode = edges.filter(
       (e: any) => e.source === nodeId || (e.source === container.id && isInnerNodeHandle(e.sourceHandle))
     );
-    let edge = fromNode.find((e: any) => wantedHandle && normalizeHandle(e.sourceHandle) === wantedHandle);
-    if (!edge && strictHandle) return null;
-    if (!edge && wantedHandle) edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === "default");
-    if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
-    if (!edge) edge = fromNode[0];
+
+    // 1. Tenta match de handle (exato ou normalizado)
+    let edge = fromNode.find((e: any) => 
+       wantedHandle && (e.sourceHandle === wantedHandle || normalizeHandle(e.sourceHandle) === normalizeHandle(wantedHandle))
+    );
+    
+    // 2. Fallbacks
+    if (!edge && !strictHandle) {
+       edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === "default" || normalizeHandle(e.sourceHandle) === "else");
+       if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
+    }
+
     if (edge) {
       if (findNode(edge.target)) return edge.target;
       const first = firstNodeOfContainer(edge.target);
       if (first) return first;
       return edge.target;
     }
+
+    // 3. Sequencial dentro do bloco
     if (container?.nodes?.length) {
       const idx = container.nodes.findIndex((n: any) => n.id === nodeId);
       if (idx >= 0 && idx < container.nodes.length - 1) {
         return container.nodes[idx + 1].id;
       }
     }
+
+    // 4. Edge saindo do container
     const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
     if (cEdge) {
       if (findNode(cEdge.target)) return cEdge.target;
@@ -319,47 +339,32 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     return `${supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl}`;
   };
 
-  // Execution Loop
-  const hasUserInput = !!(input && (input.message !== undefined || input.button_id !== undefined));
-  
-  // O input só é considerado uma resposta se o fluxo estivesse explicitamente aguardando por um.
-  // Caso contrário (ex: mensagem de "Oi" inicial), ele é apenas o gatilho que inicia o fluxo.
-  const isResponseToInput = !!(hasUserInput && execution.current_node_id && (
-    (execution.waiting_for_input === true) || 
-    (execution.runtime_mode === "agent")
-  ));
-  
-  // LOG PARA DEBUG
-  console.log(`[runtime] hasUserInput: ${hasUserInput}. isResponseToInput: ${isResponseToInput}. waiting_for_input: ${execution.waiting_for_input}. mode: ${execution.runtime_mode}`);
+  // 1. Processar Entrada (Resumo de Estado)
+  let inputConsumed = false;
+  if (input && (input.message !== undefined || input.button_id !== undefined)) {
+    const userValue = input.message ?? input.button_id;
+    variables["last_message"] = userValue;
 
-  if (hasUserInput) {
-    variables["last_message"] = input.message ?? input.button_id;
-  }
+    if (mode === "agent" && activeAgentNodeId) {
+       currentNodeId = activeAgentNodeId;
+    } else if (currentNodeId && execution.waiting_for_input) {
+       const info = findNode(currentNodeId);
+       if (info) {
+         const cfg = info.node.config || {};
+         const nodeType = (info.node.type || "").toLowerCase();
+         const varName = cfg.variableName || cfg.saveVariable;
+         if (varName && userValue !== undefined) variables[varName] = userValue;
 
-  if (isResponseToInput && currentNodeId) {
-    const info = findNode(currentNodeId);
-    if (info) {
-      const cfg = info.node.config || {};
-      const nodeType = (info.node.type || "").toLowerCase();
-      
-      if (nodeType === "ai-agent" || nodeType === "agent") {
-        console.log(`[runtime] Processando resposta no modo Agent: ${currentNodeId}`);
-        // No modo Agent, o nó se mantém até que algo mude o modo ou complete
-      } else {
-        const varName = cfg.variableName || cfg.saveVariable;
-        const userValue = input.message ?? input.button_id;
-        
-        console.log(`[runtime] Salvando input "${userValue}" na variável "${varName}"`);
-        if (varName && userValue !== undefined) {
-          variables[varName] = userValue;
-        }
-        
-        currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
-        console.log(`[runtime] Avançando para próximo node após processar resposta: ${currentNodeId}`);
-      }
+         if (nodeType !== "ai-agent" && nodeType !== "agent") {
+            currentNodeId = nextFromNode(info.node.id, info.container, input.button_id);
+            inputConsumed = true;
+            input = null; // Consumido para o loop
+         }
+       }
     }
   }
 
+  // 2. Iniciar Fluxo se necessário
   if (!currentNodeId) {
     for (const c of containers) {
       const startNode = (c.nodes || []).find((n: any) => n.type === "start");
@@ -368,36 +373,29 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         break;
       }
     }
-    
-    if (!currentNodeId) {
-      console.log(`[runtime] NENHUM NODE DE START ENCONTRADO nos ${containers.length} containers.`);
-      if (containers.length > 0 && containers[0].nodes?.length > 0) {
-        currentNodeId = containers[0].nodes[0].id;
-        console.log(`[runtime] Usando fallback: primeiro node do primeiro container (${currentNodeId})`);
-      }
+    if (!currentNodeId && containers.length > 0 && containers[0].nodes?.length > 0) {
+      currentNodeId = containers[0].nodes[0].id;
     }
   }
 
-  console.log(`[runtime] Node atual: ${currentNodeId}. Steps: ${steps}. Containers: ${containers.length}`);
-
+  // 3. Loop de Execução
   while (currentNodeId && steps < 100) {
     steps++;
     const info = findNode(currentNodeId);
     if (!info) {
-      console.log(`[runtime] Node não encontrado: ${currentNodeId}`);
-      break;
+       console.log(`[runtime] Node não encontrado: ${currentNodeId}. Resetando para o início.`);
+       currentNodeId = null; // Vai causar restart se houver próxima iteração ou fim do loop
+       break;
     }
 
     const { node, container } = info;
-    console.log(`[runtime] Processando node: ${node.id} (${node.type}). Config: ${JSON.stringify(node.config)}`);
-
-
     const cfg = node.config || {};
     const nodeType = (node.type || "").toLowerCase();
 
     if (nodeType === "wait" || nodeType === "await") {
       if (!execution.is_waiting_time) {
-        wait_ms = 5000; // Simplified wait
+        const seconds = Number(cfg.waitTime || cfg.duration || 5);
+        wait_ms = seconds * 1000;
         status = "paused";
         break; 
       } else {
@@ -408,6 +406,16 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
 
     if (nodeType.startsWith("input-")) {
+      // Se ainda temos input não consumido (ex: mensagem inicial do usuário), processamos ele aqui
+      if (input && (input.message !== undefined || input.button_id !== undefined)) {
+          const userValue = input.message ?? input.button_id;
+          const varName = cfg.variableName || cfg.saveVariable;
+          if (varName && userValue !== undefined) variables[varName] = userValue;
+          input = null;
+          currentNodeId = nextFromNode(node.id, container, input?.button_id);
+          continue;
+      }
+      
       waiting_for = nodeType === "input-buttons" ? "buttons" : "text";
       if (nodeType === "input-buttons") {
         buttons = (cfg.buttons || []).map((b: any) => ({
@@ -420,27 +428,16 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       break;
     }
 
-    // Nodes types
     switch (nodeType) {
       case "bubble-text":
       case "bubble-number": {
         const text = replaceVars(cfg.message || cfg.content || cfg.text || cfg.number || "");
-        console.log(`[runtime] Bubble text detectado: "${text}"`);
         if (text) messages.push({ id: crypto.randomUUID(), type: "bot", content: text });
         break;
       }
-
       case "bubble-image": {
         const url = getPublicImageUrl(cfg.ImageURL || cfg.imageUrl || cfg.url || cfg.src || "");
-        if (url) {
-          messages.push({ 
-            id: crypto.randomUUID(), 
-            type: "bot", 
-            content: url, 
-            isImage: true, 
-            alt: cfg.ImageAlt || cfg.alt 
-          });
-        }
+        if (url) messages.push({ id: crypto.randomUUID(), type: "bot", content: url, isImage: true, alt: cfg.ImageAlt || cfg.alt });
         break;
       }
       case "set-variable":
@@ -460,7 +457,7 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         
         let context = "";
         if (cfg.kbFilesEnabled && cfg.kbFiles?.length > 0) {
-          context = "\n\nBase de Conhecimento:\n" + cfg.kbFiles.map((f: any) => `Arquivo: ${f.name}\nConteúdo: ${f.content}`).join("\n---\n");
+          context = "\n\nConhecimento:\n" + cfg.kbFiles.map((f: any) => `### ${f.name}\n${f.content}`).join("\n");
         }
 
         if (activeKey && userPrompt) {
@@ -472,57 +469,32 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                 headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
                 body: JSON.stringify({
                   model: cfg.model || "gpt-4o-mini",
-                  messages: [
-                    { role: "system", content: systemPrompt + context }, 
-                    { role: "user", content: userPrompt }
-                  ],
+                  messages: [{ role: "system", content: systemPrompt + context }, { role: "user", content: userPrompt }],
                 }),
               });
               if (res.ok) {
                 const data: any = await res.json();
                 aiReply = data.choices?.[0]?.message?.content || "";
-              } else {
-                const err = await res.text();
-                console.error("[ai-node] OpenAI error:", err);
               }
             } else if (provider === "gemini") {
-              const model = cfg.model || "gemini-pro";
+              const model = cfg.model || "gemini-2.0-flash";
               const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${activeKey}`;
               const res = await fetch(url, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  contents: [{
-                    parts: [{ text: `System Instructions: ${systemPrompt}${context}\n\nUser Message: ${userPrompt}` }]
-                  }]
-                }),
+                body: JSON.stringify({ contents: [{ parts: [{ text: `Instructions: ${systemPrompt}${context}\n\nUser: ${userPrompt}` }] }] }),
               });
               if (res.ok) {
                 const data: any = await res.json();
                 aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-              } else {
-                const err = await res.text();
-                console.error("[ai-node] Gemini error:", err);
               }
             }
 
             if (aiReply) {
-              console.log(`[runtime] AI Reply: ${aiReply.substring(0, 50)}...`);
-              // Note: Only push message if it's NOT just saving to variable? 
-              // Usually AI nodes send the message directly too if configured or if no saveVariable is present.
-              // In this flow, the user has a bubble-text after the AI node using the variable.
-              // So we should save the variable.
-              if (cfg.saveVariable) {
-                variables[cfg.saveVariable] = aiReply;
-              } else {
-                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-              }
+              if (cfg.saveVariable) variables[cfg.saveVariable] = aiReply;
+              else messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
             }
-          } catch (e) {
-            console.error("[ai-node] failed", e);
-          }
-        } else {
-          console.warn("[ai-node] Missing key or prompt", { hasKey: !!activeKey, hasPrompt: !!userPrompt });
+          } catch (e) { console.error("[ai-node] failed", e); }
         }
         break;
       }
@@ -530,44 +502,17 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       case "agent": {
         const provider = (cfg.provider || "openai").toLowerCase();
         const activeKey = flow?.settings?.aiKeys?.[`${provider}Key`] || flow?.settings?.[`${provider}_key`] || cfg.apiKey;
+        const isFirstTime = execution.active_agent_node_id !== node.id || mode !== "agent";
         
-        // No modo flow, se acabamos de chegar no agente, não devemos usar o input que foi usado para o node anterior
-        const isFirstTimeInAgent = execution.active_agent_node_id !== node.id || execution.runtime_mode !== "agent";
-        
-        // Se isResponseToInput é true, significa que o usuário mandou uma mensagem.
-        // Se estamos no meio de um fluxo e acabamos de chegar no Agent node, 
-        // esse input.message era para o node anterior (ex: um input text).
-        // Só devemos processar o prompt se o agente já estava ativo ou se o modo já era agent.
-        const shouldProcessPrompt = !isFirstTimeInAgent || (execution.runtime_mode === "agent");
-        
-        const userPrompt = shouldProcessPrompt ? replaceVars(input?.message || variables["last_message"] || "").trim() : "";
-        const systemPrompt = replaceVars(cfg.systemPrompt || cfg.instructions || "Você é um agente inteligente.").trim();
-        
-        console.log(`[runtime] Node Agent: ${node.id}. isFirstTime: ${isFirstTimeInAgent}. shouldProcessPrompt: ${shouldProcessPrompt}. Key: ${!!activeKey}`);
-
         if (activeKey) {
           try {
-            // Se for a primeira vez chegando no node e tiver mensagem de boas vindas
-            if (isFirstTimeInAgent && cfg.welcomeMessage) {
-               const welcome = replaceVars(cfg.welcomeMessage);
-               console.log(`[runtime] Enviando welcome message do agente: ${welcome}`);
-               messages.push({ id: crypto.randomUUID(), type: "bot", content: welcome });
-               
-               return {
-                 messages,
-                 waiting_for: "text",
-                 variables,
-                 next_node_id: node.id,
-                 active_agent_node_id: node.id,
-                 mode: "agent",
-                 steps,
-                 status: "waiting_input"
-               };
+            if (isFirstTime && cfg.welcomeMessage) {
+               messages.push({ id: crypto.randomUUID(), type: "bot", content: replaceVars(cfg.welcomeMessage) });
+               return { messages, waiting_for: "text", variables, next_node_id: node.id, active_agent_node_id: node.id, mode: "agent", steps, status: "waiting_input" };
             }
 
-            // Se temos um prompt para processar
+            const userPrompt = replaceVars(input?.message || variables["last_message"] || "").trim();
             if (userPrompt) {
-              console.log(`[runtime] Agente processando prompt: ${userPrompt}`);
               let aiReply = "";
               if (provider === "openai") {
                 const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -575,78 +520,31 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                   headers: { "Authorization": `Bearer ${activeKey}`, "Content-Type": "application/json" },
                   body: JSON.stringify({
                     model: cfg.model || "gpt-4o-mini",
-                    messages: [
-                      { role: "system", content: systemPrompt }, 
-                      { role: "user", content: userPrompt }
-                    ],
+                    messages: [{ role: "system", content: cfg.instructions || "" }, { role: "user", content: userPrompt }],
                   }),
                 });
                 if (res.ok) {
                   const data: any = await res.json();
                   aiReply = data.choices?.[0]?.message?.content || "";
-                } else {
-                  console.error("[ai-agent] OpenAI error:", await res.text());
-                }
-              } else if (provider === "gemini") {
-                const model = cfg.model || "gemini-2.0-flash"; // Fallback para 2.0 se não especificado
-                const url = `https://generativelanguage.googleapis.com/v1beta/models/${cfg.model || model}:generateContent?key=${activeKey}`;
-                const res = await fetch(url, {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    contents: [{
-                      parts: [{ text: `Instructions: ${systemPrompt}\n\nUser: ${userPrompt}` }]
-                    }]
-                  }),
-                });
-                if (res.ok) {
-                  const data: any = await res.json();
-                  aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-                } else {
-                  console.error("[ai-agent] Gemini error:", await res.text());
                 }
               }
-
-              if (aiReply) {
-                console.log(`[runtime] Agente respondeu: ${aiReply.substring(0, 50)}...`);
-                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-              }
+              if (aiReply) messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
             }
             
-            // Sempre que chegamos ou estamos num Agent Node, devemos pausar e ficar nele
-            return {
-              messages,
-              waiting_for: "text",
-              variables,
-              next_node_id: node.id,
-              active_agent_node_id: node.id,
-              mode: "agent",
-              steps,
-              status: "waiting_input"
-            };
-          } catch (e) {
-            console.error("[ai-agent] exception", e);
-          }
-        } else {
-          console.warn("[ai-agent] Missing API Key");
+            return { messages, waiting_for: "text", variables, next_node_id: node.id, active_agent_node_id: node.id, mode: "agent", steps, status: "waiting_input" };
+          } catch (e) { console.error("[ai-agent] failed", e); }
         }
         break;
       }
-
-
       case "redirect": {
         const targetRef = cfg.targetFlow || cfg.targetFlowId;
-        if (targetRef) {
-          messages.push({ id: crypto.randomUUID(), type: "bot", content: "Redirecionando fluxo..." });
-        }
+        if (targetRef) messages.push({ id: crypto.randomUUID(), type: "bot", content: "Redirecionando..." });
         break;
       }
     }
 
     currentNodeId = nextFromNode(node.id, container);
-    console.log(`[runtime] Próximo node: ${currentNodeId}`);
   }
-
 
   if (!currentNodeId) status = "completed";
 
