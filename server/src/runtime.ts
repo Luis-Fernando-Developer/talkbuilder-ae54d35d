@@ -600,23 +600,23 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
                 }
               }
 
-                messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
-                
-                // Agents geralmente esperam nova resposta a menos que haja um gatilho de saída
-                status = "waiting_input";
-                return {
-                  messages,
-                  waiting_for: "text",
-                  wait_ms: 0,
-                  buttons: [],
-                  variables,
-                  next_node_id: node.id,
-                  active_agent_node_id: node.id,
-                  mode: "agent",
-                  steps,
-                  status: "waiting_input"
-                };
-              }
+            if (aiReply) {
+              console.log(`[runtime] Agente respondeu: ${aiReply.substring(0, 50)}...`);
+              messages.push({ id: crypto.randomUUID(), type: "bot", content: aiReply });
+              
+              // Agents geralmente esperam nova resposta a menos que haja um gatilho de saída
+              return {
+                messages,
+                waiting_for: "text",
+                wait_ms: 0,
+                buttons: [],
+                variables,
+                next_node_id: node.id,
+                active_agent_node_id: node.id,
+                mode: "agent",
+                steps,
+                status: "waiting_input"
+              };
             }
           } catch (e) {
             console.error("[ai-agent] failed", e);
@@ -624,6 +624,7 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         }
         break;
       }
+
       case "redirect": {
         const targetRef = cfg.targetFlow || cfg.targetFlowId;
         if (targetRef) {
