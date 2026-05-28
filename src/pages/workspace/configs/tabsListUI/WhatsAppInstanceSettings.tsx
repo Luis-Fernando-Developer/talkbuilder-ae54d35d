@@ -65,7 +65,7 @@ export default function WhatsAppInstanceSettings({ instanceName, isOpen, onClose
     const backend = import.meta.env.VITE_BACKEND_URL 
       ? `${import.meta.env.VITE_BACKEND_URL.replace(/\/$/, '')}/webhook/whatsapp`
       : window.location.origin.includes("lovable.app") 
-        ? `https://xllkibdddlmcdbrhzedu.supabase.co/functions/v1/whatsapp-webhook` 
+        ? `https://fwoescubnnagdvwasbjl.supabase.co/functions/v1/whatsapp-webhook` 
         : `${window.location.origin}/webhook/whatsapp`;
     
     return botId ? `${backend}?bot_id=${botId}` : backend;
