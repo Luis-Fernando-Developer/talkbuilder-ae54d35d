@@ -38,12 +38,19 @@ export async function processRuntime(body: any) {
   }
   console.log(`[runtime] Fluxo encontrado: ${flow.name} (${flow.id})`);
 
-  const containers = flow.published_containers || flow.draft_containers || [];
-  const edges = flow.published_edges || flow.draft_edges || [];
+  // 1.1. Selecionar Versão (Sempre preferir draft se for mais recente ou se published estiver vazio)
+  const useDraft = !flow.published_containers || flow.published_containers.length === 0 || 
+                   (flow.draft_updated_at && flow.published_at && new Date(flow.draft_updated_at) > new Date(flow.published_at));
+  
+  const containers = (useDraft ? flow.draft_containers : flow.published_containers) || [];
+  const edges = (useDraft ? flow.draft_edges : flow.published_edges) || [];
+
+  console.log(`[runtime] Usando versão: ${useDraft ? "DRAFT" : "PUBLISHED"}. Containers: ${containers.length}. Edges: ${edges.length}`);
 
   if (!containers.length) {
     throw new Error("Fluxo vazio (nenhum container)");
   }
+
 
   // 2. Session
   let session: any = null;
