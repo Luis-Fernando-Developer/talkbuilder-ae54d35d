@@ -483,7 +483,7 @@ export const TestPanel = ({
         if (nodeType.startsWith("input-")) {
           if (!input || (input.message === undefined && input.button_id === undefined)) {
             console.log("[node:waiting_input]", node.id);
-            waitingFor = nodeType === "input-buttons" ? "buttons" : "text";
+            waitingFor = nodeType === "input-buttons" ? "buttons" : nodeType;
             waitingForCfg = cfg;
             if (nodeType === "input-buttons") {
               nextButtons = cfg.buttons || [];
