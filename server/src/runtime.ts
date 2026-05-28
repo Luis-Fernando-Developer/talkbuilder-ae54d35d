@@ -236,7 +236,7 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     return c?.nodes?.[0]?.id ?? null;
   };
 
-  const normalizeHandle = (value?: string | null) => {
+  const normalizeHandle = (value: string | null | undefined, currentNodeId?: string) => {
     if (!value) return "";
     let raw = String(value);
     
@@ -252,7 +252,7 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     }
     
     // Se o handle for exatamente o ID do node, normalizamos para vazio para facilitar match padrão
-    if (raw === nodeId) return "";
+    if (currentNodeId && raw === currentNodeId) return "";
     
     // Legacy mapping para botões
     const buttonMatch = raw.match(/btn-(.+)$/);
@@ -274,15 +274,15 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     let edge = fromNode.find((e: any) => {
       if (!wantedHandle) {
         // Se não queremos um handle específico, aceitamos edges sem handle ou que apontem para o ID do node
-        return !e.sourceHandle || e.sourceHandle === nodeId || normalizeHandle(e.sourceHandle) === "";
+        return !e.sourceHandle || e.sourceHandle === nodeId || normalizeHandle(e.sourceHandle, nodeId) === "";
       }
-      return e.sourceHandle === wantedHandle || normalizeHandle(e.sourceHandle) === normalizeHandle(wantedHandle);
+      return e.sourceHandle === wantedHandle || normalizeHandle(e.sourceHandle, nodeId) === normalizeHandle(wantedHandle, nodeId);
     });
     
     // 2. Fallbacks de handle (default/else)
     if (!edge && !strictHandle) {
        edge = fromNode.find((e: any) => {
-         const norm = normalizeHandle(e.sourceHandle);
+         const norm = normalizeHandle(e.sourceHandle, nodeId);
          return norm === "default" || norm === "else";
        });
     }
