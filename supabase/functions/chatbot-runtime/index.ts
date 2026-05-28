@@ -405,11 +405,17 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
   };
 
   const evaluateComparison = (comparison: any) => {
-    const rawValue = getVariableValue(comparison?.variableName);
+    const rawVar = comparison?.variableName;
+    if (!rawVar) return false;
+    
+    const rawValue = getVariableValue(rawVar);
     const actual = rawValue == null ? "" : String(rawValue).trim();
     const expected = replaceVars(String(comparison?.value ?? "")).trim();
+    const op = comparison?.operator;
 
-    switch (comparison?.operator) {
+    console.log(`[runtime:compare] var=${rawVar} val="${actual}" op=${op} exp="${expected}"`);
+
+    switch (op) {
       case "equals": return actual === expected;
       case "not_equals": return actual !== expected;
       case "contains": return actual.includes(expected);
@@ -421,10 +427,10 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       case "starts_with": return actual.startsWith(expected);
       case "ends_with": return actual.endsWith(expected);
       case "matches_regex": {
-        try { return new RegExp(expected).test(actual); } catch { return false; }
+        try { return new RegExp(expected, "i").test(actual); } catch { return false; }
       }
       case "not_matches_regex": {
-        try { return !new RegExp(expected).test(actual); } catch { return true; }
+        try { return !new RegExp(expected, "i").test(actual); } catch { return true; }
       }
       default: return false;
     }
@@ -434,7 +440,10 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
     const comparisons = condition?.comparisons || [];
     if (!comparisons.length) return false;
     const results = comparisons.map(evaluateComparison);
-    return condition?.logicalOperator === "OR" ? results.some(Boolean) : results.every(Boolean);
+    const isOr = condition?.logicalOperator === "OR";
+    const final = isOr ? results.some(Boolean) : results.every(Boolean);
+    console.log(`[runtime:condition] group=${condition.id} op=${condition.logicalOperator} results=${results} final=${final}`);
+    return final;
   };
 
   const parseWaitMs = (cfg: any) => {
