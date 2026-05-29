@@ -905,8 +905,14 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       }
     }
 
-    currentNodeId = nextFromNode(node.id, container);
-    console.log(`[node:completed] ${node.id} → next: ${currentNodeId}`);
+    // Se não for um nó que controla o fluxo manualmente (como input, ai-agent, wait ou condition),
+    // avançamos automaticamente para o próximo nó.
+    if (["input-text", "input-buttons", "input-number", "input-email", "input-phone", "input-video", "input-image", "input-audio", "wait", "await", "ai-agent", "condition", "redirect"].includes(nodeType)) {
+      // Estes nós já gerenciam currentNodeId internamente (ou chamam break/continue)
+    } else {
+      currentNodeId = nextFromNode(node.id, container);
+      console.log(`[node:completed] ${node.id} → auto-next: ${currentNodeId}`);
+    }
   }
 
   if (!currentNodeId) status = "completed";
