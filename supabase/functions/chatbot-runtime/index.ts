@@ -803,7 +803,6 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
         
         let conditionHandle = "";
         if (matchedCondition) {
-          // Tenta IDs exatos de handle (geralmente formatados como nodeid-cond-condid)
           conditionHandle = `${node.id}-cond-${matchedCondition.id}`;
           console.log(`[runtime:condition] Matched condition ${matchedCondition.id}. Handle: ${conditionHandle}`);
         } else {
@@ -811,16 +810,22 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
           console.log(`[runtime:condition] No condition matched. Using else handle: ${conditionHandle}`);
         }
         
+        // Use true as fourth param to force edge lookup by handle
         let nextId = nextFromNode(node.id, container, conditionHandle, true);
         
-        // Se não encontrar pelo handle específico do node, tenta apenas o sufixo (fallback do normalizeHandle)
         if (!nextId) {
           const suffix = matchedCondition ? "cond" : "else";
           nextId = nextFromNode(node.id, container, suffix, false);
         }
-        
-        currentNodeId = nextId;
-        console.log(`[runtime:condition] Resulting nextId: ${currentNodeId}`);
+
+        if (!nextId) {
+           console.warn(`[runtime:condition_stuck] Nenhuma saída encontrada para o nó ${node.id}. Handle tentado: ${conditionHandle}`);
+           status = "completed";
+           currentNodeId = null;
+        } else {
+           currentNodeId = nextId;
+           console.log(`[runtime:condition] Resulting nextId: ${currentNodeId}`);
+        }
         continue;
       }
       case "redirect": {
@@ -900,8 +905,14 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       }
     }
 
-    currentNodeId = nextFromNode(node.id, container);
-    console.log(`[node:completed] ${node.id} → next: ${currentNodeId}`);
+    // Se não for um nó que controla o fluxo manualmente (como input, ai-agent, wait ou condition),
+    // avançamos automaticamente para o próximo nó.
+    if (["input-text", "input-buttons", "input-number", "input-email", "input-phone", "input-video", "input-image", "input-audio", "wait", "await", "ai-agent", "condition", "redirect"].includes(nodeType)) {
+      // Estes nós já gerenciam currentNodeId internamente (ou chamam break/continue)
+    } else {
+      currentNodeId = nextFromNode(node.id, container);
+      console.log(`[node:completed] ${node.id} → auto-next: ${currentNodeId}`);
+    }
   }
 
   if (!currentNodeId) status = "completed";
