@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
     const runtimeState = {
       current_node_id: result.next_node_id,
       active_agent_node_id: result.active_agent_node_id,
-      variables: result.variables,
+      variables: result.variables, // Explicitly pass the updated variables
       waiting_for_input: result.status === "waiting_input",
       mode: result.mode,
       is_waiting_time: result.wait_ms > 0,
@@ -346,7 +346,12 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       .trim();
 
   const replaceVars = (text: string) =>
-    !text ? text : decodeText(text).replace(/{{(.*?)}}/g, (_, k) => variables[k.trim()] ?? `{{${k}}}`);
+    !text ? text : decodeText(text).replace(/{{(.*?)}}/g, (_, k) => {
+      const key = k.trim();
+      const val = variables[key];
+      console.log(`[runtime:replaceVars] key="${key}" found=${val !== undefined} val="${val}"`);
+      return val !== undefined ? String(val) : `{{${k}}}`;
+    });
 
   const collectAgentSkills = (agentNodeId?: string | null) => containers.flatMap((container: any) =>
     (container.nodes || [])
