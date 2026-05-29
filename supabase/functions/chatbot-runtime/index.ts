@@ -820,11 +820,19 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
 
         if (!nextId) {
            console.warn(`[runtime:condition_stuck] Nenhuma saída encontrada para o nó ${node.id}. Handle tentado: ${conditionHandle}`);
-           status = "completed";
-           currentNodeId = null;
-        } else {
+           // Em vez de retornar completed e resetar no WhatsApp, vamos tentar forçar o fallback sequencial do nextFromNode
+           // que já lida com o array de nodes ou edges sem handle do container.
+           // Se nextFromNode com handles falhou, chamamos sem strict para usar os fallbacks de lá.
+           nextId = nextFromNode(node.id, container, undefined, false);
+        }
+
+        if (nextId) {
            currentNodeId = nextId;
            console.log(`[runtime:condition] Resulting nextId: ${currentNodeId}`);
+        } else {
+           console.error(`[runtime:condition_terminal] Fluxo interrompido no nó de condição ${node.id}`);
+           status = "completed";
+           currentNodeId = null;
         }
         continue;
       }
