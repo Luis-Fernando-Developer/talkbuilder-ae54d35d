@@ -284,26 +284,34 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
       (e: any) => e.source === nodeId || (e.source === container.id && isInnerNodeHandle(e.sourceHandle))
     );
 
-    // 1. Tenta match exato
-    let edge = fromNode.find((e: any) => e.sourceHandle === wantedHandle);
+    // 1. Tenta match de handle (exato ou normalizado)
+    let edge = fromNode.find((e: any) => {
+      if (!wantedHandle) {
+        // Se não queremos um handle específico, aceitamos:
+        // - Edges sem handle
+        // - Edges cujo handle é o próprio ID do node
+        // - Edges cujo handle normalizado é vazio ou "default"
+        const norm = normalizeHandle(e.sourceHandle);
+        return !e.sourceHandle || e.sourceHandle === nodeId || norm === "" || norm === "default";
+      }
+      return e.sourceHandle === wantedHandle || normalizeHandle(e.sourceHandle) === normalizedWanted;
+    });
 
-    // 2. Tenta match normalizado
-    if (!edge && normalizedWanted) {
-      edge = fromNode.find((e: any) => normalizeHandle(e.sourceHandle) === normalizedWanted);
-    }
-
-    // 3. Fallbacks para não-strict
+    // 2. Fallbacks de handle (default/else) para não-strict
     if (!edge && !strictHandle) {
       edge = fromNode.find((e: any) => {
         const h = normalizeHandle(e.sourceHandle);
         return h === "default" || h === "else";
       });
-      if (!edge) edge = fromNode.find((e: any) => !e.sourceHandle);
-      if (!edge) edge = fromNode[0];
+    }
+
+    // 3. Se ainda não achou e não é strict, pega o primeiro edge disponível do node
+    if (!edge && !strictHandle && !wantedHandle && fromNode.length > 0) {
+      edge = fromNode[0];
     }
 
     if (edge) {
-      console.log(`[runtime:nextFromNode] Edge encontrado! target=${edge.target} handle=${edge.sourceHandle}`);
+      console.log(`[runtime:nextFromNode] Edge encontrado! target=${edge.target} handle=${edge.sourceHandle || "(null)"}`);
       if (findNode(edge.target)) return edge.target;
       const first = firstNodeOfContainer(edge.target);
       if (first) return first;
@@ -312,18 +320,26 @@ async function runFlow(execution: any, containersIn: any[], edgesIn: any[], inpu
 
     console.log(`[runtime:nextFromNode] Nenhum edge encontrado. Voltando fallback sequencial.`);
     
-    // Fallback: avançar para o próximo node dentro do mesmo bloco (ordem do array).
-    if (container?.nodes?.length) {
+    // 4. Sequencial dentro do bloco (apenas se não for strictHandle)
+    if (!strictHandle && container?.nodes?.length) {
       const idx = container.nodes.findIndex((n: any) => n.id === nodeId);
       if (idx >= 0 && idx < container.nodes.length - 1) {
-        return container.nodes[idx + 1].id;
+        const nextId = container.nodes[idx + 1].id;
+        console.log(`[runtime:sequential] movendo de ${nodeId} para o próximo node no bloco: ${nextId}`);
+        return nextId;
       }
     }
-    const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
-    if (cEdge) {
-      if (findNode(cEdge.target)) return cEdge.target;
-      return firstNodeOfContainer(cEdge.target);
+
+    // 5. Edge saindo do container (apenas se não for strictHandle)
+    if (!strictHandle) {
+      const cEdge = edges.find((e: any) => e.source === container.id && !e.sourceHandle);
+      if (cEdge) {
+        console.log(`[runtime:container_exit] saindo do bloco ${container.id} para ${cEdge.target}`);
+        const targetId = findNode(cEdge.target) ? cEdge.target : firstNodeOfContainer(cEdge.target);
+        if (targetId) return targetId;
+      }
     }
+
     return null;
   };
 
