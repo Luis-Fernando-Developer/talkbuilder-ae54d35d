@@ -157,7 +157,7 @@ Deno.serve(async (req: Request) => {
     const runtimeState = {
       current_node_id: result.next_node_id,
       active_agent_node_id: result.active_agent_node_id,
-      variables: result.variables,
+      variables: result.variables, // Explicitly pass the updated variables
       waiting_for_input: result.status === "waiting_input",
       mode: result.mode,
       is_waiting_time: result.wait_ms > 0,
